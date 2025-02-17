@@ -8,7 +8,7 @@ import { Button } from "@/components/ui/button";
 import type { InsertItem } from "@shared/schema";
 
 interface ItemFormProps {
-  roomId: number;
+  roomId: string;
   onSuccess?: () => void;
 }
 
@@ -48,7 +48,11 @@ export default function ItemForm({ roomId, onSuccess }: ItemFormProps) {
       cost: costValue ? parseFloat(costValue) : null,
       warranty_info: formData.get("warranty_info") as string || null,
       category: formData.get("category") as string || null,
-      image_url: null // Handle file upload separately if needed
+      maintenance_notes: null,
+      installation_date: null,
+      status: 'pending',
+      image_url: null,
+      document_urls: []
     };
 
     createItem.mutate(item);

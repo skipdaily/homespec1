@@ -11,11 +11,17 @@ import Navbar from "./components/layout/navbar";
 import Home from "./pages/home";
 import Login from "./pages/login";
 import Dashboard from "./pages/dashboard";
+import Project from "./pages/project";
 import Room from "./pages/room";
 import NotFound from "./pages/not-found";
 
+interface PrivateRouteProps {
+  component: React.ComponentType<any>;
+  params?: Record<string, string>;
+}
+
 // Protected Route wrapper
-function PrivateRoute({ component: Component, ...rest }: { component: React.ComponentType<any> }) {
+function PrivateRoute({ component: Component, params }: PrivateRouteProps) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -43,7 +49,7 @@ function PrivateRoute({ component: Component, ...rest }: { component: React.Comp
     return null;
   }
 
-  return <Component {...rest} />;
+  return <Component {...params} />;
 }
 
 function Router() {
@@ -54,7 +60,10 @@ function Router() {
         <Route path="/" component={Home} />
         <Route path="/login" component={Login} />
         <Route path="/dashboard">
-          {(params) => <PrivateRoute component={Dashboard} params={params} />}
+          {() => <PrivateRoute component={Dashboard} />}
+        </Route>
+        <Route path="/project/:id">
+          {(params) => <PrivateRoute component={Project} params={params} />}
         </Route>
         <Route path="/room/:id">
           {(params) => <PrivateRoute component={Room} params={params} />}

@@ -16,17 +16,17 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import type { Room } from "@shared/schema";
+import type { Project } from "@shared/schema";
 
 export default function Dashboard() {
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
 
-  const { data: rooms, isLoading } = useQuery<Room[]>({
-    queryKey: ["rooms"],
+  const { data: projects, isLoading } = useQuery<Project[]>({
+    queryKey: ["projects"],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("rooms")
+        .from("projects")
         .select("*")
         .order("created_at", { ascending: false });
 
@@ -35,20 +35,20 @@ export default function Dashboard() {
     }
   });
 
-  const createRoom = useMutation({
+  const createProject = useMutation({
     mutationFn: async (data: { name: string; description: string }) => {
       const { error } = await supabase
-        .from("rooms")
+        .from("projects")
         .insert([data]);
 
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["rooms"] });
+      queryClient.invalidateQueries({ queryKey: ["projects"] });
       setOpen(false);
       toast({
         title: "Success",
-        description: "Room created successfully"
+        description: "Project created successfully"
       });
     }
   });
@@ -56,7 +56,7 @@ export default function Dashboard() {
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
-    createRoom.mutate({
+    createProject.mutate({
       name: formData.get("name") as string,
       description: formData.get("description") as string
     });
@@ -69,30 +69,30 @@ export default function Dashboard() {
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">My Rooms</h1>
+        <h1 className="text-3xl font-bold">My Projects</h1>
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
             <Button>
               <Plus className="mr-2 h-4 w-4" />
-              Add Room
+              Add Project
             </Button>
           </DialogTrigger>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Add New Room</DialogTitle>
+              <DialogTitle>Create New Project</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
               <Input 
                 name="name"
-                placeholder="Room Name"
+                placeholder="Project Name"
                 required
               />
               <Textarea
                 name="description"
-                placeholder="Description"
+                placeholder="Project Description"
               />
               <Button type="submit" className="w-full">
-                Create Room
+                Create Project
               </Button>
             </form>
           </DialogContent>
@@ -100,14 +100,17 @@ export default function Dashboard() {
       </div>
 
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {rooms?.map((room) => (
-          <Link key={room.id} href={`/room/${room.id}`}>
+        {projects?.map((project) => (
+          <Link key={project.id} href={`/project/${project.id}`}>
             <Card className="cursor-pointer hover:bg-muted/50 transition-colors">
               <CardHeader>
-                <CardTitle>{room.name}</CardTitle>
+                <CardTitle>{project.name}</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-muted-foreground">{room.description}</p>
+                <p className="text-muted-foreground">{project.description}</p>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Status: {project.status}
+                </p>
               </CardContent>
             </Card>
           </Link>

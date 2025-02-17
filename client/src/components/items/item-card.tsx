@@ -33,11 +33,11 @@ export default function ItemCard({ item }: ItemCardProps) {
           </div>
         )}
 
-        {item.cost && (
+        {item.cost !== null && (
           <div>
             <div className="text-sm font-medium">Cost</div>
             <div className="text-sm text-muted-foreground">
-              ${typeof item.cost === 'string' ? parseFloat(item.cost).toFixed(2) : item.cost.toFixed(2)}
+              ${item.cost.toFixed(2)}
             </div>
           </div>
         )}

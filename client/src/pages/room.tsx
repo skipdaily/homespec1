@@ -1,6 +1,5 @@
 import { useState } from "react";
-import { useQuery, useMutation } from "@tanstack/react-query";
-import { queryClient } from "@/lib/queryClient";
+import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import ItemForm from "@/components/items/item-form";
 import ItemCard from "@/components/items/item-card";
@@ -17,7 +16,7 @@ import type { Room, Item } from "@shared/schema";
 
 export default function RoomPage({ params }: { params: { id: string } }) {
   const [open, setOpen] = useState(false);
-  const roomId = parseInt(params.id);
+  const roomId = params.id;
 
   const { data: room } = useQuery<Room>({
     queryKey: ["room", roomId],
@@ -54,7 +53,7 @@ export default function RoomPage({ params }: { params: { id: string } }) {
           <h1 className="text-3xl font-bold">{room?.name}</h1>
           <p className="text-muted-foreground">{room?.description}</p>
         </div>
-        
+
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
             <Button>
