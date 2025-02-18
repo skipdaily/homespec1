@@ -157,7 +157,7 @@ export default function RoomPage({ id }: RoomPageProps) {
               Add Finish
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden">
             <DialogHeader>
               <DialogTitle>Add New Finish</DialogTitle>
               <h2 className="text-lg font-medium mt-2">Material</h2>
@@ -177,8 +177,8 @@ export default function RoomPage({ id }: RoomPageProps) {
                   )}
                 </Button>
 
-                <ScrollArea className="h-[60vh] pr-4">
-                  <div className="space-y-4">
+                <ScrollArea className="h-[60vh]">
+                  <div className="space-y-4 pr-4">
                     <FormField
                       control={form.control}
                       name="name"
@@ -186,7 +186,7 @@ export default function RoomPage({ id }: RoomPageProps) {
                         <FormItem>
                           <FormLabel>Name*</FormLabel>
                           <FormControl>
-                            <Input placeholder="Finish name" {...field} />
+                            <Input placeholder="Finish name" {...field} value={field.value || ''} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -200,7 +200,7 @@ export default function RoomPage({ id }: RoomPageProps) {
                         <FormItem>
                           <FormLabel>Category*</FormLabel>
                           <FormControl>
-                            <Input placeholder="e.g., Paint, Flooring, Hardware" {...field} />
+                            <Input placeholder="e.g., Paint, Flooring, Hardware" {...field} value={field.value || ''} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -215,7 +215,7 @@ export default function RoomPage({ id }: RoomPageProps) {
                           <FormItem>
                             <FormLabel>Manufacturer</FormLabel>
                             <FormControl>
-                              <Input placeholder="Manufacturer name" {...field} />
+                              <Input placeholder="Manufacturer name" {...field} value={field.value || ''} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -229,7 +229,7 @@ export default function RoomPage({ id }: RoomPageProps) {
                           <FormItem>
                             <FormLabel>Supplier</FormLabel>
                             <FormControl>
-                              <Input placeholder="Supplier name" {...field} />
+                              <Input placeholder="Supplier name" {...field} value={field.value || ''} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -245,7 +245,7 @@ export default function RoomPage({ id }: RoomPageProps) {
                           <FormItem>
                             <FormLabel>Color</FormLabel>
                             <FormControl>
-                              <Input placeholder="Color" {...field} />
+                              <Input placeholder="Color" {...field} value={field.value || ''} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -259,7 +259,7 @@ export default function RoomPage({ id }: RoomPageProps) {
                           <FormItem>
                             <FormLabel>Material</FormLabel>
                             <FormControl>
-                              <Input placeholder="Material type" {...field} />
+                              <Input placeholder="Material type" {...field} value={field.value || ''} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -275,7 +275,7 @@ export default function RoomPage({ id }: RoomPageProps) {
                           <FormItem>
                             <FormLabel>Dimensions</FormLabel>
                             <FormControl>
-                              <Input placeholder="Dimensions" {...field} />
+                              <Input placeholder="Dimensions" {...field} value={field.value || ''} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -289,7 +289,7 @@ export default function RoomPage({ id }: RoomPageProps) {
                           <FormItem>
                             <FormLabel>Model Number</FormLabel>
                             <FormControl>
-                              <Input placeholder="Model number" {...field} />
+                              <Input placeholder="Model number" {...field} value={field.value || ''} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -304,7 +304,7 @@ export default function RoomPage({ id }: RoomPageProps) {
                         <FormItem>
                           <FormLabel>Specifications</FormLabel>
                           <FormControl>
-                            <Textarea placeholder="Product specifications" {...field} />
+                            <Textarea placeholder="Product specifications" {...field} value={field.value || ''} />
                           </FormControl>
                           <FormMessage />
                         </FormItem>
@@ -319,7 +319,7 @@ export default function RoomPage({ id }: RoomPageProps) {
                           <FormItem>
                             <FormLabel>Warranty Information</FormLabel>
                             <FormControl>
-                              <Textarea placeholder="Warranty details" {...field} />
+                              <Textarea placeholder="Warranty details" {...field} value={field.value || ''} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -333,7 +333,7 @@ export default function RoomPage({ id }: RoomPageProps) {
                           <FormItem>
                             <FormLabel>Maintenance Instructions</FormLabel>
                             <FormControl>
-                              <Textarea placeholder="Maintenance details" {...field} />
+                              <Textarea placeholder="Maintenance details" {...field} value={field.value || ''} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -353,6 +353,7 @@ export default function RoomPage({ id }: RoomPageProps) {
                               step="0.01"
                               placeholder="Cost"
                               {...field}
+                              value={field.value || ''}
                               onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
                             />
                           </FormControl>
@@ -397,7 +398,7 @@ export default function RoomPage({ id }: RoomPageProps) {
             )}
             {finish.cost && (
               <p className="text-sm text-muted-foreground">
-                Cost: ${finish.cost.toFixed(2)}
+                Cost: ${typeof finish.cost === 'number' ? finish.cost.toFixed(2) : finish.cost}
               </p>
             )}
           </div>
