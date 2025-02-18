@@ -1,12 +1,13 @@
 import { db } from "./db";
 import { eq } from "drizzle-orm";
-import { projects, rooms, items } from "@shared/schema";
-import type { Project, InsertProject, Room, InsertRoom, Item, InsertItem } from "@shared/schema";
+import { projects, rooms, finishes } from "@shared/schema";
+import type { Project, InsertProject, Room, InsertRoom, Finish, InsertFinish } from "@shared/schema";
 
 export interface IStorage {
   // Project operations
   getProject(id: string): Promise<Project | undefined>;
   getProjectsByUserId(userId: string): Promise<Project[]>;
+  getProjectByAccessCode(accessCode: string): Promise<Project | undefined>;
   createProject(project: InsertProject): Promise<Project>;
 
   // Room operations
@@ -14,10 +15,10 @@ export interface IStorage {
   getRoomsByProjectId(projectId: string): Promise<Room[]>;
   createRoom(room: InsertRoom): Promise<Room>;
 
-  // Item operations
-  getItem(id: string): Promise<Item | undefined>;
-  getItemsByRoomId(roomId: string): Promise<Item[]>;
-  createItem(item: InsertItem): Promise<Item>;
+  // Finish operations
+  getFinish(id: string): Promise<Finish | undefined>;
+  getFinishesByRoomId(roomId: string): Promise<Finish[]>;
+  createFinish(finish: InsertFinish): Promise<Finish>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -28,6 +29,11 @@ export class DatabaseStorage implements IStorage {
 
   async getProjectsByUserId(userId: string): Promise<Project[]> {
     return await db.select().from(projects).where(eq(projects.user_id, userId));
+  }
+
+  async getProjectByAccessCode(accessCode: string): Promise<Project | undefined> {
+    const [project] = await db.select().from(projects).where(eq(projects.access_code, accessCode));
+    return project;
   }
 
   async createProject(project: InsertProject): Promise<Project> {
@@ -49,17 +55,17 @@ export class DatabaseStorage implements IStorage {
     return created;
   }
 
-  async getItem(id: string): Promise<Item | undefined> {
-    const [item] = await db.select().from(items).where(eq(items.id, id));
-    return item;
+  async getFinish(id: string): Promise<Finish | undefined> {
+    const [finish] = await db.select().from(finishes).where(eq(finishes.id, id));
+    return finish;
   }
 
-  async getItemsByRoomId(roomId: string): Promise<Item[]> {
-    return await db.select().from(items).where(eq(items.room_id, roomId));
+  async getFinishesByRoomId(roomId: string): Promise<Finish[]> {
+    return await db.select().from(finishes).where(eq(finishes.room_id, roomId));
   }
 
-  async createItem(item: InsertItem): Promise<Item> {
-    const [created] = await db.insert(items).values(item).returning();
+  async createFinish(finish: InsertFinish): Promise<Finish> {
+    const [created] = await db.insert(finishes).values(finish).returning();
     return created;
   }
 }
