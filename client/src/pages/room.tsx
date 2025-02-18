@@ -159,9 +159,22 @@ export default function RoomPage({ id }: RoomPageProps) {
           <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>Add New Finish</DialogTitle>
+              <h2 className="text-lg font-medium mt-2">Material</h2>
             </DialogHeader>
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <Button
+                  type="submit"
+                  className="w-full mb-6"
+                  disabled={createFinish.isPending}
+                >
+                  {createFinish.isPending ? (
+                    <>Saving...</>
+                  ) : (
+                    <>Save Finish</>
+                  )}
+                </Button>
+
                 <FormField
                   control={form.control}
                   name="name"
@@ -343,18 +356,6 @@ export default function RoomPage({ id }: RoomPageProps) {
                     </FormItem>
                   )}
                 />
-
-                <Button
-                  type="submit"
-                  className="w-full mt-6"
-                  disabled={createFinish.isPending}
-                >
-                  {createFinish.isPending ? (
-                    <>Saving...</>
-                  ) : (
-                    <>Save Finish</>
-                  )}
-                </Button>
               </form>
             </Form>
           </DialogContent>
