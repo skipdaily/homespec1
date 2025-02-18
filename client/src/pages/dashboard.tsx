@@ -14,7 +14,6 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import type { Project } from "@shared/schema";
@@ -35,31 +34,50 @@ export default function Dashboard() {
   const { data: projects, isLoading } = useQuery<Project[]>({
     queryKey: ["projects"],
     queryFn: async () => {
+      if (!session?.user?.id) return [];
+
       const { data, error } = await supabase
         .from("projects")
         .select("*")
+        .eq('user_id', session.user.id)
         .order("created_at", { ascending: false });
 
-      if (error) throw error;
-      return data;
+      if (error) {
+        console.error("Error fetching projects:", error);
+        throw error;
+      }
+      return data || [];
     },
-    enabled: !!session // Only fetch projects when we have a session
+    enabled: !!session?.user?.id
   });
 
   const createProject = useMutation({
     mutationFn: async (data: { address: string; builder_name: string }) => {
       if (!session?.user?.id) {
-        throw new Error("No user ID found");
+        throw new Error("Please login to create a project");
       }
 
-      const { error } = await supabase
-        .from("projects")
-        .insert([{ 
-          ...data, 
-          user_id: session.user.id,
-        }]);
+      // Generate a unique access code
+      const access_code = Math.random().toString(36).substring(2, 12);
 
-      if (error) throw error;
+      const { data: newProject, error } = await supabase
+        .from("projects")
+        .insert([{
+          user_id: session.user.id,
+          address: data.address,
+          builder_name: data.builder_name,
+          access_code,
+          completion_date: null
+        }])
+        .select()
+        .single();
+
+      if (error) {
+        console.error("Project creation error:", error);
+        throw error;
+      }
+
+      return newProject;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["projects"] });
@@ -69,7 +87,7 @@ export default function Dashboard() {
         description: "Project created successfully"
       });
     },
-    onError: (error) => {
+    onError: (error: Error) => {
       toast({
         title: "Error",
         description: error.message,
@@ -90,13 +108,17 @@ export default function Dashboard() {
   if (!session) {
     return (
       <div className="container mx-auto px-4 py-8">
-        <p>Please login to view your projects</p>
+        <p className="text-center">Please login to view your projects</p>
       </div>
     );
   }
 
   if (isLoading) {
-    return <div className="container mx-auto px-4 py-8">Loading...</div>;
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <p className="text-center">Loading your projects...</p>
+      </div>
+    );
   }
 
   return (
