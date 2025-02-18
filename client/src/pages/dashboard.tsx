@@ -10,6 +10,7 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
+  DialogDescription,
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -22,6 +23,15 @@ export default function Dashboard() {
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
 
+  // Get current user session
+  const { data: session } = useQuery({
+    queryKey: ["session"],
+    queryFn: async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      return session;
+    }
+  });
+
   const { data: projects, isLoading } = useQuery<Project[]>({
     queryKey: ["projects"],
     queryFn: async () => {
@@ -32,14 +42,22 @@ export default function Dashboard() {
 
       if (error) throw error;
       return data;
-    }
+    },
+    enabled: !!session // Only fetch projects when we have a session
   });
 
   const createProject = useMutation({
-    mutationFn: async (data: { name: string; description: string }) => {
+    mutationFn: async (data: { address: string; builder_name: string }) => {
+      if (!session?.user?.id) {
+        throw new Error("No user ID found");
+      }
+
       const { error } = await supabase
         .from("projects")
-        .insert([data]);
+        .insert([{ 
+          ...data, 
+          user_id: session.user.id,
+        }]);
 
       if (error) throw error;
     },
@@ -50,6 +68,13 @@ export default function Dashboard() {
         title: "Success",
         description: "Project created successfully"
       });
+    },
+    onError: (error) => {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive"
+      });
     }
   });
 
@@ -57,10 +82,18 @@ export default function Dashboard() {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     createProject.mutate({
-      name: formData.get("name") as string,
-      description: formData.get("description") as string
+      address: formData.get("address") as string,
+      builder_name: formData.get("builder_name") as string,
     });
   };
+
+  if (!session) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <p>Please login to view your projects</p>
+      </div>
+    );
+  }
 
   if (isLoading) {
     return <div className="container mx-auto px-4 py-8">Loading...</div>;
@@ -80,19 +113,27 @@ export default function Dashboard() {
           <DialogContent>
             <DialogHeader>
               <DialogTitle>Create New Project</DialogTitle>
+              <DialogDescription>
+                Add a new home project to document its finishes and materials.
+              </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
               <Input 
-                name="name"
-                placeholder="Project Name"
+                name="address"
+                placeholder="Property Address"
                 required
               />
-              <Textarea
-                name="description"
-                placeholder="Project Description"
+              <Input 
+                name="builder_name"
+                placeholder="Builder Name"
+                required
               />
-              <Button type="submit" className="w-full">
-                Create Project
+              <Button 
+                type="submit" 
+                className="w-full"
+                disabled={createProject.isPending}
+              >
+                {createProject.isPending ? "Creating..." : "Create Project"}
               </Button>
             </form>
           </DialogContent>
@@ -104,13 +145,15 @@ export default function Dashboard() {
           <Link key={project.id} href={`/project/${project.id}`}>
             <Card className="cursor-pointer hover:bg-muted/50 transition-colors">
               <CardHeader>
-                <CardTitle>{project.name}</CardTitle>
+                <CardTitle>{project.address}</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-muted-foreground">{project.description}</p>
-                <p className="text-sm text-muted-foreground mt-2">
-                  Status: {project.status}
-                </p>
+                <p className="text-muted-foreground">Builder: {project.builder_name}</p>
+                {project.completion_date && (
+                  <p className="text-sm text-muted-foreground mt-2">
+                    Completion: {new Date(project.completion_date).toLocaleDateString()}
+                  </p>
+                )}
               </CardContent>
             </Card>
           </Link>
