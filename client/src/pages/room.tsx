@@ -346,15 +346,18 @@ export default function RoomPage({ id }: RoomPageProps) {
                       name="cost"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Cost</FormLabel>
+                          <FormLabel>Cost (Optional)</FormLabel>
                           <FormControl>
                             <Input
                               type="number"
                               step="0.01"
                               placeholder="Cost"
                               {...field}
-                              value={field.value || ''}
-                              onChange={(e) => field.onChange(e.target.value ? parseFloat(e.target.value) : undefined)}
+                              value={field.value === undefined ? '' : field.value}
+                              onChange={(e) => {
+                                const value = e.target.value;
+                                field.onChange(value === '' ? undefined : parseFloat(value));
+                              }}
                             />
                           </FormControl>
                           <FormMessage />
