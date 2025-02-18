@@ -18,55 +18,65 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Link } from "wouter";
 import type { Project, Room } from "@shared/schema";
 
-export default function ProjectPage({ params }: { params: { id: string } }) {
+interface ProjectPageProps {
+  id?: string;
+}
+
+export default function ProjectPage({ id }: ProjectPageProps) {
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
-  const projectId = params.id;
 
   const { data: project } = useQuery<Project>({
-    queryKey: ["project", projectId],
+    queryKey: ["project", id],
     queryFn: async () => {
+      if (!id) throw new Error("No project ID provided");
+
       const { data, error } = await supabase
         .from("projects")
         .select("*")
-        .eq("id", projectId)
+        .eq("id", id)
         .single();
 
       if (error) throw error;
       return data;
-    }
+    },
+    enabled: !!id
   });
 
   const { data: rooms } = useQuery<Room[]>({
-    queryKey: ["rooms", projectId],
+    queryKey: ["rooms", id],
     queryFn: async () => {
+      if (!id) throw new Error("No project ID provided");
+
       const { data, error } = await supabase
         .from("rooms")
         .select("*")
-        .eq("project_id", projectId)
+        .eq("project_id", id)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
       return data;
-    }
+    },
+    enabled: !!id
   });
 
   const createRoom = useMutation({
     mutationFn: async (data: {
       name: string;
-      description: string;
+      description?: string;
       floor_number?: number;
-      room_type?: string;
       dimensions?: string;
     }) => {
+      if (!id) throw new Error("No project ID provided");
+
       const { error } = await supabase
         .from("rooms")
-        .insert([{ ...data, project_id: projectId }]);
+        .insert([{ ...data, project_id: id }]);
 
       if (error) throw error;
     },
     onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["rooms", projectId] });
+      queryClient.invalidateQueries({ queryKey: ["rooms", id] });
       setOpen(false);
       toast({
         title: "Success",
@@ -78,25 +88,29 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
-    
+
     const floorNumber = formData.get("floor_number");
     createRoom.mutate({
       name: formData.get("name") as string,
-      description: formData.get("description") as string,
+      description: formData.get("description") as string || undefined,
       floor_number: floorNumber ? parseInt(floorNumber as string) : undefined,
-      room_type: formData.get("room_type") as string || undefined,
       dimensions: formData.get("dimensions") as string || undefined
     });
   };
+
+  if (!project) {
+    return <div>Loading...</div>;
+  }
 
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-3xl font-bold">{project?.name}</h1>
-          <p className="text-muted-foreground">{project?.description}</p>
+          <h1 className="text-3xl font-bold">{project.name}</h1>
+          <p className="text-muted-foreground">Address: {project.address}</p>
+          <p className="text-muted-foreground">Builder: {project.builder_name}</p>
         </div>
-        
+
         <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
             <Button>
@@ -125,14 +139,10 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
                   placeholder="Floor Number"
                 />
                 <Input 
-                  name="room_type"
-                  placeholder="Room Type"
+                  name="dimensions"
+                  placeholder="Dimensions (e.g., 12' x 15')"
                 />
               </div>
-              <Input 
-                name="dimensions"
-                placeholder="Dimensions (e.g., 12' x 15')"
-              />
               <Button type="submit" className="w-full">
                 Add Room
               </Button>
@@ -150,11 +160,6 @@ export default function ProjectPage({ params }: { params: { id: string } }) {
               </CardHeader>
               <CardContent>
                 <p className="text-muted-foreground">{room.description}</p>
-                {room.room_type && (
-                  <p className="text-sm text-muted-foreground mt-2">
-                    Type: {room.room_type}
-                  </p>
-                )}
                 {room.floor_number !== null && (
                   <p className="text-sm text-muted-foreground">
                     Floor: {room.floor_number}

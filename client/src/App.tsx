@@ -17,7 +17,7 @@ import NotFound from "./pages/not-found";
 
 interface PrivateRouteProps {
   component: React.ComponentType<any>;
-  params?: Record<string, string>;
+  params?: { [key: string]: string };
 }
 
 // Protected Route wrapper
