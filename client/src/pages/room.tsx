@@ -89,7 +89,7 @@ export default function RoomPage({ id }: RoomPageProps) {
   });
 
   const createFinish = useMutation({
-    mutationFn: async (data: Partial<InsertFinish>) => {
+    mutationFn: async (data: InsertFinish) => {
       if (!id) throw new Error("No room ID provided");
 
       const { error } = await supabase
@@ -157,7 +157,7 @@ export default function RoomPage({ id }: RoomPageProps) {
               Add Finish
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-hidden">
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto"> {/* Added overflow-y-auto */}
             <DialogHeader>
               <DialogTitle>Add New Finish</DialogTitle>
               <h2 className="text-lg font-medium mt-2">Material</h2>
