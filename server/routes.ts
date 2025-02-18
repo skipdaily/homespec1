@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertRoomSchema, insertFinishSchema, insertProjectSchema } from "@shared/schema";
+import { insertRoomSchema, insertItemSchema, insertProjectSchema } from "@shared/schema";
 import { ZodError } from "zod";
 import { nanoid } from "nanoid";
 
@@ -88,25 +88,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Item routes (modified to include projectId)
-  app.get("/api/projects/:projectId/rooms/:roomId/items", async (req, res) => {
-    const roomId = parseInt(req.params.roomId);
-    if (isNaN(roomId)) {
-      return res.status(400).json({ message: "Invalid room ID" });
-    }
-
-    const items = await storage.getItemsByRoomId(roomId);
+  // Item routes
+  app.get("/api/rooms/:roomId/items", async (req, res) => {
+    const items = await storage.getItemsByRoomId(req.params.roomId);
     res.json(items);
   });
 
-  app.post("/api/projects/:projectId/rooms/:roomId/items", async (req, res) => {
+  app.post("/api/rooms/:roomId/items", async (req, res) => {
     try {
-      const roomId = parseInt(req.params.roomId);
-      if (isNaN(roomId)) {
-        return res.status(400).json({ message: "Invalid room ID" });
-      }
-
-      const itemData = insertItemSchema.parse({ ...req.body, room_id: roomId, project_id: req.params.projectId });
+      const itemData = insertItemSchema.parse({
+        ...req.body,
+        room_id: req.params.roomId
+      });
       const item = await storage.createItem(itemData);
       res.status(201).json(item);
     } catch (error) {
@@ -117,7 +110,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     }
   });
-
 
   const httpServer = createServer(app);
   return httpServer;

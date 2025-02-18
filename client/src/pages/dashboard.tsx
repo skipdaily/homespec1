@@ -52,7 +52,7 @@ export default function Dashboard() {
   });
 
   const createProject = useMutation({
-    mutationFn: async (data: { address: string; builder_name: string }) => {
+    mutationFn: async (data: { address: string; builder_name: string; completion_date: string | null }) => {
       if (!session?.user?.id) {
         throw new Error("Please login to create a project");
       }
@@ -64,11 +64,11 @@ export default function Dashboard() {
         .from("projects")
         .insert([{
           user_id: session.user.id,
-          name: data.address, // Use address as the project name
+          name: data.address, // Use address as the name
           address: data.address,
           builder_name: data.builder_name,
           access_code,
-          completion_date: null
+          completion_date: data.completion_date,
         }])
         .select()
         .single();
@@ -103,6 +103,8 @@ export default function Dashboard() {
     createProject.mutate({
       address: formData.get("address") as string,
       builder_name: formData.get("builder_name") as string,
+      completion_date: formData.get("completion_date") as string | null,
+
     });
   };
 
@@ -141,18 +143,23 @@ export default function Dashboard() {
               </DialogDescription>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <Input 
+              <Input
                 name="address"
                 placeholder="Property Address"
                 required
               />
-              <Input 
+              <Input
                 name="builder_name"
                 placeholder="Builder Name"
                 required
               />
-              <Button 
-                type="submit" 
+              <Input
+                name="completion_date"
+                type="date"
+                placeholder="Completion Date"
+              />
+              <Button
+                type="submit"
                 className="w-full"
                 disabled={createProject.isPending}
               >

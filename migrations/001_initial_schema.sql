@@ -18,9 +18,10 @@ create policy "Users can only access their own data"
 create table public.projects (
   id uuid primary key default uuid_generate_v4(),
   user_id uuid references auth.users not null,
+  name text not null,
   address text not null,
   builder_name text not null,
-  completion_date date,
+  completion_date date, -- Making this nullable
   access_code text not null unique,
   created_at timestamp with time zone default now() not null
 );
