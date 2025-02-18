@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "wouter";
+import { useLocation } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { supabase } from "@/lib/supabase";
@@ -21,6 +21,7 @@ import type { Project } from "@shared/schema";
 export default function Dashboard() {
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
+  const [, setLocation] = useLocation();
 
   // Get current user session
   const { data: session } = useQuery({
@@ -52,7 +53,7 @@ export default function Dashboard() {
   });
 
   const createProject = useMutation({
-    mutationFn: async (data: { address: string; builder_name: string; completion_date: string | null }) => {
+    mutationFn: async (data: { name: string; address: string; builder_name: string }) => {
       if (!session?.user?.id) {
         throw new Error("Please login to create a project");
       }
@@ -64,11 +65,10 @@ export default function Dashboard() {
         .from("projects")
         .insert([{
           user_id: session.user.id,
-          name: data.address, // Use address as the name
+          name: data.name,
           address: data.address,
           builder_name: data.builder_name,
           access_code,
-          completion_date: data.completion_date,
         }])
         .select()
         .single();
@@ -80,13 +80,15 @@ export default function Dashboard() {
 
       return newProject;
     },
-    onSuccess: () => {
+    onSuccess: (newProject) => {
       queryClient.invalidateQueries({ queryKey: ["projects"] });
       setOpen(false);
       toast({
         title: "Success",
         description: "Project created successfully"
       });
+      // Navigate to the new project
+      setLocation(`/project/${newProject.id}`);
     },
     onError: (error: Error) => {
       toast({
@@ -101,10 +103,9 @@ export default function Dashboard() {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     createProject.mutate({
+      name: formData.get("name") as string,
       address: formData.get("address") as string,
       builder_name: formData.get("builder_name") as string,
-      completion_date: formData.get("completion_date") as string | null,
-
     });
   };
 
@@ -144,6 +145,11 @@ export default function Dashboard() {
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
               <Input
+                name="name"
+                placeholder="Project Name"
+                required
+              />
+              <Input
                 name="address"
                 placeholder="Property Address"
                 required
@@ -152,11 +158,6 @@ export default function Dashboard() {
                 name="builder_name"
                 placeholder="Builder Name"
                 required
-              />
-              <Input
-                name="completion_date"
-                type="date"
-                placeholder="Completion Date"
               />
               <Button
                 type="submit"
@@ -175,15 +176,13 @@ export default function Dashboard() {
           <Link key={project.id} href={`/project/${project.id}`}>
             <Card className="cursor-pointer hover:bg-muted/50 transition-colors">
               <CardHeader>
-                <CardTitle>{project.address}</CardTitle>
+                <CardTitle>{project.name}</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-muted-foreground">Builder: {project.builder_name}</p>
-                {project.completion_date && (
-                  <p className="text-sm text-muted-foreground mt-2">
-                    Completion: {new Date(project.completion_date).toLocaleDateString()}
-                  </p>
-                )}
+                <p className="text-muted-foreground">Address: {project.address}</p>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Builder: {project.builder_name}
+                </p>
               </CardContent>
             </Card>
           </Link>

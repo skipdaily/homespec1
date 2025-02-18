@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertRoomSchema, insertItemSchema, insertProjectSchema } from "@shared/schema";
+import { insertRoomSchema, insertFinishSchema, insertProjectSchema } from "@shared/schema";
 import { ZodError } from "zod";
 import { nanoid } from "nanoid";
 
@@ -66,16 +66,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Finish routes
+  app.get("/api/projects/:projectId/finishes", async (req, res) => {
+    const finishes = await storage.getFinishesByProjectId(req.params.projectId);
+    res.json(finishes);
+  });
+
   app.get("/api/rooms/:roomId/finishes", async (req, res) => {
     const finishes = await storage.getFinishesByRoomId(req.params.roomId);
     res.json(finishes);
   });
 
-  app.post("/api/rooms/:roomId/finishes", async (req, res) => {
+  app.post("/api/projects/:projectId/finishes", async (req, res) => {
     try {
       const finishData = insertFinishSchema.parse({
         ...req.body,
-        room_id: req.params.roomId
+        project_id: req.params.projectId,
+        // room_id is optional, will be passed in body if needed
       });
       const finish = await storage.createFinish(finishData);
       res.status(201).json(finish);

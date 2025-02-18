@@ -9,7 +9,6 @@ export const projects = pgTable("projects", {
   name: text("name").notNull(),
   address: text("address").notNull(),
   builder_name: text("builder_name").notNull(),
-  completion_date: date("completion_date"), // Nullable
   access_code: text("access_code").notNull().unique(),
   created_at: timestamp("created_at").defaultNow().notNull()
 });
@@ -22,23 +21,28 @@ export const rooms = pgTable("rooms", {
   floor_number: integer("floor_number"),
   description: text("description"),
   dimensions: text("dimensions"),
-  created_at: timestamp("created_at").defaultNow().notNull()
+  created_at: timestamp("created_at").defaultNow().notNull(),
+  updated_at: timestamp("updated_at").defaultNow().notNull()
 });
 
-// Items in rooms
-export const items = pgTable("items", {
+// Finishes and materials
+export const finishes = pgTable("finishes", {
   id: uuid("id").primaryKey().defaultRandom(),
-  room_id: uuid("room_id").notNull().references(() => rooms.id),
+  room_id: uuid("room_id").references(() => rooms.id), // Optional for exterior/general items
+  project_id: uuid("project_id").notNull().references(() => projects.id),
   name: text("name").notNull(),
-  brand: text("brand"),
+  category: text("category").notNull(), // e.g., "Paint", "Flooring", "Doors", "Hardware"
+  manufacturer: text("manufacturer"),
   supplier: text("supplier"),
+  color: text("color"),
+  material: text("material"),
+  dimensions: text("dimensions"),
+  model_number: text("model_number"),
   specifications: text("specifications"),
-  cost: numeric("cost", { precision: 10, scale: 2 }),
   warranty_info: text("warranty_info"),
-  category: text("category"),
-  maintenance_notes: text("maintenance_notes"),
+  maintenance_instructions: text("maintenance_instructions"),
   installation_date: date("installation_date"),
-  status: text("status").notNull().default("pending"),
+  cost: numeric("cost", { precision: 10, scale: 2 }),
   image_url: text("image_url"),
   document_urls: text("document_urls").array(),
   created_at: timestamp("created_at").defaultNow().notNull(),
@@ -53,10 +57,11 @@ export const insertProjectSchema = createInsertSchema(projects).omit({
 
 export const insertRoomSchema = createInsertSchema(rooms).omit({ 
   id: true,
-  created_at: true 
+  created_at: true,
+  updated_at: true
 });
 
-export const insertItemSchema = createInsertSchema(items).omit({ 
+export const insertFinishSchema = createInsertSchema(finishes).omit({ 
   id: true,
   created_at: true,
   updated_at: true
@@ -67,5 +72,5 @@ export type Project = typeof projects.$inferSelect;
 export type InsertProject = z.infer<typeof insertProjectSchema>;
 export type Room = typeof rooms.$inferSelect;
 export type InsertRoom = z.infer<typeof insertRoomSchema>;
-export type Item = typeof items.$inferSelect;
-export type InsertItem = z.infer<typeof insertItemSchema>;
+export type Finish = typeof finishes.$inferSelect;
+export type InsertFinish = z.infer<typeof insertFinishSchema>;

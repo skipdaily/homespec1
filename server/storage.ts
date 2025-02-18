@@ -1,7 +1,7 @@
 import { db } from "./db";
 import { eq } from "drizzle-orm";
-import { projects, rooms, items } from "@shared/schema";
-import type { Project, InsertProject, Room, InsertRoom, Item, InsertItem } from "@shared/schema";
+import { projects, rooms, finishes } from "@shared/schema";
+import type { Project, InsertProject, Room, InsertRoom, Finish, InsertFinish } from "@shared/schema";
 
 export interface IStorage {
   // Project operations
@@ -15,10 +15,11 @@ export interface IStorage {
   getRoomsByProjectId(projectId: string): Promise<Room[]>;
   createRoom(room: InsertRoom): Promise<Room>;
 
-  // Item operations
-  getItem(id: string): Promise<Item | undefined>;
-  getItemsByRoomId(roomId: string): Promise<Item[]>;
-  createItem(item: InsertItem): Promise<Item>;
+  // Finish operations
+  getFinish(id: string): Promise<Finish | undefined>;
+  getFinishesByProjectId(projectId: string): Promise<Finish[]>;
+  getFinishesByRoomId(roomId: string): Promise<Finish[]>;
+  createFinish(finish: InsertFinish): Promise<Finish>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -55,17 +56,21 @@ export class DatabaseStorage implements IStorage {
     return created;
   }
 
-  async getItem(id: string): Promise<Item | undefined> {
-    const [item] = await db.select().from(items).where(eq(items.id, id));
-    return item;
+  async getFinish(id: string): Promise<Finish | undefined> {
+    const [finish] = await db.select().from(finishes).where(eq(finishes.id, id));
+    return finish;
   }
 
-  async getItemsByRoomId(roomId: string): Promise<Item[]> {
-    return await db.select().from(items).where(eq(items.room_id, roomId));
+  async getFinishesByProjectId(projectId: string): Promise<Finish[]> {
+    return await db.select().from(finishes).where(eq(finishes.project_id, projectId));
   }
 
-  async createItem(item: InsertItem): Promise<Item> {
-    const [created] = await db.insert(items).values(item).returning();
+  async getFinishesByRoomId(roomId: string): Promise<Finish[]> {
+    return await db.select().from(finishes).where(eq(finishes.room_id, roomId));
+  }
+
+  async createFinish(finish: InsertFinish): Promise<Finish> {
+    const [created] = await db.insert(finishes).values(finish).returning();
     return created;
   }
 }
