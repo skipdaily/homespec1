@@ -64,6 +64,7 @@ export default function Dashboard() {
         .from("projects")
         .insert([{
           user_id: session.user.id,
+          name: data.address, // Use address as the project name
           address: data.address,
           builder_name: data.builder_name,
           access_code,
