@@ -90,14 +90,14 @@ export default function RoomPage({ id }: RoomPageProps) {
 
   const createFinish = useMutation({
     mutationFn: async (data: InsertFinish) => {
-      if (!id) throw new Error("No room ID provided");
+      if (!id || !room) throw new Error("No room ID provided");
 
       const { error } = await supabase
         .from("finishes")
         .insert([{
           ...data,
           room_id: id,
-          project_id: room?.project_id
+          project_id: room.project_id
         }]);
 
       if (error) throw error;
@@ -120,12 +120,8 @@ export default function RoomPage({ id }: RoomPageProps) {
     }
   });
 
-  const onSubmit = async (data: InsertFinish) => {
-    try {
-      await createFinish.mutateAsync(data);
-    } catch (error) {
-      console.error('Error creating finish:', error);
-    }
+  const onSubmit = (data: InsertFinish) => {
+    createFinish.mutate(data);
   };
 
   if (!room) {
@@ -157,7 +153,7 @@ export default function RoomPage({ id }: RoomPageProps) {
               Add Finish
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto"> {/* Added overflow-y-auto */}
+          <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Add New Finish</DialogTitle>
               <h2 className="text-lg font-medium mt-2">Material</h2>
