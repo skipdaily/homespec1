@@ -119,8 +119,12 @@ export default function RoomPage({ id }: RoomPageProps) {
     }
   });
 
-  const onSubmit = (data: InsertFinish) => {
-    createFinish.mutate(data);
+  const onSubmit = async (data: InsertFinish) => {
+    try {
+      await createFinish.mutateAsync(data);
+    } catch (error) {
+      console.error('Error creating finish:', error);
+    }
   };
 
   if (!room) {
@@ -340,8 +344,16 @@ export default function RoomPage({ id }: RoomPageProps) {
                   )}
                 />
 
-                <Button type="submit" className="w-full">
-                  {createFinish.isPending ? "Adding..." : "Add Finish"}
+                <Button
+                  type="submit"
+                  className="w-full mt-6"
+                  disabled={createFinish.isPending}
+                >
+                  {createFinish.isPending ? (
+                    <>Saving...</>
+                  ) : (
+                    <>Save Finish</>
+                  )}
                 </Button>
               </form>
             </Form>
