@@ -121,13 +121,23 @@ export default function RoomPage({ id }: RoomPageProps) {
         const { data, error } = await supabase
           .from("finishes")
           .insert([{
-            ...values,
+            name: values.name,
+            category: values.category,
+            manufacturer: values.manufacturer || null,
+            supplier: values.supplier || null,
+            color: values.color || null,
+            material: values.material || null,
+            dimensions: values.dimensions || null,
+            model_number: values.model_number || null,
+            specifications: values.specifications || null,
+            warranty_info: values.warranty_info || null,
+            maintenance_instructions: values.maintenance_instructions || null,
+            installation_date: values.installation_date || null,
+            cost: values.cost || null,
             room_id: id,
             project_id: room.project_id,
-            // Ensure these fields are properly typed
-            cost: values.cost || null,
-            installation_date: values.installation_date || null,
-            document_urls: values.document_urls || [],
+            document_urls: [],
+            image_url: null
           }])
           .select()
           .single();
@@ -137,19 +147,30 @@ export default function RoomPage({ id }: RoomPageProps) {
             code: error.code,
             message: error.message,
             details: error.details,
-            hint: error.hint
+            hint: error.hint,
+            status: error.status
           });
-          throw error;
+          throw new Error(`Database error: ${error.message}`);
+        }
+
+        if (!data) {
+          throw new Error("No data returned from database");
         }
 
         console.log("Successfully created finish:", data);
         return data;
-      } catch (error) {
-        console.error("Detailed error:", error);
+      } catch (error: any) {
+        console.error("Error creating finish:", {
+          name: error.name,
+          message: error.message,
+          stack: error.stack,
+          cause: error.cause
+        });
         throw error;
       }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
+      console.log("Mutation succeeded with data:", data);
       queryClient.invalidateQueries({ queryKey: ["finishes", id] });
       setOpen(false);
       form.reset();
@@ -159,14 +180,10 @@ export default function RoomPage({ id }: RoomPageProps) {
       });
     },
     onError: (error: Error) => {
-      console.error("Error creating finish:", {
-        name: error.name,
-        message: error.message,
-        stack: error.stack
-      });
+      console.error("Mutation failed:", error);
       toast({
-        title: "Error",
-        description: `Failed to save finish: ${error.message}`,
+        title: "Failed to save finish",
+        description: error.message,
         variant: "destructive"
       });
     }
