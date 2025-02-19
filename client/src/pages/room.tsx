@@ -90,6 +90,7 @@ export default function RoomPage({ id }: RoomPageProps) {
 
   const createFinish = useMutation({
     mutationFn: async (data: InsertFinish) => {
+      console.log("Creating finish with data:", data);
       if (!id || !room) throw new Error("No room ID provided");
 
       const { error } = await supabase
@@ -103,6 +104,7 @@ export default function RoomPage({ id }: RoomPageProps) {
       if (error) throw error;
     },
     onSuccess: () => {
+      console.log("Finish created successfully");
       queryClient.invalidateQueries({ queryKey: ["finishes", id] });
       setOpen(false);
       form.reset();
@@ -112,6 +114,7 @@ export default function RoomPage({ id }: RoomPageProps) {
       });
     },
     onError: (error: Error) => {
+      console.error("Error creating finish:", error);
       toast({
         title: "Error",
         description: error.message,
@@ -120,8 +123,9 @@ export default function RoomPage({ id }: RoomPageProps) {
     }
   });
 
-  const onSubmit = (data: InsertFinish) => {
-    createFinish.mutate(data);
+  const onSubmit = (values: InsertFinish) => {
+    console.log("Form submitted with values:", values);
+    createFinish.mutate(values);
   };
 
   if (!room) {
@@ -161,18 +165,6 @@ export default function RoomPage({ id }: RoomPageProps) {
 
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                <Button
-                  type="submit"
-                  className="w-full mb-6"
-                  disabled={createFinish.isPending}
-                >
-                  {createFinish.isPending ? (
-                    <>Saving...</>
-                  ) : (
-                    <>Save Finish</>
-                  )}
-                </Button>
-
                 <ScrollArea className="h-[60vh]">
                   <div className="space-y-4 pr-4">
                     <FormField
@@ -362,6 +354,14 @@ export default function RoomPage({ id }: RoomPageProps) {
                     />
                   </div>
                 </ScrollArea>
+
+                <Button
+                  type="submit"
+                  className="w-full"
+                  disabled={createFinish.isPending}
+                >
+                  {createFinish.isPending ? "Saving..." : "Save Finish"}
+                </Button>
               </form>
             </Form>
           </DialogContent>
