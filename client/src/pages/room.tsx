@@ -57,6 +57,9 @@ export default function RoomPage({ id }: RoomPageProps) {
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
 
+  console.log("Room ID from props:", id);
+
+
   const form = useForm<FinishFormValues>({
     resolver: zodResolver(finishFormSchema),
     defaultValues: {
@@ -94,6 +97,7 @@ export default function RoomPage({ id }: RoomPageProps) {
     },
     enabled: !!id
   });
+  console.log("Room data from query:", room);
 
   const { data: finishes } = useQuery<Finish[]>({
     queryKey: ["finishes", id],
@@ -134,8 +138,7 @@ export default function RoomPage({ id }: RoomPageProps) {
             maintenance_instructions: values.maintenance_instructions || null,
             installation_date: values.installation_date || null,
             cost: values.cost || null,
-            room_id: id,
-            project_id: room.project_id,
+            room_id: id, // This should already be a UUID from the route
             document_urls: [],
             image_url: null
           }])
@@ -147,10 +150,9 @@ export default function RoomPage({ id }: RoomPageProps) {
             code: error.code,
             message: error.message,
             details: error.details,
-            hint: error.hint,
-            status: error.status
+            hint: error.hint
           });
-          throw new Error(`Database error: ${error.message}`);
+          throw new Error(`Failed to save finish: ${error.message}`);
         }
 
         if (!data) {
@@ -191,6 +193,8 @@ export default function RoomPage({ id }: RoomPageProps) {
 
   const onSubmit = (values: FinishFormValues) => {
     console.log("Form submitted with values:", values);
+    console.log("Current room ID:", id);
+    console.log("Current room data:", room);
     createFinish.mutate(values);
   };
 
