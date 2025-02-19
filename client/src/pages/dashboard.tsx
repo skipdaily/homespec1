@@ -53,7 +53,12 @@ export default function Dashboard() {
   });
 
   const createProject = useMutation({
-    mutationFn: async (data: { name: string; address: string; builder_name: string }) => {
+    mutationFn: async (data: { 
+      name: string; 
+      address: string; 
+      builder_name: string; 
+      completion_date?: string; 
+    }) => {
       if (!session?.user?.id) {
         throw new Error("Please login to create a project");
       }
@@ -68,6 +73,7 @@ export default function Dashboard() {
           name: data.name,
           address: data.address,
           builder_name: data.builder_name,
+          completion_date: data.completion_date || null,
           access_code,
         }])
         .select()
@@ -106,6 +112,7 @@ export default function Dashboard() {
       name: formData.get("name") as string,
       address: formData.get("address") as string,
       builder_name: formData.get("builder_name") as string,
+      completion_date: formData.get("completion_date") as string | undefined,
     });
   };
 
@@ -158,6 +165,11 @@ export default function Dashboard() {
                 name="builder_name"
                 placeholder="Builder Name"
                 required
+              />
+              <Input
+                type="date"
+                name="completion_date"
+                placeholder="Expected Completion Date (Optional)"
               />
               <Button
                 type="submit"

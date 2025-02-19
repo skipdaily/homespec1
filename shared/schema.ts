@@ -10,6 +10,7 @@ export const projects = pgTable("projects", {
   address: text("address").notNull(),
   builder_name: text("builder_name").notNull(),
   access_code: text("access_code").notNull().unique(),
+  completion_date: date("completion_date"),
   created_at: timestamp("created_at").defaultNow().notNull()
 });
 
