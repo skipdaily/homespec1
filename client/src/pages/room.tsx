@@ -12,6 +12,7 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import {
   Form,
@@ -26,7 +27,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import type { Room, Finish } from "@shared/schema";
 
-// Create a simplified schema for the form
+// Create a schema for the form that matches the database
 const finishFormSchema = z.object({
   name: z.string().min(1, "Name is required"),
   category: z.string().min(1, "Category is required"),
@@ -34,6 +35,15 @@ const finishFormSchema = z.object({
   supplier: z.string().optional(),
   color: z.string().optional(),
   material: z.string().optional(),
+  dimensions: z.string().optional(),
+  model_number: z.string().optional(),
+  specifications: z.string().optional(),
+  warranty_info: z.string().optional(),
+  maintenance_instructions: z.string().optional(),
+  installation_date: z.string().optional(),
+  cost: z.number().optional(),
+  document_urls: z.array(z.string()).optional(),
+  image_url: z.string().optional(),
 });
 
 type FinishFormValues = z.infer<typeof finishFormSchema>;
@@ -55,6 +65,15 @@ export default function RoomPage({ id }: RoomPageProps) {
       supplier: "",
       color: "",
       material: "",
+      dimensions: "",
+      model_number: "",
+      specifications: "",
+      warranty_info: "",
+      maintenance_instructions: "",
+      installation_date: "",
+      cost: undefined,
+      document_urls: [],
+      image_url: "",
     },
   });
 
@@ -102,7 +121,7 @@ export default function RoomPage({ id }: RoomPageProps) {
         .insert([{
           ...values,
           room_id: id,
-          project_id: room.project_id
+          project_id: room.project_id,
         }])
         .select()
         .single();
@@ -167,96 +186,215 @@ export default function RoomPage({ id }: RoomPageProps) {
               Add Finish
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-w-2xl">
             <DialogHeader>
               <DialogTitle>Add New Finish</DialogTitle>
             </DialogHeader>
 
             <Form {...form}>
               <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="name"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Name*</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Enter finish name" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="category"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Category*</FormLabel>
+                        <FormControl>
+                          <Input placeholder="e.g., Paint, Flooring" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="manufacturer"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Manufacturer</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Manufacturer name" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="supplier"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Supplier</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Supplier name" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="color"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Color</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Color" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="material"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Material</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Material type" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="dimensions"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Dimensions</FormLabel>
+                        <FormControl>
+                          <Input placeholder="e.g., 10x12" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="model_number"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Model Number</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Model number" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+
                 <FormField
                   control={form.control}
-                  name="name"
+                  name="specifications"
                   render={({ field }) => (
                     <FormItem>
-                      <FormLabel>Name*</FormLabel>
+                      <FormLabel>Specifications</FormLabel>
                       <FormControl>
-                        <Input {...field} placeholder="Enter finish name" />
+                        <Textarea placeholder="Product specifications" {...field} />
                       </FormControl>
                       <FormMessage />
                     </FormItem>
                   )}
                 />
 
-                <FormField
-                  control={form.control}
-                  name="category"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Category*</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="e.g., Paint, Flooring" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="warranty_info"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Warranty Information</FormLabel>
+                        <FormControl>
+                          <Textarea placeholder="Warranty details" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-                <FormField
-                  control={form.control}
-                  name="manufacturer"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Manufacturer</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="Manufacturer name" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                  <FormField
+                    control={form.control}
+                    name="maintenance_instructions"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Maintenance Instructions</FormLabel>
+                        <FormControl>
+                          <Textarea placeholder="Maintenance details" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
 
-                <FormField
-                  control={form.control}
-                  name="supplier"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Supplier</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="Supplier name" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                <div className="grid grid-cols-2 gap-4">
+                  <FormField
+                    control={form.control}
+                    name="installation_date"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Installation Date</FormLabel>
+                        <FormControl>
+                          <Input type="date" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
 
-                <FormField
-                  control={form.control}
-                  name="color"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Color</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="Color" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="material"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Material</FormLabel>
-                      <FormControl>
-                        <Input {...field} placeholder="Material type" />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+                  <FormField
+                    control={form.control}
+                    name="cost"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Cost</FormLabel>
+                        <FormControl>
+                          <Input
+                            type="number"
+                            step="0.01"
+                            placeholder="0.00"
+                            {...field}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              field.onChange(value === "" ? undefined : parseFloat(value));
+                            }}
+                          />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
 
                 <Button
                   type="submit"
@@ -296,6 +434,41 @@ export default function RoomPage({ id }: RoomPageProps) {
             {finish.material && (
               <p className="text-sm text-muted-foreground">
                 Material: {finish.material}
+              </p>
+            )}
+            {finish.dimensions && (
+              <p className="text-sm text-muted-foreground">
+                Dimensions: {finish.dimensions}
+              </p>
+            )}
+            {finish.model_number && (
+              <p className="text-sm text-muted-foreground">
+                Model: {finish.model_number}
+              </p>
+            )}
+            {finish.specifications && (
+              <p className="text-sm text-muted-foreground">
+                Specifications: {finish.specifications}
+              </p>
+            )}
+            {finish.warranty_info && (
+              <p className="text-sm text-muted-foreground">
+                Warranty: {finish.warranty_info}
+              </p>
+            )}
+            {finish.maintenance_instructions && (
+              <p className="text-sm text-muted-foreground">
+                Maintenance: {finish.maintenance_instructions}
+              </p>
+            )}
+            {finish.installation_date && (
+              <p className="text-sm text-muted-foreground">
+                Installed: {finish.installation_date}
+              </p>
+            )}
+            {finish.cost !== null && (
+              <p className="text-sm text-muted-foreground">
+                Cost: ${finish.cost.toFixed(2)}
               </p>
             )}
           </div>
