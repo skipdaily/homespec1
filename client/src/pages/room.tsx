@@ -117,22 +117,37 @@ export default function RoomPage({ id }: RoomPageProps) {
       console.log("Creating finish with values:", values);
       if (!id || !room) throw new Error("No room ID provided");
 
-      const { data, error } = await supabase
-        .from("finishes")
-        .insert([{
-          ...values,
-          room_id: id,
-          project_id: room.project_id,
-        }])
-        .select()
-        .single();
+      try {
+        const { data, error } = await supabase
+          .from("finishes")
+          .insert([{
+            ...values,
+            room_id: id,
+            project_id: room.project_id,
+            // Ensure these fields are properly typed
+            cost: values.cost || null,
+            installation_date: values.installation_date || null,
+            document_urls: values.document_urls || [],
+          }])
+          .select()
+          .single();
 
-      if (error) {
-        console.error("Supabase error:", error);
+        if (error) {
+          console.error("Supabase error details:", {
+            code: error.code,
+            message: error.message,
+            details: error.details,
+            hint: error.hint
+          });
+          throw error;
+        }
+
+        console.log("Successfully created finish:", data);
+        return data;
+      } catch (error) {
+        console.error("Detailed error:", error);
         throw error;
       }
-
-      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["finishes", id] });
@@ -144,10 +159,14 @@ export default function RoomPage({ id }: RoomPageProps) {
       });
     },
     onError: (error: Error) => {
-      console.error("Error creating finish:", error);
+      console.error("Error creating finish:", {
+        name: error.name,
+        message: error.message,
+        stack: error.stack
+      });
       toast({
         title: "Error",
-        description: error.message,
+        description: `Failed to save finish: ${error.message}`,
         variant: "destructive"
       });
     }
