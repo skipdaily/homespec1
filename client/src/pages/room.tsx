@@ -122,6 +122,7 @@ export default function RoomPage({ id }: RoomPageProps) {
       if (!id || !room) throw new Error("No room ID provided");
 
       try {
+        console.log("Attempting to insert finish with room_id:", id);
         const { data, error } = await supabase
           .from("finishes")
           .insert([{
@@ -138,7 +139,7 @@ export default function RoomPage({ id }: RoomPageProps) {
             maintenance_instructions: values.maintenance_instructions || null,
             installation_date: values.installation_date || null,
             cost: values.cost || null,
-            room_id: id, // This should already be a UUID from the route
+            room_id: id,
             document_urls: [],
             image_url: null
           }])
@@ -150,9 +151,10 @@ export default function RoomPage({ id }: RoomPageProps) {
             code: error.code,
             message: error.message,
             details: error.details,
-            hint: error.hint
+            hint: error.hint,
+            status: error.status
           });
-          throw new Error(`Failed to save finish: ${error.message}`);
+          throw error;
         }
 
         if (!data) {
@@ -166,9 +168,12 @@ export default function RoomPage({ id }: RoomPageProps) {
           name: error.name,
           message: error.message,
           stack: error.stack,
-          cause: error.cause
+          cause: error.cause,
+          supabaseError: error.error,
+          statusCode: error.status,
+          statusText: error.statusText
         });
-        throw error;
+        throw new Error(`Failed to save finish: ${error.message || 'Unknown error occurred'}`);
       }
     },
     onSuccess: (data) => {
