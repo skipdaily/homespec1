@@ -143,37 +143,29 @@ export default function RoomPage({ id }: RoomPageProps) {
             document_urls: [],
             image_url: null
           }])
-          .select()
-          .single();
+          .select();
 
         if (error) {
           console.error("Supabase error details:", {
             code: error.code,
             message: error.message,
             details: error.details,
-            hint: error.hint,
-            status: error.status
+            hint: error.hint
           });
           throw error;
         }
 
-        if (!data) {
-          throw new Error("No data returned from database");
-        }
-
-        console.log("Successfully created finish:", data);
-        return data;
+        console.log("Successfully created finish with data:", data);
+        return data[0];
       } catch (error: any) {
         console.error("Error creating finish:", {
-          name: error.name,
-          message: error.message,
-          stack: error.stack,
-          cause: error.cause,
-          supabaseError: error.error,
-          statusCode: error.status,
-          statusText: error.statusText
+          error,
+          message: error?.message,
+          details: error?.details,
+          hint: error?.hint,
+          code: error?.code
         });
-        throw new Error(`Failed to save finish: ${error.message || 'Unknown error occurred'}`);
+        throw new Error(error?.message || "Failed to save finish");
       }
     },
     onSuccess: (data) => {
@@ -189,8 +181,8 @@ export default function RoomPage({ id }: RoomPageProps) {
     onError: (error: Error) => {
       console.error("Mutation failed:", error);
       toast({
-        title: "Failed to save finish",
-        description: error.message,
+        title: "Error",
+        description: error.message || "Failed to save finish",
         variant: "destructive"
       });
     }
