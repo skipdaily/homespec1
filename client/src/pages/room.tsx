@@ -2,50 +2,22 @@ import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { supabase } from "@/lib/supabase";
-import { Plus, ChevronDown, ChevronUp, Pencil, Trash2, History } from "lucide-react";
+import { Plus, ChevronDown, ChevronUp, Pencil, Trash2, History, Home, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog";
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
-import {
-  Form,
-  FormControl,
-  FormField,
-  FormItem,
-  FormLabel,
-  FormMessage,
-} from "@/components/ui/form";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import type { Room } from "@shared/schema";
 import { cn } from "@/lib/utils";
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-  SheetTrigger,
-} from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
+import { Link, useLocation } from "wouter";
 
 // Update interface to match database schema
 interface Item {
@@ -119,7 +91,7 @@ const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => vo
       const { data, error } = await supabase
         .from("item_history")
         .select("*")
-        .eq("item_id", item.id) //Corrected the query to use item_id
+        .eq("item_id", item.id)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -138,7 +110,7 @@ const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => vo
       const { error: historyError } = await supabase
         .from("item_history")
         .insert([{
-          item_id: item.id, //Corrected to item_id
+          item_id: item.id,
           room_id: item.room_id,
           name: item.name,
           brand: item.brand,
@@ -152,7 +124,7 @@ const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => vo
           status: item.status,
           image_url: item.image_url,
           document_urls: item.document_urls,
-          created_at: new Date().toISOString() //Added created_at timestamp
+          created_at: new Date().toISOString()
         }]);
 
       if (historyError) throw historyError;
@@ -244,7 +216,7 @@ const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => vo
                           </div>
                           <div className="mt-4 space-y-2">
                             {Object.entries(history).map(([key, value]) => {
-                              if (value && !['id', 'item_id', 'created_at', 'updated_at', 'room_id'].includes(key)) { //Added item_id and room_id to excluded keys
+                              if (value && !['id', 'item_id', 'created_at', 'updated_at', 'room_id'].includes(key)) {
                                 return (
                                   <div key={key}>
                                     <span className="text-sm font-medium">
@@ -569,6 +541,7 @@ export default function RoomPage({ id }: RoomPageProps) {
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [location, setLocation] = useLocation();
 
   const form = useForm<ItemFormValues>({
     resolver: zodResolver(itemFormSchema),
@@ -595,7 +568,7 @@ export default function RoomPage({ id }: RoomPageProps) {
 
       const { data, error } = await supabase
         .from("rooms")
-        .select("*")
+        .select("*, projects(name)")
         .eq("id", id)
         .single();
 
@@ -611,7 +584,7 @@ export default function RoomPage({ id }: RoomPageProps) {
       if (!id) throw new Error("No room ID provided");
 
       const { data, error } = await supabase
-        .from("items") //Corrected table name to "items"
+        .from("items")
         .select("*")
         .eq("room_id", id)
         .order("created_at", { ascending: false });
@@ -633,7 +606,7 @@ export default function RoomPage({ id }: RoomPageProps) {
         }
 
         const { data, error } = await supabase
-          .from("items") //Corrected table name to "items"
+          .from("items")
           .insert([{
             room_id: id,
             name: values.name,
@@ -648,7 +621,7 @@ export default function RoomPage({ id }: RoomPageProps) {
             status: values.status || null,
             image_url: values.image_url || null,
             document_urls: values.document_urls || [],
-            created_at: new Date().toISOString() //Added created_at
+            created_at: new Date().toISOString()
           }])
           .select();
 
@@ -684,7 +657,7 @@ export default function RoomPage({ id }: RoomPageProps) {
   const deleteItem = useMutation({
     mutationFn: async (itemId: string) => {
       const { error } = await supabase
-        .from("items") //Corrected table name to "items"
+        .from("items")
         .delete()
         .eq("id", itemId);
 
@@ -720,6 +693,22 @@ export default function RoomPage({ id }: RoomPageProps) {
 
   return (
     <div className="container mx-auto px-4 py-8">
+      <nav className="flex items-center space-x-2 mb-6 text-sm text-muted-foreground">
+        <Link href="/dashboard" className="flex items-center hover:text-primary">
+          <Home className="h-4 w-4 mr-1" />
+          Dashboard
+        </Link>
+        <ChevronRight className="h-4 w-4" />
+        <Link href="/dashboard" className="hover:text-primary">
+          Projects
+        </Link>
+        <ChevronRight className="h-4 w-4" />
+        <Link href={`/project/${room.project_id}`} className="hover:text-primary">
+          {room.projects?.name || "Project"}
+        </Link>
+        <ChevronRight className="h-4 w-4" />
+        <span className="font-medium text-foreground">{room.name}</span>
+      </nav>
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-3xl font-bold">{room.name}</h1>
