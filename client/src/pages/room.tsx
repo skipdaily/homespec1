@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { supabase } from "@/lib/supabase";
-import { Plus, ChevronDown, ChevronUp } from "lucide-react";
+import { Plus, ChevronDown, ChevronUp, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -11,6 +11,16 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -62,29 +72,46 @@ interface Item {
 }
 
 // ItemCard component to handle individual item state
-const ItemCard = ({ item }: { item: Item }) => {
+const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => void }) => {
   const [isDetailsVisible, setIsDetailsVisible] = useState(false);
+  const [showDeleteDialog, setShowDeleteDialog] = useState(false);
 
   return (
     <div className="border rounded-lg p-4">
       <div className="flex justify-between items-start mb-2">
-        <div>
+        <div className="flex-grow">
           <h3 className="font-semibold">{item.name}</h3>
           <p className="text-sm text-muted-foreground">
             Category: {item.category}
           </p>
         </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          onClick={() => setIsDetailsVisible(!isDetailsVisible)}
-        >
-          {isDetailsVisible ? (
-            <ChevronUp className="h-4 w-4" />
-          ) : (
-            <ChevronDown className="h-4 w-4" />
-          )}
-        </Button>
+        <div className="flex items-center space-x-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => console.log('Edit clicked - TODO')}
+          >
+            <Pencil className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setShowDeleteDialog(true)}
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setIsDetailsVisible(!isDetailsVisible)}
+          >
+            {isDetailsVisible ? (
+              <ChevronUp className="h-4 w-4" />
+            ) : (
+              <ChevronDown className="h-4 w-4" />
+            )}
+          </Button>
+        </div>
       </div>
 
       {isDetailsVisible && (
@@ -131,6 +158,28 @@ const ItemCard = ({ item }: { item: Item }) => {
           )}
         </div>
       )}
+
+      <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete "{item.name}". This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => {
+                onDelete(item.id);
+                setShowDeleteDialog(false);
+              }}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
@@ -272,8 +321,37 @@ export default function RoomPage({ id }: RoomPageProps) {
     }
   });
 
+  const deleteItem = useMutation({
+    mutationFn: async (itemId: string) => {
+      const { error } = await supabase
+        .from("items")
+        .delete()
+        .eq("id", itemId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["items", id] });
+      toast({
+        title: "Success",
+        description: "Item deleted successfully"
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete item",
+        variant: "destructive"
+      });
+    }
+  });
+
   const onSubmit = (values: ItemFormValues) => {
     createItem.mutate(values);
+  };
+
+  const handleDelete = (itemId: string) => {
+    deleteItem.mutate(itemId);
   };
 
   if (!room) {
@@ -508,7 +586,7 @@ export default function RoomPage({ id }: RoomPageProps) {
           isCollapsed ? "hidden" : "block"
         )}>
           {items?.map((item) => (
-            <ItemCard key={item.id} item={item} />
+            <ItemCard key={item.id} item={item} onDelete={handleDelete} />
           ))}
         </div>
       </div>
