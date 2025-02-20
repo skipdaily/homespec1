@@ -23,7 +23,7 @@ interface ProjectPageProps {
   id?: string;
 }
 
-// Define the structure of the items data from Supabase
+// Define the structure of the items data
 interface Item {
   id: string;
   name: string;
@@ -146,7 +146,16 @@ export default function ProjectPage({ id }: ProjectPageProps) {
         const roomMap = new Map(rooms.map(room => [room.name.toLowerCase(), room.id]));
 
         const validItems = jsonData.filter(item => {
-          const roomId = roomMap.get(item.area?.toLowerCase());
+          if (!item.area) {
+            toast({
+              title: "Warning",
+              description: `Skipped item "${item.name}" - Area is required`,
+              variant: "destructive"
+            });
+            return false;
+          }
+
+          const roomId = roomMap.get(item.area.toLowerCase());
           if (!roomId) {
             toast({
               title: "Warning",
@@ -158,7 +167,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
           return true;
         }).map(item => ({
           project_id: id,
-          room_id: roomMap.get(item.area.toLowerCase()),
+          room_id: roomMap.get(item.area.toLowerCase())!,
           name: item.name,
           category: item.category,
           brand: item.brand || null,
@@ -207,17 +216,19 @@ export default function ProjectPage({ id }: ProjectPageProps) {
   };
 
   const handleExport = () => {
-    if (!items || !rooms) {
-      console.log("No items or rooms to export");
+    if (!items) {
+      toast({
+        title: "Error",
+        description: "No items to export",
+        variant: "destructive"
+      });
       return;
     }
 
     try {
-      console.log("Exporting data:", { items, rooms });
-
       // Transform items to include room information
       const exportData = items.map(item => ({
-        area: item.rooms.name,  // Get the area name directly from the joined data
+        area: item.rooms.name,
         name: item.name,
         category: item.category,
         brand: item.brand || "",
@@ -237,7 +248,6 @@ export default function ProjectPage({ id }: ProjectPageProps) {
 
       // Export the file
       const fileName = `${project?.name || 'project'}_items.xlsx`;
-      console.log("Writing file:", fileName);
       XLSX.writeFile(wb, fileName);
 
       toast({
