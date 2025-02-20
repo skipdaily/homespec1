@@ -23,6 +23,25 @@ interface ProjectPageProps {
   id?: string;
 }
 
+// Define the structure of the items data from Supabase
+interface Item {
+  id: string;
+  name: string;
+  category: string;
+  brand: string | null;
+  supplier: string | null;
+  specifications: string | null;
+  cost: number | null;
+  warranty_info: string | null;
+  installation_date: string | null;
+  maintenance_notes: string | null;
+  status: string | null;
+  room_id: string;
+  rooms: {
+    name: string;
+  };
+}
+
 export default function ProjectPage({ id }: ProjectPageProps) {
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
@@ -61,12 +80,11 @@ export default function ProjectPage({ id }: ProjectPageProps) {
     enabled: !!id
   });
 
-  const { data: items } = useQuery({
+  const { data: items } = useQuery<Item[]>({
     queryKey: ["project-items", id],
     queryFn: async () => {
       if (!id) throw new Error("No project ID provided");
 
-      // Join items with rooms to get room names
       const { data, error } = await supabase
         .from("items")
         .select(`
