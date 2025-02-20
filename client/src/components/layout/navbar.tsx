@@ -23,24 +23,24 @@ export default function Navbar() {
   return (
     <nav className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
       <div className="container mx-auto px-4 h-14 flex items-center justify-between">
-        <Link href="/">
-          <a className="font-bold text-xl text-primary">HomeSpec</a>
-        </Link>
+        <Button variant="link" asChild className="font-bold text-xl text-primary p-0">
+          <Link href="/">HomeSpec</Link>
+        </Button>
 
         <div className="flex items-center gap-4">
           {session ? (
             <>
-              <Link href="/dashboard">
-                <Button variant="ghost">Dashboard</Button>
-              </Link>
+              <Button variant="ghost" asChild>
+                <Link href="/dashboard">Dashboard</Link>
+              </Button>
               <Button variant="outline" onClick={handleLogout}>
                 Logout
               </Button>
             </>
           ) : (
-            <Link href="/login">
-              <Button>Login</Button>
-            </Link>
+            <Button asChild>
+              <Link href="/login">Login</Link>
+            </Button>
           )}
         </div>
       </div>

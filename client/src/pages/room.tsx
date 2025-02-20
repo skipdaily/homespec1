@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { supabase } from "@/lib/supabase";
-import { Plus } from "lucide-react";
+import { Plus, ChevronDown, ChevronUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -27,6 +27,7 @@ import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import type { Room, Finish } from "@shared/schema";
+import { cn } from "@/lib/utils";
 
 // Create a schema for the form that matches the database
 const finishFormSchema = z.object({
@@ -56,6 +57,7 @@ interface RoomPageProps {
 export default function RoomPage({ id }: RoomPageProps) {
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   console.log("Room ID from props:", id);
 
@@ -227,6 +229,9 @@ export default function RoomPage({ id }: RoomPageProps) {
           <DialogContent className="max-w-2xl max-h-[90vh]">
             <DialogHeader>
               <DialogTitle>Add New Finish</DialogTitle>
+              <p className="text-sm text-muted-foreground">
+                Add details about the finish used in this room. Required fields are marked with *.
+              </p>
             </DialogHeader>
 
             <Form {...form}>
@@ -451,70 +456,88 @@ export default function RoomPage({ id }: RoomPageProps) {
         </Dialog>
       </div>
 
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {finishes?.map((finish) => (
-          <div key={finish.id} className="border rounded-lg p-4">
-            <h3 className="font-semibold">{finish.name}</h3>
-            <p className="text-sm text-muted-foreground mt-1">
-              Category: {finish.category}
-            </p>
-            {finish.manufacturer && (
-              <p className="text-sm text-muted-foreground">
-                Manufacturer: {finish.manufacturer}
+      <div className="mb-6">
+        <Button
+          variant="ghost"
+          onClick={() => setIsCollapsed(!isCollapsed)}
+          className="w-full flex justify-between items-center py-2"
+        >
+          <span className="font-medium">Finishes ({finishes?.length || 0})</span>
+          {isCollapsed ? (
+            <ChevronDown className="h-5 w-5" />
+          ) : (
+            <ChevronUp className="h-5 w-5" />
+          )}
+        </Button>
+
+        <div className={cn(
+          "grid md:grid-cols-2 lg:grid-cols-3 gap-6 transition-all duration-200",
+          isCollapsed ? "hidden" : "block"
+        )}>
+          {finishes?.map((finish) => (
+            <div key={finish.id} className="border rounded-lg p-4">
+              <h3 className="font-semibold">{finish.name}</h3>
+              <p className="text-sm text-muted-foreground mt-1">
+                Category: {finish.category}
               </p>
-            )}
-            {finish.supplier && (
-              <p className="text-sm text-muted-foreground">
-                Supplier: {finish.supplier}
-              </p>
-            )}
-            {finish.color && (
-              <p className="text-sm text-muted-foreground">
-                Color: {finish.color}
-              </p>
-            )}
-            {finish.material && (
-              <p className="text-sm text-muted-foreground">
-                Material: {finish.material}
-              </p>
-            )}
-            {finish.dimensions && (
-              <p className="text-sm text-muted-foreground">
-                Dimensions: {finish.dimensions}
-              </p>
-            )}
-            {finish.model_number && (
-              <p className="text-sm text-muted-foreground">
-                Model: {finish.model_number}
-              </p>
-            )}
-            {finish.specifications && (
-              <p className="text-sm text-muted-foreground">
-                Specifications: {finish.specifications}
-              </p>
-            )}
-            {finish.warranty_info && (
-              <p className="text-sm text-muted-foreground">
-                Warranty: {finish.warranty_info}
-              </p>
-            )}
-            {finish.maintenance_instructions && (
-              <p className="text-sm text-muted-foreground">
-                Maintenance: {finish.maintenance_instructions}
-              </p>
-            )}
-            {finish.installation_date && (
-              <p className="text-sm text-muted-foreground">
-                Installed: {finish.installation_date}
-              </p>
-            )}
-            {finish.cost !== null && (
-              <p className="text-sm text-muted-foreground">
-                Cost: ${typeof finish.cost === 'number' ? finish.cost.toFixed(2) : finish.cost}
-              </p>
-            )}
-          </div>
-        ))}
+              {finish.manufacturer && (
+                <p className="text-sm text-muted-foreground">
+                  Manufacturer: {finish.manufacturer}
+                </p>
+              )}
+              {finish.supplier && (
+                <p className="text-sm text-muted-foreground">
+                  Supplier: {finish.supplier}
+                </p>
+              )}
+              {finish.color && (
+                <p className="text-sm text-muted-foreground">
+                  Color: {finish.color}
+                </p>
+              )}
+              {finish.material && (
+                <p className="text-sm text-muted-foreground">
+                  Material: {finish.material}
+                </p>
+              )}
+              {finish.dimensions && (
+                <p className="text-sm text-muted-foreground">
+                  Dimensions: {finish.dimensions}
+                </p>
+              )}
+              {finish.model_number && (
+                <p className="text-sm text-muted-foreground">
+                  Model: {finish.model_number}
+                </p>
+              )}
+              {finish.specifications && (
+                <p className="text-sm text-muted-foreground">
+                  Specifications: {finish.specifications}
+                </p>
+              )}
+              {finish.warranty_info && (
+                <p className="text-sm text-muted-foreground">
+                  Warranty: {finish.warranty_info}
+                </p>
+              )}
+              {finish.maintenance_instructions && (
+                <p className="text-sm text-muted-foreground">
+                  Maintenance: {finish.maintenance_instructions}
+                </p>
+              )}
+              {finish.installation_date && (
+                <p className="text-sm text-muted-foreground">
+                  Installed: {finish.installation_date}
+                </p>
+              )}
+              {finish.cost !== null && (
+                <p className="text-sm text-muted-foreground">
+                  Cost: ${finish.cost.toString()}
+                </p>
+              )}
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
