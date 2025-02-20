@@ -61,7 +61,6 @@ export default function ProjectPage({ id }: ProjectPageProps) {
     enabled: !!id
   });
 
-  // Query to get all items for the project
   const { data: items } = useQuery({
     queryKey: ["project-items", id],
     queryFn: async () => {
@@ -72,15 +71,19 @@ export default function ProjectPage({ id }: ProjectPageProps) {
         .select(`
           *,
           rooms (
-            name
+            id,
+            name,
+            floor_number,
+            dimensions
           )
         `)
-        .eq("project_id", id); // Corrected this line
+        .eq("project_id", id)
+        .order('created_at', { ascending: false });
 
       if (error) throw error;
       return data;
     },
-    enabled: !!id && !!rooms?.length
+    enabled: !!id
   });
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -123,6 +126,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
           }
           return true;
         }).map(item => ({
+          project_id: id,
           room_id: roomMap.get(item.location.toLowerCase()),
           name: item.name,
           category: item.category,
@@ -172,6 +176,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
     if (!items || !rooms) return;
 
     try {
+      // Transform items to include room information
       const exportData = items.map(item => ({
         name: item.name,
         location: item.rooms?.name || '',
@@ -183,22 +188,39 @@ export default function ProjectPage({ id }: ProjectPageProps) {
         warranty_info: item.warranty_info || '',
         installation_date: item.installation_date || '',
         maintenance_notes: item.maintenance_notes || '',
-        status: item.status || ''
+        status: item.status || '',
+        room_floor: item.rooms?.floor_number || '',
+        room_dimensions: item.rooms?.dimensions || ''
       }));
 
-      const ws = XLSX.utils.json_to_sheet(exportData);
+      // Create a workbook with multiple sheets
       const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Items");
-      XLSX.writeFile(wb, `${project?.name}_items.xlsx`);
+
+      // Add items sheet
+      const wsItems = XLSX.utils.json_to_sheet(exportData);
+      XLSX.utils.book_append_sheet(wb, wsItems, "Items");
+
+      // Add rooms sheet
+      const roomsData = rooms.map(room => ({
+        name: room.name,
+        description: room.description || '',
+        floor_number: room.floor_number || '',
+        dimensions: room.dimensions || ''
+      }));
+      const wsRooms = XLSX.utils.json_to_sheet(roomsData);
+      XLSX.utils.book_append_sheet(wb, wsRooms, "Rooms");
+
+      // Export the workbook
+      XLSX.writeFile(wb, `${project?.name}_project_data.xlsx`);
 
       toast({
         title: "Success",
-        description: "Items exported successfully"
+        description: "Project data exported successfully"
       });
     } catch (error: any) {
       toast({
         title: "Error",
-        description: error.message || "Failed to export items",
+        description: error.message || "Failed to export project data",
         variant: "destructive"
       });
     }
