@@ -23,16 +23,17 @@ export default function Dashboard() {
   const [open, setOpen] = useState(false);
   const [, setLocation] = useLocation();
 
-  // Get current user session
-  const { data: session } = useQuery({
+  // Get current user session with proper loading state
+  const { data: session, isLoading: isSessionLoading } = useQuery({
     queryKey: ["session"],
     queryFn: async () => {
       const { data: { session } } = await supabase.auth.getSession();
       return session;
-    }
+    },
+    retry: false
   });
 
-  const { data: projects, isLoading } = useQuery<Project[]>({
+  const { data: projects, isLoading: isProjectsLoading } = useQuery<Project[]>({
     queryKey: ["projects"],
     queryFn: async () => {
       if (!session?.user?.id) return [];
@@ -63,7 +64,6 @@ export default function Dashboard() {
         throw new Error("Please login to create a project");
       }
 
-      // Generate a unique access code
       const access_code = Math.random().toString(36).substring(2, 12);
 
       const { data: newProject, error } = await supabase
@@ -93,7 +93,6 @@ export default function Dashboard() {
         title: "Success",
         description: "Project created successfully"
       });
-      // Navigate to the new project
       setLocation(`/project/${newProject.id}`);
     },
     onError: (error: Error) => {
@@ -112,19 +111,30 @@ export default function Dashboard() {
       name: formData.get("name") as string,
       address: formData.get("address") as string,
       builder_name: formData.get("builder_name") as string,
-      completion_date: formData.get("completion_date") as string | undefined,
+      completion_date: formData.get("completion_date") as string || undefined,
     });
   };
 
-  if (!session) {
+  // Show loading state while checking session
+  if (isSessionLoading) {
     return (
       <div className="container mx-auto px-4 py-8">
-        <p className="text-center">Please login to view your projects</p>
+        <p className="text-center">Loading...</p>
       </div>
     );
   }
 
-  if (isLoading) {
+  // Show login message if no session
+  if (!session) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <p className="text-center">Please <Link href="/login" className="text-primary hover:underline">login</Link> to view your projects</p>
+      </div>
+    );
+  }
+
+  // Show loading state while fetching projects
+  if (isProjectsLoading) {
     return (
       <div className="container mx-auto px-4 py-8">
         <p className="text-center">Loading your projects...</p>
