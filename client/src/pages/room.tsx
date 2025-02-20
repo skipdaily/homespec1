@@ -153,7 +153,10 @@ export default function RoomPage({ id }: RoomPageProps) {
             code: error.code,
             message: error.message,
             details: error.details,
-            hint: error.hint
+            hint: error.hint,
+            statusCode: error.status,
+            statusText: error.statusText,
+            fullError: JSON.stringify(error, null, 2)
           });
           throw error;
         }
@@ -166,7 +169,8 @@ export default function RoomPage({ id }: RoomPageProps) {
           message: error?.message,
           details: error?.details,
           hint: error?.hint,
-          code: error?.code
+          code: error?.code,
+          fullError: JSON.stringify(error, null, 2)
         });
         throw new Error(error?.message || "Failed to save finish");
       }
