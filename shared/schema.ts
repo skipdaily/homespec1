@@ -90,7 +90,11 @@ export const insertFinishHistorySchema = createInsertSchema(finishHistory).omit(
 // TypeScript types
 export type Project = typeof projects.$inferSelect;
 export type InsertProject = z.infer<typeof insertProjectSchema>;
-export type Room = typeof rooms.$inferSelect;
+export type Room = typeof rooms.$inferSelect & {
+  projects?: {
+    name: string;
+  };
+};
 export type InsertRoom = z.infer<typeof insertRoomSchema>;
 export type Finish = typeof finishes.$inferSelect;
 export type InsertFinish = z.infer<typeof insertFinishSchema>;
