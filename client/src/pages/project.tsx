@@ -109,8 +109,8 @@ export default function ProjectPage({ id }: ProjectPageProps) {
         const sheetName = workbook.SheetNames[0];
         const sheet = workbook.Sheets[sheetName];
         const jsonData = XLSX.utils.sheet_to_json<{
+          area: string;
           name: string;
-          location: string;
           category: string;
           brand?: string;
           supplier?: string;
@@ -122,15 +122,17 @@ export default function ProjectPage({ id }: ProjectPageProps) {
           status?: string;
         }>(sheet);
 
+        console.log("Imported data:", jsonData); // Debug log
+
         // Validate and map room names to IDs
         const roomMap = new Map(rooms.map(room => [room.name.toLowerCase(), room.id]));
 
         const validItems = jsonData.filter(item => {
-          const roomId = roomMap.get(item.location?.toLowerCase());
+          const roomId = roomMap.get(item.area?.toLowerCase());
           if (!roomId) {
             toast({
               title: "Warning",
-              description: `Skipped item "${item.name}" - Room "${item.location}" not found`,
+              description: `Skipped item "${item.name}" - Area "${item.area}" not found`,
               variant: "destructive"
             });
             return false;
@@ -138,7 +140,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
           return true;
         }).map(item => ({
           project_id: id,
-          room_id: roomMap.get(item.location.toLowerCase()),
+          room_id: roomMap.get(item.area.toLowerCase()),
           name: item.name,
           category: item.category,
           brand: item.brand || null,
@@ -151,6 +153,8 @@ export default function ProjectPage({ id }: ProjectPageProps) {
           status: item.status || null,
           created_at: new Date().toISOString()
         }));
+
+        console.log("Valid items:", validItems); // Debug log
 
         if (validItems.length === 0) {
           toast({
@@ -175,6 +179,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
       };
       reader.readAsBinaryString(file);
     } catch (error: any) {
+      console.error("Import error:", error); // Debug log
       toast({
         title: "Error",
         description: error.message || "Failed to import items",
