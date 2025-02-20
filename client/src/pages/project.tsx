@@ -70,7 +70,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
         .from("items")
         .select(`
           *,
-          rooms (
+          rooms:room_id (
             id,
             name,
             floor_number,
@@ -81,7 +81,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
         .order('created_at', { ascending: false });
 
       if (error) throw error;
-      return data;
+      return data || [];
     },
     enabled: !!id
   });
@@ -297,17 +297,17 @@ export default function ProjectPage({ id }: ProjectPageProps) {
             <DialogTrigger asChild>
               <Button>
                 <Plus className="mr-2 h-4 w-4" />
-                Add Room
+                Add Area
               </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Add New Room</DialogTitle>
+                <DialogTitle>Add New Area</DialogTitle>
               </DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
                 <Input 
                   name="name"
-                  placeholder="Room Name*"
+                  placeholder="Area Name*"
                   required
                 />
                 <Textarea
@@ -326,7 +326,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
                   />
                 </div>
                 <Button type="submit" className="w-full">
-                  Add Room
+                  Add Area
                 </Button>
               </form>
             </DialogContent>
