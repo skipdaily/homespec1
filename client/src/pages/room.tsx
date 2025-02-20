@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { supabase } from "@/lib/supabase";
-import { Plus, ChevronDown, ChevronUp, Pencil, Trash2, History, Home, ChevronRight, Download, Upload } from "lucide-react";
+import { Plus, ChevronDown, ChevronUp, Pencil, Trash2, History, Home, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -18,7 +18,6 @@ import type { Room } from "@shared/schema";
 import { cn } from "@/lib/utils";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Link, useLocation } from "wouter";
-import * as XLSX from 'xlsx';
 
 // Update interface to match database schema
 interface Item {
@@ -688,104 +687,6 @@ export default function RoomPage({ id }: RoomPageProps) {
     deleteItem.mutate(itemId);
   };
 
-  // Update the handleFileUpload function to fix type issues
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (!file) return;
-
-    try {
-      const reader = new FileReader();
-      reader.onload = async (e) => {
-        const fileData = e.target?.result;
-        const workbook = XLSX.read(fileData, { type: 'binary' });
-        const sheetName = workbook.SheetNames[0];
-        const sheet = workbook.Sheets[sheetName];
-        const jsonData = XLSX.utils.sheet_to_json<{
-          name?: string;
-          category?: string;
-          brand?: string;
-          supplier?: string;
-          specifications?: string;
-          cost?: number;
-          warranty_info?: string;
-          installation_date?: string;
-          maintenance_notes?: string;
-          status?: string;
-        }>(sheet);
-
-        // Process and validate items
-        const validItems = jsonData.map(item => ({
-          room_id: id,
-          name: String(item.name || ''),
-          category: String(item.category || ''),
-          brand: item.brand ? String(item.brand) : null,
-          supplier: item.supplier ? String(item.supplier) : null,
-          specifications: item.specifications ? String(item.specifications) : null,
-          cost: item.cost ? Number(item.cost) : null,
-          warranty_info: item.warranty_info ? String(item.warranty_info) : null,
-          installation_date: item.installation_date ? String(item.installation_date) : null,
-          maintenance_notes: item.maintenance_notes ? String(item.maintenance_notes) : null,
-          status: item.status ? String(item.status) : null,
-          created_at: new Date().toISOString()
-        }));
-
-        // Insert items into database
-        const { error } = await supabase
-          .from('items')
-          .insert(validItems);
-
-        if (error) throw error;
-
-        queryClient.invalidateQueries({ queryKey: ["items", id] });
-        toast({
-          title: "Success",
-          description: `Imported ${validItems.length} items successfully`
-        });
-      };
-      reader.readAsBinaryString(file);
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to import items",
-        variant: "destructive"
-      });
-    }
-  };
-
-  const handleExport = () => {
-    if (!items) return;
-
-    try {
-      const exportData = items.map(item => ({
-        name: item.name,
-        category: item.category,
-        brand: item.brand || '',
-        supplier: item.supplier || '',
-        specifications: item.specifications || '',
-        cost: item.cost || '',
-        warranty_info: item.warranty_info || '',
-        installation_date: item.installation_date || '',
-        maintenance_notes: item.maintenance_notes || '',
-        status: item.status || ''
-      }));
-
-      const ws = XLSX.utils.json_to_sheet(exportData);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Items");
-      XLSX.writeFile(wb, `${room.name}_items.xlsx`);
-
-      toast({
-        title: "Success",
-        description: "Items exported successfully"
-      });
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to export items",
-        variant: "destructive"
-      });
-    }
-  };
 
   if (!room) {
     return <div>Loading...</div>;
@@ -826,27 +727,6 @@ export default function RoomPage({ id }: RoomPageProps) {
         </div>
 
         <div className="flex gap-2">
-          <input
-            type="file"
-            accept=".csv,.xlsx,.xls"
-            onChange={handleFileUpload}
-            className="hidden"
-            id="file-upload"
-          />
-          <label htmlFor="file-upload">
-            <Button variant="outline" asChild>
-              <span>
-                <Upload className="mr-2 h-4 w-4" />
-                Import
-              </span>
-            </Button>
-          </label>
-
-          <Button variant="outline" onClick={handleExport}>
-            <Download className="mr-2 h-4 w-4" />
-            Export
-          </Button>
-
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
               <Button>

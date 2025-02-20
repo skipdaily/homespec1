@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { supabase } from "@/lib/supabase";
-import { Plus } from "lucide-react";
+import { Plus, Download, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -17,6 +17,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Link } from "wouter";
 import type { Project, Room } from "@shared/schema";
+import * as XLSX from 'xlsx';
 
 interface ProjectPageProps {
   id?: string;
@@ -59,6 +60,149 @@ export default function ProjectPage({ id }: ProjectPageProps) {
     },
     enabled: !!id
   });
+
+  // Query to get all items for the project
+  const { data: items } = useQuery({
+    queryKey: ["project-items", id],
+    queryFn: async () => {
+      if (!id) throw new Error("No project ID provided");
+
+      const { data, error } = await supabase
+        .from("items")
+        .select(`
+          *,
+          rooms (
+            name
+          )
+        `)
+        .eq("project_id", id); // Corrected this line
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!id && !!rooms?.length
+  });
+
+  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !rooms) return;
+
+    try {
+      const reader = new FileReader();
+      reader.onload = async (e) => {
+        const data = e.target?.result;
+        const workbook = XLSX.read(data, { type: 'binary' });
+        const sheetName = workbook.SheetNames[0];
+        const sheet = workbook.Sheets[sheetName];
+        const jsonData = XLSX.utils.sheet_to_json<{
+          name: string;
+          location: string;
+          category: string;
+          brand?: string;
+          supplier?: string;
+          specifications?: string;
+          cost?: number;
+          warranty_info?: string;
+          installation_date?: string;
+          maintenance_notes?: string;
+          status?: string;
+        }>(sheet);
+
+        // Validate and map room names to IDs
+        const roomMap = new Map(rooms.map(room => [room.name.toLowerCase(), room.id]));
+
+        const validItems = jsonData.filter(item => {
+          const roomId = roomMap.get(item.location?.toLowerCase());
+          if (!roomId) {
+            toast({
+              title: "Warning",
+              description: `Skipped item "${item.name}" - Room "${item.location}" not found`,
+              variant: "destructive"
+            });
+            return false;
+          }
+          return true;
+        }).map(item => ({
+          room_id: roomMap.get(item.location.toLowerCase()),
+          name: item.name,
+          category: item.category,
+          brand: item.brand || null,
+          supplier: item.supplier || null,
+          specifications: item.specifications || null,
+          cost: item.cost || null,
+          warranty_info: item.warranty_info || null,
+          installation_date: item.installation_date || null,
+          maintenance_notes: item.maintenance_notes || null,
+          status: item.status || null,
+          created_at: new Date().toISOString()
+        }));
+
+        if (validItems.length === 0) {
+          toast({
+            title: "Error",
+            description: "No valid items found to import",
+            variant: "destructive"
+          });
+          return;
+        }
+
+        const { error } = await supabase
+          .from('items')
+          .insert(validItems);
+
+        if (error) throw error;
+
+        queryClient.invalidateQueries({ queryKey: ["project-items", id] });
+        toast({
+          title: "Success",
+          description: `Imported ${validItems.length} items successfully`
+        });
+      };
+      reader.readAsBinaryString(file);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to import items",
+        variant: "destructive"
+      });
+    }
+  };
+
+  const handleExport = () => {
+    if (!items || !rooms) return;
+
+    try {
+      const exportData = items.map(item => ({
+        name: item.name,
+        location: item.rooms?.name || '',
+        category: item.category,
+        brand: item.brand || '',
+        supplier: item.supplier || '',
+        specifications: item.specifications || '',
+        cost: item.cost || '',
+        warranty_info: item.warranty_info || '',
+        installation_date: item.installation_date || '',
+        maintenance_notes: item.maintenance_notes || '',
+        status: item.status || ''
+      }));
+
+      const ws = XLSX.utils.json_to_sheet(exportData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Items");
+      XLSX.writeFile(wb, `${project?.name}_items.xlsx`);
+
+      toast({
+        title: "Success",
+        description: "Items exported successfully"
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to export items",
+        variant: "destructive"
+      });
+    }
+  };
 
   const createRoom = useMutation({
     mutationFn: async (data: {
@@ -111,44 +255,67 @@ export default function ProjectPage({ id }: ProjectPageProps) {
           <p className="text-muted-foreground">Builder: {project.builder_name}</p>
         </div>
 
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              Add Room
+        <div className="flex gap-2">
+          <input
+            type="file"
+            accept=".csv,.xlsx,.xls"
+            onChange={handleFileUpload}
+            className="hidden"
+            id="file-upload"
+          />
+          <label htmlFor="file-upload">
+            <Button variant="outline" asChild>
+              <span>
+                <Upload className="mr-2 h-4 w-4" />
+                Import Items
+              </span>
             </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Add New Room</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              <Input 
-                name="name"
-                placeholder="Room Name*"
-                required
-              />
-              <Textarea
-                name="description"
-                placeholder="Description"
-              />
-              <div className="grid grid-cols-2 gap-4">
-                <Input 
-                  name="floor_number"
-                  type="number"
-                  placeholder="Floor Number"
-                />
-                <Input 
-                  name="dimensions"
-                  placeholder="Dimensions (e.g., 12' x 15')"
-                />
-              </div>
-              <Button type="submit" className="w-full">
+          </label>
+
+          <Button variant="outline" onClick={handleExport}>
+            <Download className="mr-2 h-4 w-4" />
+            Export Items
+          </Button>
+
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
                 Add Room
               </Button>
-            </form>
-          </DialogContent>
-        </Dialog>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Add New Room</DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <Input 
+                  name="name"
+                  placeholder="Room Name*"
+                  required
+                />
+                <Textarea
+                  name="description"
+                  placeholder="Description"
+                />
+                <div className="grid grid-cols-2 gap-4">
+                  <Input 
+                    name="floor_number"
+                    type="number"
+                    placeholder="Floor Number"
+                  />
+                  <Input 
+                    name="dimensions"
+                    placeholder="Dimensions (e.g., 12' x 15')"
+                  />
+                </div>
+                <Button type="submit" className="w-full">
+                  Add Room
+                </Button>
+              </form>
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
