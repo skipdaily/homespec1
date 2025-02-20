@@ -173,9 +173,14 @@ export default function ProjectPage({ id }: ProjectPageProps) {
   };
 
   const handleExport = () => {
-    if (!items || !rooms) return;
+    if (!items || !rooms) {
+      console.log("No items or rooms to export");
+      return;
+    }
 
     try {
+      console.log("Exporting data:", { items, rooms });
+
       // Transform items to include room information
       const exportData = items.map(item => ({
         name: item.name,
@@ -188,39 +193,28 @@ export default function ProjectPage({ id }: ProjectPageProps) {
         warranty_info: item.warranty_info || '',
         installation_date: item.installation_date || '',
         maintenance_notes: item.maintenance_notes || '',
-        status: item.status || '',
-        room_floor: item.rooms?.floor_number || '',
-        room_dimensions: item.rooms?.dimensions || ''
+        status: item.status || ''
       }));
 
-      // Create a workbook with multiple sheets
+      // Create workbook and add items sheet
       const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.json_to_sheet(exportData);
+      XLSX.utils.book_append_sheet(wb, ws, "Items");
 
-      // Add items sheet
-      const wsItems = XLSX.utils.json_to_sheet(exportData);
-      XLSX.utils.book_append_sheet(wb, wsItems, "Items");
-
-      // Add rooms sheet
-      const roomsData = rooms.map(room => ({
-        name: room.name,
-        description: room.description || '',
-        floor_number: room.floor_number || '',
-        dimensions: room.dimensions || ''
-      }));
-      const wsRooms = XLSX.utils.json_to_sheet(roomsData);
-      XLSX.utils.book_append_sheet(wb, wsRooms, "Rooms");
-
-      // Export the workbook
-      XLSX.writeFile(wb, `${project?.name}_project_data.xlsx`);
+      // Export the file
+      const fileName = `${project?.name || 'project'}_items.xlsx`;
+      console.log("Writing file:", fileName);
+      XLSX.writeFile(wb, fileName);
 
       toast({
         title: "Success",
-        description: "Project data exported successfully"
+        description: "Items exported successfully"
       });
     } catch (error: any) {
+      console.error("Export error:", error);
       toast({
         title: "Error",
-        description: error.message || "Failed to export project data",
+        description: error.message || "Failed to export items",
         variant: "destructive"
       });
     }
