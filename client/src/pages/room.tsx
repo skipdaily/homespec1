@@ -56,13 +56,15 @@ interface Item {
   brand?: string;
   supplier?: string;
   specifications?: string;
-  warranty_info?: string;
-  maintenance_notes?: string;
-  installation_date?: string;
   cost?: number;
-  version?: number;
+  warranty_info?: string;
+  installation_date?: string;
+  maintenance_notes?: string;
+  status?: string;
   image_url?: string;
   document_urls?: string[];
+  created_at?: string;
+  updated_at?: string;
 }
 
 // Create a schema for the form that matches the database
@@ -88,6 +90,8 @@ const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => vo
   const [isDetailsVisible, setIsDetailsVisible] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
+  const [showHistorySheet, setShowHistorySheet] = useState(false);
+
   const form = useForm<ItemFormValues>({
     resolver: zodResolver(itemFormSchema),
     defaultValues: {
@@ -108,6 +112,21 @@ const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => vo
 
   const { toast } = useToast();
 
+  // Query to fetch item history
+  const { data: itemHistory } = useQuery({
+    queryKey: ["itemHistory", item.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("item_history")
+        .select("*")
+        .eq("item_id", item.id) //Corrected the query to use item_id
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      return data;
+    },
+  });
+
   const updateItem = useMutation({
     mutationFn: async (values: ItemFormValues) => {
       const { data: session } = await supabase.auth.getSession();
@@ -115,8 +134,32 @@ const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => vo
         throw new Error("No authenticated session found");
       }
 
+      // First, copy current item to history
+      const { error: historyError } = await supabase
+        .from("item_history")
+        .insert([{
+          item_id: item.id, //Corrected to item_id
+          room_id: item.room_id,
+          name: item.name,
+          brand: item.brand,
+          supplier: item.supplier,
+          specifications: item.specifications,
+          cost: item.cost,
+          warranty_info: item.warranty_info,
+          installation_date: item.installation_date,
+          maintenance_notes: item.maintenance_notes,
+          category: item.category,
+          status: item.status,
+          image_url: item.image_url,
+          document_urls: item.document_urls,
+          created_at: new Date().toISOString() //Added created_at timestamp
+        }]);
+
+      if (historyError) throw historyError;
+
+      // Then update the current item
       const { data, error } = await supabase
-        .from("finishes")
+        .from("items")
         .update({
           name: values.name,
           brand: values.brand || null,
@@ -129,7 +172,8 @@ const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => vo
           category: values.category,
           status: values.status || null,
           image_url: values.image_url || null,
-          document_urls: values.document_urls || []
+          document_urls: values.document_urls || [],
+          updated_at: new Date().toISOString()
         })
         .eq('id', item.id)
         .select()
@@ -140,6 +184,7 @@ const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => vo
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["items", item.room_id] });
+      queryClient.invalidateQueries({ queryKey: ["itemHistory", item.id] });
       setShowEditDialog(false);
       toast({
         title: "Success",
@@ -159,85 +204,63 @@ const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => vo
     updateItem.mutate(values);
   };
 
-  // Add query for version history
-  const { data: versionHistory } = useQuery({
-    queryKey: ["itemHistory", item.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("finish_history")
-        .select("*")
-        .eq("finish_id", item.id)
-        .order("version", { ascending: false });
-
-      if (error) throw error;
-      return data;
-    },
-  });
-
-
   return (
     <div className="border rounded-lg p-4">
       <div className="flex justify-between items-start mb-2">
         <div className="flex-grow">
           <div className="flex items-center gap-2">
             <h3 className="font-semibold">{item.name}</h3>
-            {item.version > 1 && (
-              <Sheet>
+            {itemHistory && itemHistory.length > 0 && (
+              <Sheet open={showHistorySheet} onOpenChange={setShowHistorySheet}>
                 <SheetTrigger asChild>
                   <Button variant="outline" size="sm" className="h-6">
                     <History className="h-4 w-4 mr-1" />
-                    v{item.version}
+                    History ({itemHistory.length})
                   </Button>
                 </SheetTrigger>
                 <SheetContent>
                   <SheetHeader>
-                    <SheetTitle>Version History</SheetTitle>
+                    <SheetTitle>Item History</SheetTitle>
                     <SheetDescription>
-                      View previous versions of {item.name}
+                      Previous versions of {item.name}
                     </SheetDescription>
                   </SheetHeader>
                   <ScrollArea className="h-[calc(100vh-8rem)] mt-4">
                     <div className="space-y-4">
-                      {versionHistory?.map((history) => {
-                        const previousData = JSON.parse(history.previous_data);
-                        return (
-                          <div
-                            key={history.id}
-                            className="border rounded-lg p-4"
-                          >
-                            <div className="flex justify-between items-start mb-2">
-                              <div>
-                                <h4 className="font-medium">
-                                  Version {history.version}
-                                </h4>
-                                <p className="text-sm text-muted-foreground">
-                                  {new Date(history.changed_at).toLocaleString()}
-                                </p>
-                              </div>
-                              <span className="text-sm font-medium px-2 py-1 rounded-full bg-muted">
-                                {history.change_type}
-                              </span>
-                            </div>
-                            <div className="mt-4 space-y-2">
-                              {Object.entries(previousData).map(([key, value]) => {
-                                if (value && typeof value !== 'object') {
-                                  return (
-                                    <div key={key}>
-                                      <span className="text-sm font-medium">
-                                        {key}:{' '}
-                                      </span>
-                                      <span className="text-sm">
-                                        {String(value)}
-                                      </span>
-                                    </div>
-                                  );
-                                }
-                                return null;
-                              })}
+                      {itemHistory.map((history) => (
+                        <div
+                          key={history.id}
+                          className="border rounded-lg p-4"
+                        >
+                          <div className="flex justify-between items-start mb-2">
+                            <div>
+                              <h4 className="font-medium">
+                                {history.name}
+                              </h4>
+                              <p className="text-sm text-muted-foreground">
+                                {new Date(history.created_at).toLocaleString()}
+                              </p>
                             </div>
                           </div>
-                        );
-                      })}
+                          <div className="mt-4 space-y-2">
+                            {Object.entries(history).map(([key, value]) => {
+                              if (value && !['id', 'item_id', 'created_at', 'updated_at', 'room_id'].includes(key)) { //Added item_id and room_id to excluded keys
+                                return (
+                                  <div key={key}>
+                                    <span className="text-sm font-medium">
+                                      {key}:{' '}
+                                    </span>
+                                    <span className="text-sm">
+                                      {Array.isArray(value) ? value.join(', ') : String(value)}
+                                    </span>
+                                  </div>
+                                );
+                              }
+                              return null;
+                            })}
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </ScrollArea>
                 </SheetContent>
@@ -588,7 +611,7 @@ export default function RoomPage({ id }: RoomPageProps) {
       if (!id) throw new Error("No room ID provided");
 
       const { data, error } = await supabase
-        .from("finishes")
+        .from("items") //Corrected table name to "items"
         .select("*")
         .eq("room_id", id)
         .order("created_at", { ascending: false });
@@ -610,7 +633,7 @@ export default function RoomPage({ id }: RoomPageProps) {
         }
 
         const { data, error } = await supabase
-          .from("finishes")
+          .from("items") //Corrected table name to "items"
           .insert([{
             room_id: id,
             name: values.name,
@@ -624,7 +647,8 @@ export default function RoomPage({ id }: RoomPageProps) {
             installation_date: values.installation_date || null,
             status: values.status || null,
             image_url: values.image_url || null,
-            document_urls: values.document_urls || []
+            document_urls: values.document_urls || [],
+            created_at: new Date().toISOString() //Added created_at
           }])
           .select();
 
@@ -660,7 +684,7 @@ export default function RoomPage({ id }: RoomPageProps) {
   const deleteItem = useMutation({
     mutationFn: async (itemId: string) => {
       const { error } = await supabase
-        .from("finishes")
+        .from("items") //Corrected table name to "items"
         .delete()
         .eq("id", itemId);
 
