@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { supabase } from "@/lib/supabase";
@@ -124,7 +124,17 @@ export default function RoomPage({ id }: RoomPageProps) {
       if (!id || !room) throw new Error("No room ID provided");
 
       try {
-        console.log("Attempting to insert finish with room_id:", id, "and project_id:", room.project_id);
+        const { data: session } = await supabase.auth.getSession();
+        if (!session?.session?.access_token) {
+          throw new Error("No authenticated session found");
+        }
+
+        console.log("Attempting to insert finish with:", {
+          room_id: id,
+          project_id: room.project_id,
+          values: JSON.stringify(values, null, 2)
+        });
+
         const { data, error } = await supabase
           .from("finishes")
           .insert([{
@@ -154,8 +164,6 @@ export default function RoomPage({ id }: RoomPageProps) {
             message: error.message,
             details: error.details,
             hint: error.hint,
-            statusCode: error.status,
-            statusText: error.statusText,
             fullError: JSON.stringify(error, null, 2)
           });
           throw error;
