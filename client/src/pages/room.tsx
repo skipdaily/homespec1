@@ -38,7 +38,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import type { Room } from "@shared/schema";
 import { cn } from "@/lib/utils";
-import { 
+import {
   Sheet,
   SheetContent,
   SheetDescription,
@@ -46,6 +46,24 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
+
+// Update interface to match database schema
+interface Item {
+  id: string;
+  room_id: string;
+  name: string;
+  category: string;
+  brand?: string;
+  supplier?: string;
+  specifications?: string;
+  warranty_info?: string;
+  maintenance_notes?: string;
+  installation_date?: string;
+  cost?: number;
+  version?: number;
+  image_url?: string;
+  document_urls?: string[];
+}
 
 // Create a schema for the form that matches the database
 const itemFormSchema = z.object({
@@ -64,22 +82,6 @@ const itemFormSchema = z.object({
 });
 
 type ItemFormValues = z.infer<typeof itemFormSchema>;
-
-interface Item {
-  id: string;
-  name: string;
-  category: string;
-  brand?: string;
-  supplier?: string;
-  specifications?: string;
-  status?: string;
-  warranty_info?: string;
-  maintenance_notes?: string;
-  installation_date?: string;
-  cost?: number;
-  version?: number; // Added for version history
-  room_id?: string; // Added for invalidation
-}
 
 // ItemCard component to handle individual item state
 const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => void }) => {
@@ -114,7 +116,7 @@ const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => vo
       }
 
       const { data, error } = await supabase
-        .from("items")
+        .from("finishes")
         .update({
           name: values.name,
           brand: values.brand || null,
@@ -586,7 +588,7 @@ export default function RoomPage({ id }: RoomPageProps) {
       if (!id) throw new Error("No room ID provided");
 
       const { data, error } = await supabase
-        .from("items")
+        .from("finishes")
         .select("*")
         .eq("room_id", id)
         .order("created_at", { ascending: false });
@@ -607,16 +609,12 @@ export default function RoomPage({ id }: RoomPageProps) {
           throw new Error("No authenticated session found");
         }
 
-        console.log("Attempting to insert item with:", {
-          room_id: id,
-          values: JSON.stringify(values, null, 2)
-        });
-
         const { data, error } = await supabase
-          .from("items")
+          .from("finishes")
           .insert([{
             room_id: id,
             name: values.name,
+            category: values.category,
             brand: values.brand || null,
             supplier: values.supplier || null,
             specifications: values.specifications || null,
@@ -624,33 +622,19 @@ export default function RoomPage({ id }: RoomPageProps) {
             warranty_info: values.warranty_info || null,
             maintenance_notes: values.maintenance_notes || null,
             installation_date: values.installation_date || null,
-            category: values.category,
             status: values.status || null,
             image_url: values.image_url || null,
             document_urls: values.document_urls || []
           }])
           .select();
 
-        if (error) {
-          console.error("Supabase error details:", {
-            code: error.code,
-            message: error.message,
-            details: error.details,
-            hint: error.hint,
-            fullError: JSON.stringify(error, null, 2)
-          });
-          throw error;
-        }
-
+        if (error) throw error;
         return data[0];
       } catch (error: any) {
         console.error("Error creating item:", {
           error,
           message: error?.message,
-          details: error?.details,
-          hint: error?.hint,
-          code: error?.code,
-          fullError: JSON.stringify(error, null, 2)
+          details: error?.details
         });
         throw new Error(error?.message || "Failed to save item");
       }
@@ -676,7 +660,7 @@ export default function RoomPage({ id }: RoomPageProps) {
   const deleteItem = useMutation({
     mutationFn: async (itemId: string) => {
       const { error } = await supabase
-        .from("items")
+        .from("finishes")
         .delete()
         .eq("id", itemId);
 
