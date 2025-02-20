@@ -140,7 +140,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
           status?: string;
         }>(sheet);
 
-        console.log("Imported data:", jsonData); // Debug log
+        console.log("Imported data:", jsonData);
 
         // Validate and map room names to IDs
         const roomMap = new Map(rooms.map(room => [room.name.toLowerCase(), room.id]));
@@ -157,7 +157,6 @@ export default function ProjectPage({ id }: ProjectPageProps) {
           }
           return true;
         }).map(item => ({
-          project_id: id,
           room_id: roomMap.get(item.area.toLowerCase())!,
           name: item.name,
           category: item.category,
@@ -172,7 +171,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
           created_at: new Date().toISOString()
         }));
 
-        console.log("Valid items:", validItems); // Debug log
+        console.log("Valid items:", validItems);
 
         if (validItems.length === 0) {
           toast({
@@ -197,7 +196,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
       };
       reader.readAsBinaryString(file);
     } catch (error: any) {
-      console.error("Import error:", error); // Debug log
+      console.error("Import error:", error);
       toast({
         title: "Error",
         description: error.message || "Failed to import items",
