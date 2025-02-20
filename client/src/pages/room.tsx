@@ -26,29 +26,26 @@ import {
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
-import type { Room, Finish } from "@shared/schema";
+import type { Room } from "@shared/schema";
 import { cn } from "@/lib/utils";
 
 // Create a schema for the form that matches the database
-const finishFormSchema = z.object({
+const itemFormSchema = z.object({
   name: z.string().min(1, "Name is required"),
-  category: z.string().min(1, "Category is required"),
-  manufacturer: z.string().optional(),
+  brand: z.string().optional(),
   supplier: z.string().optional(),
-  color: z.string().optional(),
-  material: z.string().optional(),
-  dimensions: z.string().optional(),
-  model_number: z.string().optional(),
   specifications: z.string().optional(),
-  warranty_info: z.string().optional(),
-  maintenance_instructions: z.string().optional(),
-  installation_date: z.string().optional(),
   cost: z.number().optional(),
-  document_urls: z.array(z.string()).optional(),
+  warranty_info: z.string().optional(),
+  maintenance_notes: z.string().optional(),
+  installation_date: z.string().optional(),
+  category: z.string().min(1, "Category is required"),
+  status: z.string().optional(),
   image_url: z.string().optional(),
+  document_urls: z.array(z.string()).optional(),
 });
 
-type FinishFormValues = z.infer<typeof finishFormSchema>;
+type ItemFormValues = z.infer<typeof itemFormSchema>;
 
 interface RoomPageProps {
   id?: string;
@@ -59,27 +56,21 @@ export default function RoomPage({ id }: RoomPageProps) {
   const [open, setOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
 
-  console.log("Room ID from props:", id);
-
-
-  const form = useForm<FinishFormValues>({
-    resolver: zodResolver(finishFormSchema),
+  const form = useForm<ItemFormValues>({
+    resolver: zodResolver(itemFormSchema),
     defaultValues: {
       name: "",
-      category: "",
-      manufacturer: "",
+      brand: "",
       supplier: "",
-      color: "",
-      material: "",
-      dimensions: "",
-      model_number: "",
       specifications: "",
-      warranty_info: "",
-      maintenance_instructions: "",
-      installation_date: "",
       cost: undefined,
-      document_urls: [],
+      warranty_info: "",
+      maintenance_notes: "",
+      installation_date: "",
+      category: "",
+      status: "",
       image_url: "",
+      document_urls: [],
     },
   });
 
@@ -99,15 +90,14 @@ export default function RoomPage({ id }: RoomPageProps) {
     },
     enabled: !!id
   });
-  console.log("Room data from query:", room);
 
-  const { data: finishes } = useQuery<Finish[]>({
-    queryKey: ["finishes", id],
+  const { data: items } = useQuery({
+    queryKey: ["items", id],
     queryFn: async () => {
       if (!id) throw new Error("No room ID provided");
 
       const { data, error } = await supabase
-        .from("finishes")
+        .from("items")
         .select("*")
         .eq("room_id", id)
         .order("created_at", { ascending: false });
@@ -118,9 +108,8 @@ export default function RoomPage({ id }: RoomPageProps) {
     enabled: !!id
   });
 
-  const createFinish = useMutation({
-    mutationFn: async (values: FinishFormValues) => {
-      console.log("Creating finish with values:", values);
+  const createItem = useMutation({
+    mutationFn: async (values: ItemFormValues) => {
       if (!id || !room) throw new Error("No room ID provided");
 
       try {
@@ -129,32 +118,27 @@ export default function RoomPage({ id }: RoomPageProps) {
           throw new Error("No authenticated session found");
         }
 
-        console.log("Attempting to insert finish with:", {
+        console.log("Attempting to insert item with:", {
           room_id: id,
-          project_id: room.project_id,
           values: JSON.stringify(values, null, 2)
         });
 
         const { data, error } = await supabase
-          .from("finishes")
+          .from("items")
           .insert([{
-            name: values.name,
-            category: values.category,
-            manufacturer: values.manufacturer || null,
-            supplier: values.supplier || null,
-            color: values.color || null,
-            material: values.material || null,
-            dimensions: values.dimensions || null,
-            model_number: values.model_number || null,
-            specifications: values.specifications || null,
-            warranty_info: values.warranty_info || null,
-            maintenance_instructions: values.maintenance_instructions || null,
-            installation_date: values.installation_date || null,
-            cost: values.cost || null,
             room_id: id,
-            project_id: room.project_id,
-            document_urls: values.document_urls || [],
-            image_url: values.image_url || null
+            name: values.name,
+            brand: values.brand || null,
+            supplier: values.supplier || null,
+            specifications: values.specifications || null,
+            cost: values.cost || null,
+            warranty_info: values.warranty_info || null,
+            maintenance_notes: values.maintenance_notes || null,
+            installation_date: values.installation_date || null,
+            category: values.category,
+            status: values.status || null,
+            image_url: values.image_url || null,
+            document_urls: values.document_urls || []
           }])
           .select();
 
@@ -169,10 +153,9 @@ export default function RoomPage({ id }: RoomPageProps) {
           throw error;
         }
 
-        console.log("Successfully created finish with data:", data);
         return data[0];
       } catch (error: any) {
-        console.error("Error creating finish:", {
+        console.error("Error creating item:", {
           error,
           message: error?.message,
           details: error?.details,
@@ -180,34 +163,29 @@ export default function RoomPage({ id }: RoomPageProps) {
           code: error?.code,
           fullError: JSON.stringify(error, null, 2)
         });
-        throw new Error(error?.message || "Failed to save finish");
+        throw new Error(error?.message || "Failed to save item");
       }
     },
     onSuccess: (data) => {
-      console.log("Mutation succeeded with data:", data);
-      queryClient.invalidateQueries({ queryKey: ["finishes", id] });
+      queryClient.invalidateQueries({ queryKey: ["items", id] });
       setOpen(false);
       form.reset();
       toast({
         title: "Success",
-        description: "Finish added successfully"
+        description: "Item added successfully"
       });
     },
     onError: (error: Error) => {
-      console.error("Mutation failed:", error);
       toast({
         title: "Error",
-        description: error.message || "Failed to save finish",
+        description: error.message || "Failed to save item",
         variant: "destructive"
       });
     }
   });
 
-  const onSubmit = (values: FinishFormValues) => {
-    console.log("Form submitted with values:", values);
-    console.log("Current room ID:", id);
-    console.log("Current room data:", room);
-    createFinish.mutate(values);
+  const onSubmit = (values: ItemFormValues) => {
+    createItem.mutate(values);
   };
 
   if (!room) {
@@ -236,14 +214,14 @@ export default function RoomPage({ id }: RoomPageProps) {
           <DialogTrigger asChild>
             <Button>
               <Plus className="mr-2 h-4 w-4" />
-              Add Finish
+              Add Item
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-2xl max-h-[90vh]">
             <DialogHeader>
-              <DialogTitle>Add New Finish</DialogTitle>
+              <DialogTitle>Add New Item</DialogTitle>
               <p className="text-sm text-muted-foreground">
-                Add details about the finish used in this room. Required fields are marked with *.
+                Add details about the item used in this room. Required fields are marked with *.
               </p>
             </DialogHeader>
 
@@ -259,7 +237,7 @@ export default function RoomPage({ id }: RoomPageProps) {
                           <FormItem>
                             <FormLabel>Name*</FormLabel>
                             <FormControl>
-                              <Input placeholder="Enter finish name" {...field} />
+                              <Input placeholder="Enter item name" {...field} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -284,12 +262,12 @@ export default function RoomPage({ id }: RoomPageProps) {
                     <div className="grid grid-cols-2 gap-4">
                       <FormField
                         control={form.control}
-                        name="manufacturer"
+                        name="brand"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Manufacturer</FormLabel>
+                            <FormLabel>Brand</FormLabel>
                             <FormControl>
-                              <Input placeholder="Manufacturer name" {...field} />
+                              <Input placeholder="Brand name" {...field} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -304,66 +282,6 @@ export default function RoomPage({ id }: RoomPageProps) {
                             <FormLabel>Supplier</FormLabel>
                             <FormControl>
                               <Input placeholder="Supplier name" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <FormField
-                        control={form.control}
-                        name="color"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Color</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Color" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="material"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Material</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Material type" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <FormField
-                        control={form.control}
-                        name="dimensions"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Dimensions</FormLabel>
-                            <FormControl>
-                              <Input placeholder="e.g., 10x12" {...field} />
-                            </FormControl>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      <FormField
-                        control={form.control}
-                        name="model_number"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel>Model Number</FormLabel>
-                            <FormControl>
-                              <Input placeholder="Model number" {...field} />
                             </FormControl>
                             <FormMessage />
                           </FormItem>
@@ -402,10 +320,10 @@ export default function RoomPage({ id }: RoomPageProps) {
 
                       <FormField
                         control={form.control}
-                        name="maintenance_instructions"
+                        name="maintenance_notes"
                         render={({ field }) => (
                           <FormItem>
-                            <FormLabel>Maintenance Instructions</FormLabel>
+                            <FormLabel>Maintenance Notes</FormLabel>
                             <FormControl>
                               <Textarea placeholder="Maintenance details" {...field} />
                             </FormControl>
@@ -453,15 +371,29 @@ export default function RoomPage({ id }: RoomPageProps) {
                         )}
                       />
                     </div>
+
+                    <FormField
+                      control={form.control}
+                      name="status"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Status</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Item status" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
                   </div>
                 </ScrollArea>
 
                 <Button
                   type="submit"
                   className="w-full"
-                  disabled={createFinish.isPending}
+                  disabled={createItem.isPending}
                 >
-                  {createFinish.isPending ? "Saving..." : "Save Finish"}
+                  {createItem.isPending ? "Saving..." : "Save Item"}
                 </Button>
               </form>
             </Form>
@@ -475,7 +407,7 @@ export default function RoomPage({ id }: RoomPageProps) {
           onClick={() => setIsCollapsed(!isCollapsed)}
           className="w-full flex justify-between items-center py-2"
         >
-          <span className="font-medium">Finishes ({finishes?.length || 0})</span>
+          <span className="font-medium">Items ({items?.length || 0})</span>
           {isCollapsed ? (
             <ChevronDown className="h-5 w-5" />
           ) : (
@@ -487,65 +419,50 @@ export default function RoomPage({ id }: RoomPageProps) {
           "grid md:grid-cols-2 lg:grid-cols-3 gap-6 transition-all duration-200",
           isCollapsed ? "hidden" : "block"
         )}>
-          {finishes?.map((finish) => (
-            <div key={finish.id} className="border rounded-lg p-4">
-              <h3 className="font-semibold">{finish.name}</h3>
+          {items?.map((item) => (
+            <div key={item.id} className="border rounded-lg p-4">
+              <h3 className="font-semibold">{item.name}</h3>
               <p className="text-sm text-muted-foreground mt-1">
-                Category: {finish.category}
+                Category: {item.category}
               </p>
-              {finish.manufacturer && (
+              {item.brand && (
                 <p className="text-sm text-muted-foreground">
-                  Manufacturer: {finish.manufacturer}
+                  Brand: {item.brand}
                 </p>
               )}
-              {finish.supplier && (
+              {item.supplier && (
                 <p className="text-sm text-muted-foreground">
-                  Supplier: {finish.supplier}
+                  Supplier: {item.supplier}
                 </p>
               )}
-              {finish.color && (
+              {item.specifications && (
                 <p className="text-sm text-muted-foreground">
-                  Color: {finish.color}
+                  Specifications: {item.specifications}
                 </p>
               )}
-              {finish.material && (
+              {item.status && (
                 <p className="text-sm text-muted-foreground">
-                  Material: {finish.material}
+                  Status: {item.status}
                 </p>
               )}
-              {finish.dimensions && (
+              {item.warranty_info && (
                 <p className="text-sm text-muted-foreground">
-                  Dimensions: {finish.dimensions}
+                  Warranty: {item.warranty_info}
                 </p>
               )}
-              {finish.model_number && (
+              {item.maintenance_notes && (
                 <p className="text-sm text-muted-foreground">
-                  Model: {finish.model_number}
+                  Maintenance: {item.maintenance_notes}
                 </p>
               )}
-              {finish.specifications && (
+              {item.installation_date && (
                 <p className="text-sm text-muted-foreground">
-                  Specifications: {finish.specifications}
+                  Installed: {item.installation_date}
                 </p>
               )}
-              {finish.warranty_info && (
+              {item.cost !== null && (
                 <p className="text-sm text-muted-foreground">
-                  Warranty: {finish.warranty_info}
-                </p>
-              )}
-              {finish.maintenance_instructions && (
-                <p className="text-sm text-muted-foreground">
-                  Maintenance: {finish.maintenance_instructions}
-                </p>
-              )}
-              {finish.installation_date && (
-                <p className="text-sm text-muted-foreground">
-                  Installed: {finish.installation_date}
-                </p>
-              )}
-              {finish.cost !== null && (
-                <p className="text-sm text-muted-foreground">
-                  Cost: ${finish.cost.toString()}
+                  Cost: ${item.cost.toString()}
                 </p>
               )}
             </div>
