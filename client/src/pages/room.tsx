@@ -419,54 +419,78 @@ export default function RoomPage({ id }: RoomPageProps) {
           "grid md:grid-cols-2 lg:grid-cols-3 gap-6 transition-all duration-200",
           isCollapsed ? "hidden" : "block"
         )}>
-          {items?.map((item) => (
-            <div key={item.id} className="border rounded-lg p-4">
-              <h3 className="font-semibold">{item.name}</h3>
-              <p className="text-sm text-muted-foreground mt-1">
-                Category: {item.category}
-              </p>
-              {item.brand && (
-                <p className="text-sm text-muted-foreground">
-                  Brand: {item.brand}
-                </p>
-              )}
-              {item.supplier && (
-                <p className="text-sm text-muted-foreground">
-                  Supplier: {item.supplier}
-                </p>
-              )}
-              {item.specifications && (
-                <p className="text-sm text-muted-foreground">
-                  Specifications: {item.specifications}
-                </p>
-              )}
-              {item.status && (
-                <p className="text-sm text-muted-foreground">
-                  Status: {item.status}
-                </p>
-              )}
-              {item.warranty_info && (
-                <p className="text-sm text-muted-foreground">
-                  Warranty: {item.warranty_info}
-                </p>
-              )}
-              {item.maintenance_notes && (
-                <p className="text-sm text-muted-foreground">
-                  Maintenance: {item.maintenance_notes}
-                </p>
-              )}
-              {item.installation_date && (
-                <p className="text-sm text-muted-foreground">
-                  Installed: {item.installation_date}
-                </p>
-              )}
-              {item.cost !== null && (
-                <p className="text-sm text-muted-foreground">
-                  Cost: ${item.cost.toString()}
-                </p>
-              )}
-            </div>
-          ))}
+          {items?.map((item) => {
+            const [isDetailsVisible, setIsDetailsVisible] = useState(false);
+
+            return (
+              <div key={item.id} className="border rounded-lg p-4">
+                <div className="flex justify-between items-start mb-2">
+                  <div>
+                    <h3 className="font-semibold">{item.name}</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Category: {item.category}
+                    </p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setIsDetailsVisible(!isDetailsVisible)}
+                  >
+                    {isDetailsVisible ? (
+                      <ChevronUp className="h-4 w-4" />
+                    ) : (
+                      <ChevronDown className="h-4 w-4" />
+                    )}
+                  </Button>
+                </div>
+
+                {isDetailsVisible && (
+                  <div className="space-y-2 mt-4 pt-4 border-t">
+                    {item.brand && (
+                      <p className="text-sm text-muted-foreground">
+                        Brand: {item.brand}
+                      </p>
+                    )}
+                    {item.supplier && (
+                      <p className="text-sm text-muted-foreground">
+                        Supplier: {item.supplier}
+                      </p>
+                    )}
+                    {item.specifications && (
+                      <p className="text-sm text-muted-foreground">
+                        Specifications: {item.specifications}
+                      </p>
+                    )}
+                    {item.status && (
+                      <p className="text-sm text-muted-foreground">
+                        Status: {item.status}
+                      </p>
+                    )}
+                    {item.warranty_info && (
+                      <p className="text-sm text-muted-foreground">
+                        Warranty: {item.warranty_info}
+                      </p>
+                    )}
+                    {item.maintenance_notes && (
+                      <p className="text-sm text-muted-foreground">
+                        Maintenance: {item.maintenance_notes}
+                      </p>
+                    )}
+                    {item.installation_date && (
+                      <p className="text-sm text-muted-foreground">
+                        Installed: {item.installation_date}
+                      </p>
+                    )}
+                    {item.cost !== null && (
+                      <p className="text-sm text-muted-foreground">
+                        Cost: ${item.cost.toString()}
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>
