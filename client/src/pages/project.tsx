@@ -68,22 +68,17 @@ export default function ProjectPage({ id }: ProjectPageProps) {
 
       const { data, error } = await supabase
         .from("items")
-        .select(`
-          *,
-          rooms:room_id (
-            id,
-            name,
-            floor_number,
-            dimensions
-          )
-        `)
+        .select("*, rooms!room_id(*)")
         .eq("project_id", id)
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error("Error fetching items:", error);
+        throw error;
+      }
       return data || [];
     },
-    enabled: !!id
+    enabled: !!id && !!rooms?.length
   });
 
   const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -184,7 +179,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
       // Transform items to include room information
       const exportData = items.map(item => ({
         name: item.name,
-        location: item.rooms?.name || "Unknown",
+        location: (item.rooms as any)?.name || "Unknown",
         category: item.category,
         brand: item.brand || "",
         supplier: item.supplier || "",
