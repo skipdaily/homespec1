@@ -66,10 +66,26 @@ export default function ProjectPage({ id }: ProjectPageProps) {
     queryFn: async () => {
       if (!id) throw new Error("No project ID provided");
 
+      // Join items with rooms to get room names
       const { data, error } = await supabase
         .from("items")
-        .select("*, rooms!room_id(*)")
-        .eq("project_id", id)
+        .select(`
+          id,
+          name,
+          category,
+          brand,
+          supplier,
+          specifications,
+          cost,
+          warranty_info,
+          installation_date,
+          maintenance_notes,
+          status,
+          room_id,
+          rooms!inner (
+            name
+          )
+        `)
         .order('created_at', { ascending: false });
 
       if (error) {
@@ -179,7 +195,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
       // Transform items to include room information
       const exportData = items.map(item => ({
         name: item.name,
-        location: (item.rooms as any)?.name || "Unknown",
+        room: item.rooms.name,  // Get the room name directly from the joined data
         category: item.category,
         brand: item.brand || "",
         supplier: item.supplier || "",
