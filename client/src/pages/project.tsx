@@ -182,7 +182,27 @@ export default function ProjectPage({ id }: ProjectPageProps) {
         // Create updated room map with new areas
         const roomMap = new Map(updatedRooms.map(room => [room.name.toLowerCase(), room.id]));
 
-        // Process items with updated room mapping
+        // Fetch existing items to check for duplicates
+        const { data: existingItems, error: existingItemsError } = await supabase
+          .from("items")
+          .select(`
+            id,
+            name,
+            room_id,
+            rooms!inner (
+              name
+            )
+          `);
+
+        if (existingItemsError) throw existingItemsError;
+
+        // Create a map of existing items using room_id + name as key
+        const existingItemsMap = new Map(
+          existingItems?.map(item => [`${item.room_id}-${item.name.toLowerCase()}`, item]) || []
+        );
+
+        // Process items with duplicate checking
+        let skippedCount = 0;
         const validItems = jsonData.filter(item => {
           const roomId = roomMap.get(item.area?.toLowerCase());
           if (!roomId) {
@@ -193,6 +213,14 @@ export default function ProjectPage({ id }: ProjectPageProps) {
             });
             return false;
           }
+
+          // Check for duplicates using room_id + name combination
+          const itemKey = `${roomId}-${item.name.toLowerCase()}`;
+          if (existingItemsMap.has(itemKey)) {
+            skippedCount++;
+            return false;
+          }
+
           return true;
         }).map(item => ({
           room_id: roomMap.get(item.area.toLowerCase())!,
@@ -214,7 +242,9 @@ export default function ProjectPage({ id }: ProjectPageProps) {
         if (validItems.length === 0) {
           toast({
             title: "Error",
-            description: "No valid items found to import",
+            description: skippedCount > 0 
+              ? `All items were duplicates (${skippedCount} skipped)` 
+              : "No valid items found to import",
             variant: "destructive"
           });
           return;
@@ -231,7 +261,9 @@ export default function ProjectPage({ id }: ProjectPageProps) {
 
         toast({
           title: "Success",
-          description: `Imported ${validItems.length} items successfully`
+          description: `Imported ${validItems.length} items successfully${
+            skippedCount > 0 ? ` (${skippedCount} duplicates skipped)` : ''
+          }`
         });
       };
       reader.readAsBinaryString(file);
