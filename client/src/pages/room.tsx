@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { supabase } from "@/lib/supabase";
-import { Plus, ChevronDown, ChevronUp, Pencil, Trash2 } from "lucide-react";
+import { Plus, ChevronDown, ChevronUp, Pencil, Trash2, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -38,6 +38,14 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import type { Room } from "@shared/schema";
 import { cn } from "@/lib/utils";
+import { 
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 
 // Create a schema for the form that matches the database
 const itemFormSchema = z.object({
@@ -149,18 +157,91 @@ const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => vo
     updateItem.mutate(values);
   };
 
+  // Add query for version history
+  const { data: versionHistory } = useQuery({
+    queryKey: ["itemHistory", item.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("finish_history")
+        .select("*")
+        .eq("finish_id", item.id)
+        .order("version", { ascending: false });
+
+      if (error) throw error;
+      return data;
+    },
+  });
+
+
   return (
     <div className="border rounded-lg p-4">
       <div className="flex justify-between items-start mb-2">
         <div className="flex-grow">
-          <h3 className="font-semibold">
-            {item.name}
+          <div className="flex items-center gap-2">
+            <h3 className="font-semibold">{item.name}</h3>
             {item.version > 1 && (
-              <span className="ml-2 text-sm text-muted-foreground">
-                (Version {item.version})
-              </span>
+              <Sheet>
+                <SheetTrigger asChild>
+                  <Button variant="outline" size="sm" className="h-6">
+                    <History className="h-4 w-4 mr-1" />
+                    v{item.version}
+                  </Button>
+                </SheetTrigger>
+                <SheetContent>
+                  <SheetHeader>
+                    <SheetTitle>Version History</SheetTitle>
+                    <SheetDescription>
+                      View previous versions of {item.name}
+                    </SheetDescription>
+                  </SheetHeader>
+                  <ScrollArea className="h-[calc(100vh-8rem)] mt-4">
+                    <div className="space-y-4">
+                      {versionHistory?.map((history) => {
+                        const previousData = JSON.parse(history.previous_data);
+                        return (
+                          <div
+                            key={history.id}
+                            className="border rounded-lg p-4"
+                          >
+                            <div className="flex justify-between items-start mb-2">
+                              <div>
+                                <h4 className="font-medium">
+                                  Version {history.version}
+                                </h4>
+                                <p className="text-sm text-muted-foreground">
+                                  {new Date(history.changed_at).toLocaleString()}
+                                </p>
+                              </div>
+                              <span className="text-sm font-medium px-2 py-1 rounded-full bg-muted">
+                                {history.change_type}
+                              </span>
+                            </div>
+                            <div className="mt-4 space-y-2">
+                              {Object.entries(previousData).map(([key, value]) => {
+                                if (value && typeof value !== 'object') {
+                                  return (
+                                    <div key={key}>
+                                      <span className="text-sm font-medium">
+                                        {key}:{' '}
+                                      </span>
+                                      <span className="text-sm">
+                                        {String(value)}
+                                      </span>
+                                    </div>
+                                  );
+                                }
+                                return null;
+                              })}
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </ScrollArea>
+                </SheetContent>
+              </Sheet>
             )}
-          </h3>
+          </div>
           <p className="text-sm text-muted-foreground">
             Category: {item.category}
           </p>
@@ -444,6 +525,16 @@ const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => vo
     </div>
   );
 };
+
+interface FinishHistory {
+  id: string;
+  finish_id: string;
+  version: number;
+  change_type: string;
+  previous_data: string;
+  changed_by: string;
+  changed_at: string;
+}
 
 interface RoomPageProps {
   id?: string;
