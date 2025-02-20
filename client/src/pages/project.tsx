@@ -184,16 +184,16 @@ export default function ProjectPage({ id }: ProjectPageProps) {
       // Transform items to include room information
       const exportData = items.map(item => ({
         name: item.name,
-        location: item.rooms?.name || '',
+        location: item.rooms?.name || "Unknown",
         category: item.category,
-        brand: item.brand || '',
-        supplier: item.supplier || '',
-        specifications: item.specifications || '',
-        cost: item.cost || '',
-        warranty_info: item.warranty_info || '',
-        installation_date: item.installation_date || '',
-        maintenance_notes: item.maintenance_notes || '',
-        status: item.status || ''
+        brand: item.brand || "",
+        supplier: item.supplier || "",
+        specifications: item.specifications || "",
+        cost: item.cost?.toString() || "",
+        warranty_info: item.warranty_info || "",
+        installation_date: item.installation_date || "",
+        maintenance_notes: item.maintenance_notes || "",
+        status: item.status || ""
       }));
 
       // Create workbook and add items sheet
