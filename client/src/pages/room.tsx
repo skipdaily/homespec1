@@ -124,7 +124,7 @@ export default function RoomPage({ id }: RoomPageProps) {
       if (!id || !room) throw new Error("No room ID provided");
 
       try {
-        console.log("Attempting to insert finish with room_id:", id);
+        console.log("Attempting to insert finish with room_id:", id, "and project_id:", room.project_id);
         const { data, error } = await supabase
           .from("finishes")
           .insert([{
@@ -142,8 +142,9 @@ export default function RoomPage({ id }: RoomPageProps) {
             installation_date: values.installation_date || null,
             cost: values.cost || null,
             room_id: id,
-            document_urls: [],
-            image_url: null
+            project_id: room.project_id,
+            document_urls: values.document_urls || [],
+            image_url: values.image_url || null
           }])
           .select();
 
