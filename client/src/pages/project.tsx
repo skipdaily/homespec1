@@ -146,16 +146,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
         const roomMap = new Map(rooms.map(room => [room.name.toLowerCase(), room.id]));
 
         const validItems = jsonData.filter(item => {
-          if (!item.area) {
-            toast({
-              title: "Warning",
-              description: `Skipped item "${item.name}" - Area is required`,
-              variant: "destructive"
-            });
-            return false;
-          }
-
-          const roomId = roomMap.get(item.area.toLowerCase());
+          const roomId = roomMap.get(item.area?.toLowerCase());
           if (!roomId) {
             toast({
               title: "Warning",
