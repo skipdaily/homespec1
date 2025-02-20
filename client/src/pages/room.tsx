@@ -69,18 +69,98 @@ interface Item {
   maintenance_notes?: string;
   installation_date?: string;
   cost?: number;
+  version?: number; // Added for version history
+  room_id?: string; // Added for invalidation
 }
 
 // ItemCard component to handle individual item state
 const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => void }) => {
   const [isDetailsVisible, setIsDetailsVisible] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const form = useForm<ItemFormValues>({
+    resolver: zodResolver(itemFormSchema),
+    defaultValues: {
+      name: item.name,
+      brand: item.brand || "",
+      supplier: item.supplier || "",
+      specifications: item.specifications || "",
+      cost: item.cost || undefined,
+      warranty_info: item.warranty_info || "",
+      maintenance_notes: item.maintenance_notes || "",
+      installation_date: item.installation_date || "",
+      category: item.category,
+      status: item.status || "",
+      image_url: item.image_url || "",
+      document_urls: item.document_urls || [],
+    },
+  });
+
+  const { toast } = useToast();
+
+  const updateItem = useMutation({
+    mutationFn: async (values: ItemFormValues) => {
+      const { data: session } = await supabase.auth.getSession();
+      if (!session?.session?.access_token) {
+        throw new Error("No authenticated session found");
+      }
+
+      const { data, error } = await supabase
+        .from("items")
+        .update({
+          name: values.name,
+          brand: values.brand || null,
+          supplier: values.supplier || null,
+          specifications: values.specifications || null,
+          cost: values.cost || null,
+          warranty_info: values.warranty_info || null,
+          maintenance_notes: values.maintenance_notes || null,
+          installation_date: values.installation_date || null,
+          category: values.category,
+          status: values.status || null,
+          image_url: values.image_url || null,
+          document_urls: values.document_urls || []
+        })
+        .eq('id', item.id)
+        .select()
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["items", item.room_id] });
+      setShowEditDialog(false);
+      toast({
+        title: "Success",
+        description: "Item updated successfully"
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update item",
+        variant: "destructive"
+      });
+    }
+  });
+
+  const onSubmit = (values: ItemFormValues) => {
+    updateItem.mutate(values);
+  };
 
   return (
     <div className="border rounded-lg p-4">
       <div className="flex justify-between items-start mb-2">
         <div className="flex-grow">
-          <h3 className="font-semibold">{item.name}</h3>
+          <h3 className="font-semibold">
+            {item.name}
+            {item.version > 1 && (
+              <span className="ml-2 text-sm text-muted-foreground">
+                (Version {item.version})
+              </span>
+            )}
+          </h3>
           <p className="text-sm text-muted-foreground">
             Category: {item.category}
           </p>
@@ -89,7 +169,7 @@ const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => vo
           <Button
             variant="ghost"
             size="icon"
-            onClick={() => console.log('Edit clicked - TODO')}
+            onClick={() => setShowEditDialog(true)}
           >
             <Pencil className="h-4 w-4" />
           </Button>
@@ -158,6 +238,187 @@ const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => vo
           )}
         </div>
       )}
+
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent className="max-w-2xl max-h-[90vh]">
+          <DialogHeader>
+            <DialogTitle>Edit Item</DialogTitle>
+          </DialogHeader>
+
+          <Form {...form}>
+            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+              <ScrollArea className="h-[65vh] px-4">
+                <div className="space-y-4 pr-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="name"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Name*</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Enter item name" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="category"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Category*</FormLabel>
+                          <FormControl>
+                            <Input placeholder="e.g., Paint, Flooring" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="brand"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Brand</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Brand name" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="supplier"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Supplier</FormLabel>
+                          <FormControl>
+                            <Input placeholder="Supplier name" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <FormField
+                    control={form.control}
+                    name="specifications"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Specifications</FormLabel>
+                        <FormControl>
+                          <Textarea placeholder="Product specifications" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="warranty_info"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Warranty Information</FormLabel>
+                          <FormControl>
+                            <Textarea placeholder="Warranty details" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="maintenance_notes"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Maintenance Notes</FormLabel>
+                          <FormControl>
+                            <Textarea placeholder="Maintenance details" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <FormField
+                      control={form.control}
+                      name="installation_date"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Installation Date</FormLabel>
+                          <FormControl>
+                            <Input type="date" {...field} />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+
+                    <FormField
+                      control={form.control}
+                      name="cost"
+                      render={({ field }) => (
+                        <FormItem>
+                          <FormLabel>Cost</FormLabel>
+                          <FormControl>
+                            <Input
+                              type="number"
+                              step="0.01"
+                              placeholder="0.00"
+                              {...field}
+                              onChange={(e) => {
+                                const value = e.target.value;
+                                field.onChange(value === "" ? undefined : parseFloat(value));
+                              }}
+                            />
+                          </FormControl>
+                          <FormMessage />
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+
+                  <FormField
+                    control={form.control}
+                    name="status"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Status</FormLabel>
+                        <FormControl>
+                          <Input placeholder="Item status" {...field} />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              </ScrollArea>
+
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={updateItem.isPending}
+              >
+                {updateItem.isPending ? "Saving..." : "Save Changes"}
+              </Button>
+            </form>
+          </Form>
+        </DialogContent>
+      </Dialog>
 
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>

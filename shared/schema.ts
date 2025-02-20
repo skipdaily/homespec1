@@ -46,8 +46,21 @@ export const finishes = pgTable("finishes", {
   cost: numeric("cost", { precision: 10, scale: 2 }),
   image_url: text("image_url"),
   document_urls: text("document_urls").array(),
+  version: integer("version").notNull().default(1),
   created_at: timestamp("created_at").defaultNow().notNull(),
   updated_at: timestamp("updated_at").defaultNow().notNull()
+});
+
+// Track history of finish changes
+export const finishHistory = pgTable("finish_history", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  finish_id: uuid("finish_id").notNull().references(() => finishes.id),
+  version: integer("version").notNull(),
+  change_type: text("change_type").notNull(), // 'edit' or 'delete'
+  previous_data: text("previous_data").notNull(), // JSON string of previous values
+  changed_by: uuid("changed_by").notNull(), // User who made the change
+  changed_at: timestamp("changed_at").defaultNow().notNull(),
+  created_at: timestamp("created_at").defaultNow().notNull()
 });
 
 // Zod schemas for input validation
@@ -64,8 +77,14 @@ export const insertRoomSchema = createInsertSchema(rooms).omit({
 
 export const insertFinishSchema = createInsertSchema(finishes).omit({ 
   id: true,
+  version: true,
   created_at: true,
   updated_at: true
+});
+
+export const insertFinishHistorySchema = createInsertSchema(finishHistory).omit({
+  id: true,
+  created_at: true
 });
 
 // TypeScript types
@@ -75,3 +94,5 @@ export type Room = typeof rooms.$inferSelect;
 export type InsertRoom = z.infer<typeof insertRoomSchema>;
 export type Finish = typeof finishes.$inferSelect;
 export type InsertFinish = z.infer<typeof insertFinishSchema>;
+export type FinishHistory = typeof finishHistory.$inferSelect;
+export type InsertFinishHistory = z.infer<typeof insertFinishHistorySchema>;

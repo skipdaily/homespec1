@@ -1,7 +1,7 @@
 import { db } from "./db";
 import { eq } from "drizzle-orm";
-import { projects, rooms, finishes } from "@shared/schema";
-import type { Project, InsertProject, Room, InsertRoom, Finish, InsertFinish } from "@shared/schema";
+import { projects, rooms, finishes, finishHistory } from "@shared/schema";
+import type { Project, InsertProject, Room, InsertRoom, Finish, InsertFinish, FinishHistory, InsertFinishHistory } from "@shared/schema";
 
 export interface IStorage {
   // Project operations
@@ -20,6 +20,10 @@ export interface IStorage {
   getFinishesByProjectId(projectId: string): Promise<Finish[]>;
   getFinishesByRoomId(roomId: string): Promise<Finish[]>;
   createFinish(finish: InsertFinish): Promise<Finish>;
+  updateFinish(id: string, finish: Partial<InsertFinish>, userId: string): Promise<Finish>;
+
+  // Finish History operations
+  getFinishHistory(finishId: string): Promise<FinishHistory[]>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -72,6 +76,51 @@ export class DatabaseStorage implements IStorage {
   async createFinish(finish: InsertFinish): Promise<Finish> {
     const [created] = await db.insert(finishes).values(finish).returning();
     return created;
+  }
+
+  async updateFinish(id: string, finish: Partial<InsertFinish>, userId: string): Promise<Finish> {
+    // Start a transaction
+    return await db.transaction(async (tx) => {
+      // Get the current finish
+      const [currentFinish] = await tx
+        .select()
+        .from(finishes)
+        .where(eq(finishes.id, id));
+
+      if (!currentFinish) {
+        throw new Error("Finish not found");
+      }
+
+      // Store the current state in history
+      await tx.insert(finishHistory).values({
+        finish_id: id,
+        version: currentFinish.version,
+        change_type: 'edit',
+        previous_data: JSON.stringify(currentFinish),
+        changed_by: userId,
+      });
+
+      // Update the finish with new version
+      const [updatedFinish] = await tx
+        .update(finishes)
+        .set({
+          ...finish,
+          version: currentFinish.version + 1,
+          updated_at: new Date(),
+        })
+        .where(eq(finishes.id, id))
+        .returning();
+
+      return updatedFinish;
+    });
+  }
+
+  async getFinishHistory(finishId: string): Promise<FinishHistory[]> {
+    return await db
+      .select()
+      .from(finishHistory)
+      .where(eq(finishHistory.finish_id, finishId))
+      .orderBy(finishHistory.version);
   }
 }
 
