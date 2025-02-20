@@ -194,8 +194,8 @@ export default function ProjectPage({ id }: ProjectPageProps) {
 
       // Transform items to include room information
       const exportData = items.map(item => ({
+        area: item.rooms.name,  // Get the area name directly from the joined data
         name: item.name,
-        room: item.rooms.name,  // Get the room name directly from the joined data
         category: item.category,
         brand: item.brand || "",
         supplier: item.supplier || "",
