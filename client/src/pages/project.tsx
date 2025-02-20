@@ -142,9 +142,47 @@ export default function ProjectPage({ id }: ProjectPageProps) {
 
         console.log("Imported data:", jsonData);
 
-        // Validate and map room names to IDs
-        const roomMap = new Map(rooms.map(room => [room.name.toLowerCase(), room.id]));
+        // Get unique areas from import data
+        const importedAreas = new Set(jsonData.map(item => item.area?.toLowerCase()).filter(Boolean));
+        const existingRoomNames = new Set(rooms.map(room => room.name.toLowerCase()));
 
+        // Create missing areas first
+        for (const area of importedAreas) {
+          if (!existingRoomNames.has(area)) {
+            const { error } = await supabase
+              .from("rooms")
+              .insert([{
+                project_id: id,
+                name: area.charAt(0).toUpperCase() + area.slice(1), // Capitalize first letter
+                created_at: new Date().toISOString()
+              }]);
+
+            if (error) {
+              console.error("Error creating area:", error);
+              toast({
+                title: "Warning",
+                description: `Failed to create area "${area}"`,
+                variant: "destructive"
+              });
+            }
+          }
+        }
+
+        // Refresh rooms data
+        const { data: updatedRooms, error: roomsError } = await supabase
+          .from("rooms")
+          .select("*")
+          .eq("project_id", id)
+          .order("created_at", { ascending: false });
+
+        if (roomsError) {
+          throw roomsError;
+        }
+
+        // Create updated room map with new areas
+        const roomMap = new Map(updatedRooms.map(room => [room.name.toLowerCase(), room.id]));
+
+        // Process items with updated room mapping
         const validItems = jsonData.filter(item => {
           const roomId = roomMap.get(item.area?.toLowerCase());
           if (!roomId) {
@@ -189,6 +227,8 @@ export default function ProjectPage({ id }: ProjectPageProps) {
         if (error) throw error;
 
         queryClient.invalidateQueries({ queryKey: ["project-items", id] });
+        queryClient.invalidateQueries({ queryKey: ["rooms", id] });
+
         toast({
           title: "Success",
           description: `Imported ${validItems.length} items successfully`
@@ -339,7 +379,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
                 <DialogTitle>Add New Area</DialogTitle>
               </DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
-                <Input 
+                <Input
                   name="name"
                   placeholder="Area Name*"
                   required
@@ -349,12 +389,12 @@ export default function ProjectPage({ id }: ProjectPageProps) {
                   placeholder="Description"
                 />
                 <div className="grid grid-cols-2 gap-4">
-                  <Input 
+                  <Input
                     name="floor_number"
                     type="number"
                     placeholder="Floor Number"
                   />
-                  <Input 
+                  <Input
                     name="dimensions"
                     placeholder="Dimensions (e.g., 12' x 15')"
                   />
