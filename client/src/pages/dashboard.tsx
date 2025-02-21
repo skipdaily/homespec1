@@ -3,7 +3,7 @@ import { useLocation, Link } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { supabase } from "@/lib/supabase";
-import { Plus, Pencil, Trash2, Home, User, Settings, LogOut } from "lucide-react";
+import { Plus, Pencil, Trash2, Home, User, Settings, LogOut, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -313,19 +313,23 @@ export default function Dashboard() {
   );
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b bg-card">
+    <div className="min-h-screen bg-gradient-to-br from-background to-muted/50">
+      <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center space-x-4">
-            <Home className="h-6 w-6 text-primary" />
-            <h1 className="text-xl font-semibold">HomeSpec</h1>
+            <div className="bg-primary/10 p-2 rounded-lg">
+              <Home className="h-6 w-6 text-primary" />
+            </div>
+            <h1 className="text-xl font-semibold bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/80">
+              HomeSpec
+            </h1>
           </div>
           <div className="flex items-center space-x-4">
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-10 w-10 rounded-full">
                   <Avatar className="h-10 w-10">
-                    <AvatarFallback>
+                    <AvatarFallback className="bg-primary/10 text-primary">
                       {session?.user?.email?.charAt(0).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
@@ -363,7 +367,7 @@ export default function Dashboard() {
           </div>
           <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
             <DialogTrigger asChild>
-              <Button size="lg" className="h-10">
+              <Button size="lg" className="bg-primary hover:bg-primary/90">
                 <Plus className="mr-2 h-5 w-5" />
                 Add Project
               </Button>
@@ -388,12 +392,20 @@ export default function Dashboard() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3, delay: index * 0.1 }}
             >
-              <Card className="group relative overflow-hidden hover:shadow-lg transition-all duration-300">
+              <Card className="group relative overflow-hidden hover:shadow-lg transition-all duration-300 border-primary/10">
+                <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                 <CardHeader>
-                  <CardTitle className="text-xl">{project.name}</CardTitle>
+                  <CardTitle className="text-xl flex items-center justify-between">
+                    <span>{project.name}</span>
+                    <div className="flex items-center space-x-2">
+                      <span className="inline-flex items-center rounded-full bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-600/20">
+                        In Progress
+                      </span>
+                    </div>
+                  </CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="space-y-2">
+                  <div className="space-y-3">
                     <p className="text-muted-foreground flex items-center">
                       <span className="font-medium mr-2">Address:</span>
                       {project.address}
@@ -403,15 +415,15 @@ export default function Dashboard() {
                       {project.builder_name}
                     </p>
                     {project.completion_date && (
-                      <p className="text-sm text-muted-foreground flex items-center">
-                        <span className="font-medium mr-2">Expected Completion:</span>
-                        {new Date(project.completion_date).toLocaleDateString()}
-                      </p>
+                      <div className="flex items-center text-sm text-muted-foreground space-x-2">
+                        <Clock className="h-4 w-4 text-primary/60" />
+                        <span>Due {new Date(project.completion_date).toLocaleDateString()}</span>
+                      </div>
                     )}
                   </div>
                 </CardContent>
-                <CardFooter className="flex justify-between bg-muted/50 backdrop-blur-sm">
-                  <Button variant="ghost" asChild className="text-primary hover:text-primary/80">
+                <CardFooter className="flex justify-between bg-muted/50 backdrop-blur supports-[backdrop-filter]:bg-white/5">
+                  <Button variant="ghost" asChild className="text-primary hover:text-primary/80 hover:bg-primary/10">
                     <Link href={`/project/${project.id}`}>View Details</Link>
                   </Button>
                   <div className="flex gap-2">
@@ -422,7 +434,7 @@ export default function Dashboard() {
                         e.preventDefault();
                         handleEdit(project);
                       }}
-                      className="hover:bg-background/80"
+                      className="hover:bg-primary/10 text-primary hover:text-primary"
                     >
                       <Pencil className="h-4 w-4" />
                     </Button>
@@ -433,7 +445,7 @@ export default function Dashboard() {
                         e.preventDefault();
                         handleDelete(project);
                       }}
-                      className="hover:bg-destructive/10 hover:text-destructive"
+                      className="hover:bg-destructive/10 text-destructive hover:text-destructive"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
