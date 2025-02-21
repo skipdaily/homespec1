@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { supabase } from "@/lib/supabase";
-import { Plus, Download, Upload } from "lucide-react";
+import { Plus, Download, Upload, Pencil, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -18,6 +18,18 @@ import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Link } from "wouter";
 import type { Project, Room } from "@shared/schema";
 import * as XLSX from 'xlsx';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
+import { ScrollArea } from "@/components/ui/scroll-area";
 
 interface ProjectPageProps {
   id?: string;
@@ -262,8 +274,8 @@ export default function ProjectPage({ id }: ProjectPageProps) {
         if (validItems.length === 0) {
           toast({
             title: "Error",
-            description: skippedCount > 0 
-              ? `All items were duplicates (${skippedCount} skipped)` 
+            description: skippedCount > 0
+              ? `All items were duplicates (${skippedCount} skipped)`
               : "No valid items found to import",
             variant: "destructive"
           });
@@ -388,6 +400,199 @@ export default function ProjectPage({ id }: ProjectPageProps) {
     return <div>Loading...</div>;
   }
 
+  const AreaCard = ({ room, itemCount }: { room: Room; itemCount: number }) => {
+    const [showEditDialog, setShowEditDialog] = useState(false);
+    const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+    const { toast } = useToast();
+
+    const updateRoom = useMutation({
+      mutationFn: async (data: {
+        name: string;
+        description?: string;
+        floor_number?: number;
+        dimensions?: string;
+      }) => {
+        const { error } = await supabase
+          .from("rooms")
+          .update(data)
+          .eq('id', room.id);
+
+        if (error) throw error;
+      },
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ["rooms", room.project_id] });
+        setShowEditDialog(false);
+        toast({
+          title: "Success",
+          description: "Area updated successfully"
+        });
+      },
+      onError: (error: Error) => {
+        toast({
+          title: "Error",
+          description: error.message || "Failed to update area",
+          variant: "destructive"
+        });
+      }
+    });
+
+    const deleteRoom = useMutation({
+      mutationFn: async () => {
+        const { error } = await supabase
+          .from("rooms")
+          .delete()
+          .eq('id', room.id);
+
+        if (error) throw error;
+      },
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ["rooms", room.project_id] });
+        setShowDeleteDialog(false);
+        toast({
+          title: "Success",
+          description: "Area deleted successfully"
+        });
+      },
+      onError: (error: Error) => {
+        toast({
+          title: "Error",
+          description: error.message || "Failed to delete area",
+          variant: "destructive"
+        });
+      }
+    });
+
+    const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+      e.preventDefault();
+      const formData = new FormData(e.currentTarget);
+
+      const floorNumber = formData.get("floor_number");
+      updateRoom.mutate({
+        name: formData.get("name") as string,
+        description: formData.get("description") as string || undefined,
+        floor_number: floorNumber ? parseInt(floorNumber as string) : undefined,
+        dimensions: formData.get("dimensions") as string || undefined
+      });
+    };
+
+    return (
+      <Link key={room.id} href={`/room/${room.id}`}>
+        <Card className="group cursor-pointer hover:shadow-lg transition-all duration-200 border-2 hover:border-primary/20">
+          <CardHeader>
+            <div className="flex justify-between items-start">
+              <div className="space-y-1">
+                <CardTitle className="group-hover:text-primary transition-colors">
+                  {room.name}
+                </CardTitle>
+                <div className="flex items-center space-x-2">
+                  <Badge variant="secondary" className="rounded-md">
+                    {itemCount} {itemCount === 1 ? 'item' : 'items'}
+                  </Badge>
+                  {room.floor_number !== null && (
+                    <Badge variant="outline" className="rounded-md">
+                      Floor {room.floor_number}
+                    </Badge>
+                  )}
+                </div>
+              </div>
+              <div className="flex space-x-2">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="opacity-0 group-hover:opacity-100 transition-opacity"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setShowEditDialog(true);
+                  }}
+                >
+                  <Pencil className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="opacity-0 group-hover:opacity-100 transition-opacity text-destructive"
+                  onClick={(e) => {
+                    e.preventDefault();
+                    setShowDeleteDialog(true);
+                  }}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {room.description && (
+              <p className="text-muted-foreground line-clamp-2">{room.description}</p>
+            )}
+            {room.dimensions && (
+              <p className="text-sm text-muted-foreground mt-2">
+                Size: {room.dimensions}
+              </p>
+            )}
+          </CardContent>
+        </Card>
+
+        <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Edit Area</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <Input
+                name="name"
+                placeholder="Area Name*"
+                required
+                defaultValue={room.name}
+              />
+              <Textarea
+                name="description"
+                placeholder="Description"
+                defaultValue={room.description || ''}
+              />
+              <div className="grid grid-cols-2 gap-4">
+                <Input
+                  name="floor_number"
+                  type="number"
+                  placeholder="Floor Number"
+                  defaultValue={room.floor_number || ''}
+                />
+                <Input
+                  name="dimensions"
+                  placeholder="Dimensions (e.g., 12' x 15')"
+                  defaultValue={room.dimensions || ''}
+                />
+              </div>
+              <Button type="submit" className="w-full">
+                Save Changes
+              </Button>
+            </form>
+          </DialogContent>
+        </Dialog>
+
+        <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will permanently delete "{room.name}" and all its items. This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => deleteRoom.mutate()}
+                className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              >
+                Delete
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </Link>
+    );
+  };
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-8">
@@ -461,28 +666,16 @@ export default function ProjectPage({ id }: ProjectPageProps) {
       </div>
 
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {rooms?.map((room) => (
-          <Link key={room.id} href={`/room/${room.id}`}>
-            <Card className="cursor-pointer hover:bg-muted/50 transition-colors">
-              <CardHeader>
-                <CardTitle>{room.name}</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground">{room.description}</p>
-                {room.floor_number !== null && (
-                  <p className="text-sm text-muted-foreground">
-                    Floor: {room.floor_number}
-                  </p>
-                )}
-                {room.dimensions && (
-                  <p className="text-sm text-muted-foreground">
-                    Size: {room.dimensions}
-                  </p>
-                )}
-              </CardContent>
-            </Card>
-          </Link>
-        ))}
+        {rooms?.map((room) => {
+          const roomItems = items?.filter(item => item.room_id === room.id) || [];
+          return (
+            <AreaCard
+              key={room.id}
+              room={room}
+              itemCount={roomItems.length}
+            />
+          );
+        })}
       </div>
     </div>
   );
