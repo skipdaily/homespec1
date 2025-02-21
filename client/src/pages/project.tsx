@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { supabase } from "@/lib/supabase";
-import { Plus, Download, Upload, Pencil, Trash2 } from "lucide-react";
+import { Plus, Download, Upload, Pencil, Trash2, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -57,6 +57,7 @@ interface Item {
 export default function ProjectPage({ id }: ProjectPageProps) {
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
 
   const { data: project } = useQuery<Project>({
     queryKey: ["project", id],
@@ -593,6 +594,30 @@ export default function ProjectPage({ id }: ProjectPageProps) {
     );
   };
 
+  // Filter items based on search query
+  const filteredItems = items?.filter(item => {
+    if (!searchQuery.trim()) return true;
+
+    const searchLower = searchQuery.toLowerCase();
+    return (
+      item.name.toLowerCase().includes(searchLower) ||
+      item.category.toLowerCase().includes(searchLower) ||
+      (item.brand?.toLowerCase().includes(searchLower)) ||
+      (item.supplier?.toLowerCase().includes(searchLower)) ||
+      (item.specifications?.toLowerCase().includes(searchLower)) ||
+      (item.status?.toLowerCase().includes(searchLower))
+    );
+  });
+
+  // Group filtered items by room
+  const itemsByRoom = filteredItems?.reduce((acc, item) => {
+    if (!acc[item.room_id]) {
+      acc[item.room_id] = [];
+    }
+    acc[item.room_id].push(item);
+    return acc;
+  }, {} as Record<string, Item[]>);
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-8">
@@ -603,6 +628,17 @@ export default function ProjectPage({ id }: ProjectPageProps) {
         </div>
 
         <div className="flex gap-2">
+          <div className="relative w-64">
+            <Input
+              type="text"
+              placeholder="Search items..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-8"
+            />
+            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+          </div>
+
           <input
             type="file"
             accept=".csv,.xlsx,.xls"
@@ -667,7 +703,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
 
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
         {rooms?.map((room) => {
-          const roomItems = items?.filter(item => item.room_id === room.id) || [];
+          const roomItems = itemsByRoom?.[room.id] || [];
           return (
             <AreaCard
               key={room.id}
