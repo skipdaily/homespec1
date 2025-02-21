@@ -313,14 +313,14 @@ export default function Dashboard() {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background to-muted/50">
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
       <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center space-x-4">
-            <div className="bg-primary/10 p-2 rounded-lg">
+            <div className="bg-gradient-to-r from-primary/10 to-primary/5 p-2 rounded-xl shadow-sm">
               <Home className="h-6 w-6 text-primary" />
             </div>
-            <h1 className="text-xl font-semibold bg-clip-text text-transparent bg-gradient-to-r from-primary to-primary/80">
+            <h1 className="text-xl font-semibold text-foreground">
               HomeSpec
             </h1>
           </div>
@@ -328,8 +328,8 @@ export default function Dashboard() {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-                  <Avatar className="h-10 w-10">
-                    <AvatarFallback className="bg-primary/10 text-primary">
+                  <Avatar className="h-10 w-10 ring-2 ring-background">
+                    <AvatarFallback className="bg-gradient-to-r from-primary/20 to-primary/10 text-primary">
                       {session?.user?.email?.charAt(0).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
@@ -360,14 +360,19 @@ export default function Dashboard() {
       <main className="container mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">My Projects</h1>
+            <h1 className="text-3xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/80">
+              My Projects
+            </h1>
             <p className="text-muted-foreground mt-1">
               Manage and track your home renovation projects
             </p>
           </div>
           <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
             <DialogTrigger asChild>
-              <Button size="lg" className="bg-primary hover:bg-primary/90">
+              <Button 
+                size="lg" 
+                className="bg-gradient-to-r from-primary to-primary/90 hover:from-primary/95 hover:to-primary/85 text-primary-foreground shadow-lg shadow-primary/20 transition-all duration-300"
+              >
                 <Plus className="mr-2 h-5 w-5" />
                 Add Project
               </Button>
@@ -392,13 +397,13 @@ export default function Dashboard() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3, delay: index * 0.1 }}
             >
-              <Card className="group relative overflow-hidden hover:shadow-lg transition-all duration-300 border-primary/10">
-                <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+              <Card className="group relative overflow-hidden hover:shadow-xl transition-all duration-300 border-border/50 bg-gradient-to-br from-card to-card/95">
+                <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-primary/2 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
                 <CardHeader>
                   <CardTitle className="text-xl flex items-center justify-between">
-                    <span>{project.name}</span>
+                    <span className="font-semibold text-foreground/90">{project.name}</span>
                     <div className="flex items-center space-x-2">
-                      <span className="inline-flex items-center rounded-full bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700 ring-1 ring-inset ring-emerald-600/20">
+                      <span className="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium bg-gradient-to-r from-emerald-50 to-emerald-50/80 text-emerald-700 ring-1 ring-inset ring-emerald-600/20">
                         In Progress
                       </span>
                     </div>
@@ -423,7 +428,11 @@ export default function Dashboard() {
                   </div>
                 </CardContent>
                 <CardFooter className="flex justify-between bg-muted/50 backdrop-blur supports-[backdrop-filter]:bg-white/5">
-                  <Button variant="ghost" asChild className="text-primary hover:text-primary/80 hover:bg-primary/10">
+                  <Button 
+                    variant="ghost" 
+                    asChild 
+                    className="text-primary hover:text-primary hover:bg-primary/10 transition-colors duration-200"
+                  >
                     <Link href={`/project/${project.id}`}>View Details</Link>
                   </Button>
                   <div className="flex gap-2">
@@ -434,7 +443,7 @@ export default function Dashboard() {
                         e.preventDefault();
                         handleEdit(project);
                       }}
-                      className="hover:bg-primary/10 text-primary hover:text-primary"
+                      className="hover:bg-primary/10 text-primary hover:text-primary transition-colors duration-200"
                     >
                       <Pencil className="h-4 w-4" />
                     </Button>
@@ -445,7 +454,7 @@ export default function Dashboard() {
                         e.preventDefault();
                         handleDelete(project);
                       }}
-                      className="hover:bg-destructive/10 text-destructive hover:text-destructive"
+                      className="hover:bg-destructive/10 text-destructive hover:text-destructive transition-colors duration-200"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>
