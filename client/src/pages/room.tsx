@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { supabase } from "@/lib/supabase";
-import { Plus, ChevronDown, ChevronUp, Pencil, Trash2, History, Home, ChevronRight } from "lucide-react";
+import { Plus, ChevronDown, ChevronUp, Pencil, Trash2, History, Home, ChevronRight, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -541,6 +541,7 @@ export default function RoomPage({ id }: RoomPageProps) {
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
   const [location, setLocation] = useLocation();
 
   const form = useForm<ItemFormValues>({
@@ -687,6 +688,20 @@ export default function RoomPage({ id }: RoomPageProps) {
     deleteItem.mutate(itemId);
   };
 
+  // Filter items based on search query
+  const filteredItems = items?.filter(item => {
+    if (!searchQuery.trim()) return true;
+
+    const searchLower = searchQuery.toLowerCase();
+    return (
+      item.name.toLowerCase().includes(searchLower) ||
+      item.category.toLowerCase().includes(searchLower) ||
+      (item.brand?.toLowerCase().includes(searchLower)) ||
+      (item.supplier?.toLowerCase().includes(searchLower)) ||
+      (item.specifications?.toLowerCase().includes(searchLower)) ||
+      (item.status?.toLowerCase().includes(searchLower))
+    );
+  });
 
   if (!room) {
     return <div>Loading...</div>;
@@ -727,6 +742,17 @@ export default function RoomPage({ id }: RoomPageProps) {
         </div>
 
         <div className="flex gap-2">
+          <div className="relative w-64">
+            <Input
+              type="text"
+              placeholder="Search items..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-8"
+            />
+            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+          </div>
+
           <Dialog open={open} onOpenChange={setOpen}>
             <DialogTrigger asChild>
               <Button>
@@ -937,9 +963,14 @@ export default function RoomPage({ id }: RoomPageProps) {
           "grid md:grid-cols-2 lg:grid-cols-3 gap-6 transition-all duration-200",
           isCollapsed ? "hidden" : "block"
         )}>
-          {items?.map((item) => (
+          {filteredItems?.map((item) => (
             <ItemCard key={item.id} item={item} onDelete={handleDelete} />
           ))}
+          {filteredItems?.length === 0 && (
+            <div className="text-center py-8 text-muted-foreground">
+              No items found matching your search.
+            </div>
+          )}
         </div>
       </div>
     </div>
