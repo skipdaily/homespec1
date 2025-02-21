@@ -31,10 +31,6 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 
-interface ProjectPageProps {
-  id?: string;
-}
-
 // Define the structure of the items data
 interface Item {
   id: string;
@@ -52,6 +48,10 @@ interface Item {
   rooms: {
     name: string;
   };
+}
+
+interface ProjectPageProps {
+  id?: string;
 }
 
 export default function ProjectPage({ id }: ProjectPageProps) {
@@ -610,21 +610,21 @@ export default function ProjectPage({ id }: ProjectPageProps) {
   });
 
   // Group filtered items by room
-  const itemsByRoom = filteredItems?.reduce((acc, item) => {
-    if (!acc[item.room_id]) {
-      acc[item.room_id] = [];
-    }
-    acc[item.room_id].push(item);
+  const itemsByRoom = rooms?.reduce((acc, room) => {
+    acc[room.id] = filteredItems?.filter(item => item.room_id === room.id) || [];
     return acc;
   }, {} as Record<string, Item[]>);
+
+  // Get total count of filtered items
+  const totalFilteredItems = filteredItems?.length || 0;
 
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-8">
         <div>
-          <h1 className="text-3xl font-bold">{project.name}</h1>
-          <p className="text-muted-foreground">Address: {project.address}</p>
-          <p className="text-muted-foreground">Builder: {project.builder_name}</p>
+          <h1 className="text-3xl font-bold">{project?.name}</h1>
+          <p className="text-muted-foreground">Address: {project?.address}</p>
+          <p className="text-muted-foreground">Builder: {project?.builder_name}</p>
         </div>
 
         <div className="flex gap-2">
@@ -701,6 +701,62 @@ export default function ProjectPage({ id }: ProjectPageProps) {
         </div>
       </div>
 
+      {/* Search Results Section */}
+      {searchQuery.trim() !== "" && (
+        <div className="mb-8">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xl font-semibold">
+              Search Results ({totalFilteredItems})
+            </h2>
+          </div>
+
+          <div className="grid gap-4">
+            {filteredItems?.map((item) => {
+              const room = rooms?.find(r => r.id === item.room_id);
+              return (
+                <Link key={item.id} href={`/room/${item.room_id}`}>
+                  <Card className="cursor-pointer hover:shadow-md transition-all duration-200">
+                    <CardContent className="pt-6">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h3 className="font-semibold text-lg">{item.name}</h3>
+                          <p className="text-sm text-muted-foreground">
+                            Category: {item.category}
+                          </p>
+                          {room && (
+                            <Badge variant="secondary" className="mt-2">
+                              {room.name}
+                            </Badge>
+                          )}
+                        </div>
+                        <div className="space-y-1 text-sm text-right">
+                          {item.brand && (
+                            <p className="text-muted-foreground">
+                              Brand: {item.brand}
+                            </p>
+                          )}
+                          {item.supplier && (
+                            <p className="text-muted-foreground">
+                              Supplier: {item.supplier}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </Link>
+              );
+            })}
+            {totalFilteredItems === 0 && (
+              <div className="text-center py-8 text-muted-foreground">
+                No items found matching your search.
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Rooms Grid Section */}
       <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
         {rooms?.map((room) => {
           const roomItems = itemsByRoom?.[room.id] || [];
