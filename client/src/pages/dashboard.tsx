@@ -3,7 +3,7 @@ import { useLocation, Link } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { supabase } from "@/lib/supabase";
-import { Plus, Pencil, Trash2 } from "lucide-react";
+import { Plus, Pencil, Trash2, Home, User, Settings, LogOut } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -23,9 +23,17 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardHeader, CardTitle, CardContent, CardFooter } from "@/components/ui/card";
+import { motion } from "framer-motion";
 import type { Project } from "@shared/schema";
 
 interface ProjectFormData {
@@ -155,7 +163,6 @@ export default function Dashboard() {
 
   const deleteProject = useMutation({
     mutationFn: async (projectId: string) => {
-      // First, get all rooms for this project
       const { data: rooms } = await supabase
         .from("rooms")
         .select("id")
@@ -164,7 +171,6 @@ export default function Dashboard() {
       if (rooms && rooms.length > 0) {
         const roomIds = rooms.map(room => room.id);
 
-        // Delete all item history records for items in these rooms
         const { error: itemHistoryError } = await supabase
           .from("item_history")
           .delete()
@@ -172,7 +178,6 @@ export default function Dashboard() {
 
         if (itemHistoryError) throw itemHistoryError;
 
-        // Delete all items in these rooms
         const { error: itemsError } = await supabase
           .from("items")
           .delete()
@@ -180,7 +185,6 @@ export default function Dashboard() {
 
         if (itemsError) throw itemsError;
 
-        // Delete all rooms
         const { error: roomsError } = await supabase
           .from("rooms")
           .delete()
@@ -189,7 +193,6 @@ export default function Dashboard() {
         if (roomsError) throw roomsError;
       }
 
-      // Finally delete the project
       const { error } = await supabase
         .from("projects")
         .delete()
@@ -240,6 +243,11 @@ export default function Dashboard() {
   const handleDelete = (project: Project) => {
     setSelectedProject(project);
     setDeleteDialogOpen(true);
+  };
+
+  const handleLogout = async () => {
+    await supabase.auth.signOut();
+    setLocation("/login");
   };
 
   if (isSessionLoading) {
@@ -305,102 +313,170 @@ export default function Dashboard() {
   );
 
   return (
-    <div className="container mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold">My Projects</h1>
-        <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <Plus className="mr-2 h-4 w-4" />
-              Add Project
-            </Button>
-          </DialogTrigger>
+    <div className="min-h-screen bg-background">
+      <header className="border-b bg-card">
+        <div className="container mx-auto px-4 h-16 flex items-center justify-between">
+          <div className="flex items-center space-x-4">
+            <Home className="h-6 w-6 text-primary" />
+            <h1 className="text-xl font-semibold">HomeSpec</h1>
+          </div>
+          <div className="flex items-center space-x-4">
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button variant="ghost" className="relative h-10 w-10 rounded-full">
+                  <Avatar className="h-10 w-10">
+                    <AvatarFallback>
+                      {session?.user?.email?.charAt(0).toUpperCase()}
+                    </AvatarFallback>
+                  </Avatar>
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuItem className="flex items-center">
+                  <User className="mr-2 h-4 w-4" />
+                  <span>Profile</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem className="flex items-center">
+                  <Settings className="mr-2 h-4 w-4" />
+                  <span>Settings</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem
+                  className="flex items-center text-destructive focus:text-destructive"
+                  onClick={handleLogout}
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Logout</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        </div>
+      </header>
+
+      <main className="container mx-auto px-4 py-8">
+        <div className="flex justify-between items-center mb-8">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">My Projects</h1>
+            <p className="text-muted-foreground mt-1">
+              Manage and track your home renovation projects
+            </p>
+          </div>
+          <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
+            <DialogTrigger asChild>
+              <Button size="lg" className="h-10">
+                <Plus className="mr-2 h-5 w-5" />
+                Add Project
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Create New Project</DialogTitle>
+                <DialogDescription>
+                  Add a new home project to document its finishes and materials.
+                </DialogDescription>
+              </DialogHeader>
+              <ProjectForm />
+            </DialogContent>
+          </Dialog>
+        </div>
+
+        <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {projects?.map((project, index) => (
+            <motion.div
+              key={project.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.3, delay: index * 0.1 }}
+            >
+              <Card className="group relative overflow-hidden hover:shadow-lg transition-all duration-300">
+                <CardHeader>
+                  <CardTitle className="text-xl">{project.name}</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    <p className="text-muted-foreground flex items-center">
+                      <span className="font-medium mr-2">Address:</span>
+                      {project.address}
+                    </p>
+                    <p className="text-sm text-muted-foreground flex items-center">
+                      <span className="font-medium mr-2">Builder:</span>
+                      {project.builder_name}
+                    </p>
+                    {project.completion_date && (
+                      <p className="text-sm text-muted-foreground flex items-center">
+                        <span className="font-medium mr-2">Expected Completion:</span>
+                        {new Date(project.completion_date).toLocaleDateString()}
+                      </p>
+                    )}
+                  </div>
+                </CardContent>
+                <CardFooter className="flex justify-between bg-muted/50 backdrop-blur-sm">
+                  <Button variant="ghost" asChild className="text-primary hover:text-primary/80">
+                    <Link href={`/project/${project.id}`}>View Details</Link>
+                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        handleEdit(project);
+                      }}
+                      className="hover:bg-background/80"
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        handleDelete(project);
+                      }}
+                      className="hover:bg-destructive/10 hover:text-destructive"
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </CardFooter>
+              </Card>
+            </motion.div>
+          ))}
+        </div>
+
+        <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
           <DialogContent>
             <DialogHeader>
-              <DialogTitle>Create New Project</DialogTitle>
+              <DialogTitle>Edit Project</DialogTitle>
               <DialogDescription>
-                Add a new home project to document its finishes and materials.
+                Update your project details.
               </DialogDescription>
             </DialogHeader>
-            <ProjectForm />
+            <ProjectForm isEdit />
           </DialogContent>
         </Dialog>
-      </div>
 
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {projects?.map((project) => (
-          <Card key={project.id} className="hover:bg-muted/50 transition-colors">
-            <CardHeader>
-              <CardTitle>{project.name}</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground">Address: {project.address}</p>
-              <p className="text-sm text-muted-foreground mt-2">
-                Builder: {project.builder_name}
-              </p>
-            </CardContent>
-            <CardFooter className="flex justify-between">
-              <Button variant="ghost" asChild>
-                <Link href={`/project/${project.id}`}>View Details</Link>
-              </Button>
-              <div className="flex gap-2">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    handleEdit(project);
-                  }}
-                >
-                  <Pencil className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    handleDelete(project);
-                  }}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            </CardFooter>
-          </Card>
-        ))}
-      </div>
-
-      <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Edit Project</DialogTitle>
-            <DialogDescription>
-              Update your project details.
-            </DialogDescription>
-          </DialogHeader>
-          <ProjectForm isEdit />
-        </DialogContent>
-      </Dialog>
-
-      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will permanently delete the project "{selectedProject?.name}". This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => selectedProject && deleteProject.mutate(selectedProject.id)}
-              disabled={deleteProject.isPending}
-            >
-              {deleteProject.isPending ? "Deleting..." : "Delete"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will permanently delete the project "{selectedProject?.name}" and all associated data. This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={() => selectedProject && deleteProject.mutate(selectedProject.id)}
+                disabled={deleteProject.isPending}
+                className="bg-destructive hover:bg-destructive/90"
+              >
+                {deleteProject.isPending ? "Deleting..." : "Delete Project"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </main>
     </div>
   );
 }
