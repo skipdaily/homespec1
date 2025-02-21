@@ -155,6 +155,41 @@ export default function Dashboard() {
 
   const deleteProject = useMutation({
     mutationFn: async (projectId: string) => {
+      // First, get all rooms for this project
+      const { data: rooms } = await supabase
+        .from("rooms")
+        .select("id")
+        .eq('project_id', projectId);
+
+      if (rooms && rooms.length > 0) {
+        const roomIds = rooms.map(room => room.id);
+
+        // Delete all item history records for items in these rooms
+        const { error: itemHistoryError } = await supabase
+          .from("item_history")
+          .delete()
+          .in('room_id', roomIds);
+
+        if (itemHistoryError) throw itemHistoryError;
+
+        // Delete all items in these rooms
+        const { error: itemsError } = await supabase
+          .from("items")
+          .delete()
+          .in('room_id', roomIds);
+
+        if (itemsError) throw itemsError;
+
+        // Delete all rooms
+        const { error: roomsError } = await supabase
+          .from("rooms")
+          .delete()
+          .eq('project_id', projectId);
+
+        if (roomsError) throw roomsError;
+      }
+
+      // Finally delete the project
       const { error } = await supabase
         .from("projects")
         .delete()
@@ -168,7 +203,7 @@ export default function Dashboard() {
       setSelectedProject(null);
       toast({
         title: "Success",
-        description: "Project deleted successfully"
+        description: "Project and all related data deleted successfully"
       });
     },
     onError: (error: Error) => {
