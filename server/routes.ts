@@ -1,9 +1,26 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertRoomSchema, insertFinishSchema, insertProjectSchema } from "@shared/schema";
+import { insertRoomSchema, insertFinishSchema, insertProjectSchema, insertItemSchema } from "@shared/schema";
 import { ZodError } from "zod";
 import { nanoid } from "nanoid";
+
+// Excel dates start from 1900-01-01
+const EXCEL_EPOCH = new Date(1900, 0, 1);
+
+function convertExcelDateToISO(excelDate: number | string): string | null {
+  if (!excelDate) return null;
+
+  const numericDate = Number(excelDate);
+  if (isNaN(numericDate)) return null;
+
+  // Excel dates are number of days since 1900-01-01
+  const date = new Date(EXCEL_EPOCH);
+  date.setDate(date.getDate() + numericDate - 2); // Subtract 2 to account for Excel's date system quirks
+
+  // Return in YYYY-MM-DD format
+  return date.toISOString().split('T')[0];
+}
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Project routes
@@ -65,6 +82,36 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Item routes
+  app.get("/api/rooms/:roomId/items", async (req, res) => {
+    const items = await storage.getItemsByRoomId(req.params.roomId);
+    res.json(items);
+  });
+
+  app.post("/api/rooms/:roomId/items", async (req, res) => {
+    try {
+      // Convert Excel date to ISO format before validation
+      const { installation_date, ...restData } = req.body;
+      const convertedDate = convertExcelDateToISO(installation_date);
+
+      const itemData = insertItemSchema.parse({
+        ...restData,
+        installation_date: convertedDate,
+        room_id: req.params.roomId
+      });
+
+      const item = await storage.createItem(itemData);
+      res.status(201).json(item);
+    } catch (error) {
+      console.error('Error creating item:', error);
+      if (error instanceof ZodError) {
+        res.status(400).json({ message: "Invalid item data", errors: error.errors });
+      } else {
+        res.status(500).json({ message: "Failed to create item" });
+      }
+    }
+  });
+
   // Finish routes
   app.get("/api/projects/:projectId/finishes", async (req, res) => {
     const finishes = await storage.getFinishesByProjectId(req.params.projectId);
@@ -81,7 +128,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const finishData = insertFinishSchema.parse({
         ...req.body,
         project_id: req.params.projectId,
-        // room_id is optional, will be passed in body if needed
       });
       const finish = await storage.createFinish(finishData);
       res.status(201).json(finish);
@@ -90,29 +136,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         res.status(400).json({ message: "Invalid finish data", errors: error.errors });
       } else {
         res.status(500).json({ message: "Failed to create finish" });
-      }
-    }
-  });
-
-  // Item routes
-  app.get("/api/rooms/:roomId/items", async (req, res) => {
-    const items = await storage.getItemsByRoomId(req.params.roomId);
-    res.json(items);
-  });
-
-  app.post("/api/rooms/:roomId/items", async (req, res) => {
-    try {
-      const itemData = insertItemSchema.parse({
-        ...req.body,
-        room_id: req.params.roomId
-      });
-      const item = await storage.createItem(itemData);
-      res.status(201).json(item);
-    } catch (error) {
-      if (error instanceof ZodError) {
-        res.status(400).json({ message: "Invalid item data", errors: error.errors });
-      } else {
-        res.status(500).json({ message: "Failed to create item" });
       }
     }
   });

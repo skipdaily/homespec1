@@ -135,7 +135,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
           specifications?: string;
           cost?: number;
           warranty_info?: string;
-          installation_date?: string;
+          installation_date?: string | number;
           maintenance_notes?: string;
           status?: string;
         }>(sheet);
@@ -147,7 +147,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
         const existingRoomNames = new Set(rooms.map(room => room.name.toLowerCase()));
 
         // Create missing areas first
-        for (const area of importedAreas) {
+        for (const area of Array.from(importedAreas)) {
           if (!existingRoomNames.has(area)) {
             const { error } = await supabase
               .from("rooms")
@@ -181,6 +181,26 @@ export default function ProjectPage({ id }: ProjectPageProps) {
 
         // Create updated room map with new areas
         const roomMap = new Map(updatedRooms.map(room => [room.name.toLowerCase(), room.id]));
+
+        // Process dates and convert to ISO format
+        const processExcelDate = (excelDate: string | number | undefined): string | null => {
+          if (!excelDate) return null;
+
+          // If it's already a valid date string, return it
+          if (typeof excelDate === 'string' && !isNaN(Date.parse(excelDate))) {
+            return new Date(excelDate).toISOString().split('T')[0];
+          }
+
+          // Convert Excel serial number to date
+          const numericDate = typeof excelDate === 'string' ? parseInt(excelDate) : excelDate;
+          if (isNaN(numericDate)) return null;
+
+          // Excel dates start from 1900-01-01
+          const date = new Date(1900, 0, 1);
+          date.setDate(date.getDate() + numericDate - 2); // Subtract 2 to account for Excel's date system quirks
+
+          return date.toISOString().split('T')[0];
+        };
 
         // Fetch existing items to check for duplicates
         const { data: existingItems, error: existingItemsError } = await supabase
@@ -231,7 +251,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
           specifications: item.specifications || null,
           cost: item.cost || null,
           warranty_info: item.warranty_info || null,
-          installation_date: item.installation_date || null,
+          installation_date: processExcelDate(item.installation_date),
           maintenance_notes: item.maintenance_notes || null,
           status: item.status || null,
           created_at: new Date().toISOString()
