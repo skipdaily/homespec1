@@ -831,6 +831,12 @@ export default function RoomPage({ id }: RoomPageProps) {
                   Select Items
                 </Button>
                 <Dialog open={open} onOpenChange={setOpen}>
+                  <DialogTrigger asChild>
+                    <Button>
+                      <Plus className="mr-2 h-4 w-4" />
+                      Add Item
+                    </Button>
+                  </DialogTrigger>
                   <DialogContent className="max-w-2xl max-h-[90vh]">
                     <DialogHeader>
                       <DialogTitle>Add New Item</DialogTitle>
@@ -1023,7 +1029,7 @@ export default function RoomPage({ id }: RoomPageProps) {
       <div className="py-6">
         <div className="grid gap-4">
           {filteredItems?.map((item) => (
-            <div key={item.id} className="flex items-start gap-4">
+            <div key={item.id} className="flex items-start gap4">
               {isSelectionMode && (
                 <Checkbox
                   checked={selectedItems.includes(item.id)}
