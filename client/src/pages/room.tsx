@@ -381,26 +381,28 @@ const ItemCard = ({ item, onDelete, isSelected, onSelect }: { item: Item; onDele
                                   Press enter to use "{categoryValue}" as a new category
                                 </CommandEmpty>
                                 {categories?.length > 0 && (
-                                  <CommandGroup>
-                                    {categories.map((category) => (
-                                      <CommandItem
-                                        key={category}
-                                        value={category}
-                                        onSelect={(value) => {
-                                          field.onChange(value);
-                                          setOpenCombobox(false);
-                                        }}
-                                      >
-                                        <Check
-                                          className={cn(
-                                            "mr-2 h-4 w-4",
-                                            field.value === category ? "opacity-100" : "opacity-0"
-                                          )}
-                                        />
-                                        {category}
-                                      </CommandItem>
-                                    ))}
-                                  </CommandGroup>
+                                  <ScrollArea className="h-[200px]">
+                                    <CommandGroup>
+                                      {categories.map((category) => (
+                                        <CommandItem
+                                          key={category}
+                                          value={category}
+                                          onSelect={(value) => {
+                                            field.onChange(value);
+                                            setOpenCombobox(false);
+                                          }}
+                                        >
+                                          <Check
+                                            className={cn(
+                                              "mr-2 h-4 w-4",
+                                              field.value === category ? "opacity-100" : "opacity-0"
+                                            )}
+                                          />
+                                          {category}
+                                        </CommandItem>
+                                      ))}
+                                    </CommandGroup>
+                                  </ScrollArea>
                                 )}
                               </Command>
                             </PopoverContent>
@@ -969,26 +971,28 @@ export default function RoomPage({ id }: RoomPageProps) {
                                             Press enter to use "{categoryValue}" as a new category
                                           </CommandEmpty>
                                           {categories?.length > 0 && (
-                                            <CommandGroup>
-                                              {categories.map((category) => (
-                                                <CommandItem
-                                                  key={category}
-                                                  value={category}
-                                                  onSelect={(value) => {
-                                                    field.onChange(value);
-                                                    setOpenCombobox(false);
-                                                  }}
-                                                >
-                                                  <Check
-                                                    className={cn(
-                                                      "mr-2 h-4 w-4",
-                                                      field.value === category ? "opacity-100" : "opacity-0"
-                                                    )}
-                                                  />
-                                                  {category}
-                                                </CommandItem>
-                                              ))}
-                                            </CommandGroup>
+                                            <ScrollArea className="h-[200px]">
+                                              <CommandGroup>
+                                                {categories.map((category) => (
+                                                  <CommandItem
+                                                    key={category}
+                                                    value={category}
+                                                    onSelect={(value) => {
+                                                      field.onChange(value);
+                                                      setOpenCombobox(false);
+                                                    }}
+                                                  >
+                                                    <Check
+                                                      className={cn(
+                                                        "mr-2 h-4 w-4",
+                                                        field.value === category ? "opacity-100" : "opacity-0"
+                                                      )}
+                                                    />
+                                                    {category}
+                                                  </CommandItem>
+                                                ))}
+                                              </CommandGroup>
+                                            </ScrollArea>
                                           )}
                                         </Command>
                                       </PopoverContent>
