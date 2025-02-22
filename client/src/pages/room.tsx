@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { supabase } from "@/lib/supabase";
@@ -548,6 +548,7 @@ export default function RoomPage({ id }: RoomPageProps) {
   const [showBulkDeleteDialog, setShowBulkDeleteDialog] = useState(false);
   const [showBulkEditDialog, setShowBulkEditDialog] = useState(false);
   const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [currentEditIndex, setCurrentEditIndex] = useState(0); // Added state for bulk edit progress
 
   const form = useForm<ItemFormValues>({
     resolver: zodResolver(itemFormSchema),
@@ -754,21 +755,71 @@ export default function RoomPage({ id }: RoomPageProps) {
   };
 
   // Update the function signature to include the new props
-  const handleBulkEdit = (values: ItemFormValues) => {
-    const updates: Partial<ItemFormValues> = {};
-    // Only include fields that have values
-    Object.entries(values).forEach(([key, value]) => {
-      if (value !== undefined && value !== "") {
-        // @ts-ignore - Suppress type error as we know the values are valid
-        updates[key] = value;
-      }
-    });
+  const handleBulkEdit = async (values: ItemFormValues) => {
+    try {
+      // Update current item
+      await bulkEditItems.mutateAsync({
+        itemIds: [selectedItems[currentEditIndex]],
+        updates: values
+      });
 
-    bulkEditItems.mutate({
-      itemIds: selectedItems,
-      updates
-    });
+      // Move to next item or close dialog if done
+      if (currentEditIndex < selectedItems.length - 1) {
+        setCurrentEditIndex(currentEditIndex + 1);
+        // Reset form with next item's values
+        const nextItem = items?.find(item => item.id === selectedItems[currentEditIndex]);
+        if (nextItem) {
+          form.reset({
+            name: nextItem.name,
+            brand: nextItem.brand || "",
+            supplier: nextItem.supplier || "",
+            specifications: nextItem.specifications || "",
+            cost: nextItem.cost || undefined,
+            warranty_info: nextItem.warranty_info || "",
+            maintenance_notes: nextItem.maintenance_notes || "",
+            installation_date: nextItem.installation_date || "",
+            category: nextItem.category,
+            status: nextItem.status || "",
+            image_url: nextItem.image_url || "",
+            document_urls: nextItem.document_urls || [],
+          });
+        }
+      } else {
+        setShowBulkEditDialog(false);
+        setCurrentEditIndex(0);
+        setSelectedItems([]);
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update item",
+        variant: "destructive"
+      });
+    }
   };
+
+  useEffect(() => {
+    if (showBulkEditDialog && items && selectedItems.length > 0) {
+      const currentEditItem = items.find(item => item.id === selectedItems[currentEditIndex]);
+      if (currentEditItem) {
+          form.reset({
+            name: currentEditItem.name,
+            brand: currentEditItem.brand || "",
+            supplier: currentEditItem.supplier || "",
+            specifications: currentEditItem.specifications || "",
+            cost: currentEditItem.cost || undefined,
+            warranty_info: currentEditItem.warranty_info || "",
+            maintenance_notes: currentEditItem.maintenance_notes || "",
+            installation_date: currentEditItem.installation_date || "",
+            category: currentEditItem.category,
+            status: currentEditItem.status || "",
+            image_url: currentEditItem.image_url || "",
+            document_urls: currentEditItem.document_urls || [],
+          });
+      }
+    }
+  }, [showBulkEditDialog, items, selectedItems, currentEditIndex]);
+
 
   const toggleSelectAll = () => {
     if (selectedItems.length === filteredItems?.length) {
@@ -929,7 +980,7 @@ export default function RoomPage({ id }: RoomPageProps) {
                                   <FormItem>
                                     <FormLabel>Category*</FormLabel>
                                     <FormControl>
-                                      <Input placeholder="e.g., Paint, Flooring" {...field} />
+                                                                     <Input placeholder="e.g., Paint, Flooring" {...field} />
                                     </FormControl>
                                     <FormMessage />
                                   </FormItem>
@@ -1148,12 +1199,20 @@ export default function RoomPage({ id }: RoomPageProps) {
       </AlertDialog>
 
       {/* Bulk Edit Dialog */}
-      <Dialog open={showBulkEditDialog} onOpenChange={setShowBulkEditDialog}>
+      <Dialog open={showBulkEditDialog} onOpenChange={(open) => {
+        if (!open) {
+          setShowBulkEditDialog(false);
+          setCurrentEditIndex(0);
+          setSelectedItems([]);
+        } else {
+          setShowBulkEditDialog(true);
+        }
+      }}>
         <DialogContent className="max-w-2xl max-h-[90vh]">
           <DialogHeader>
             <DialogTitle>Edit Selected Items</DialogTitle>
             <p className="text-sm text-muted-foreground">
-              Update details for {selectedItems.length} selected items. Leave fields empty to keep their current values.
+              Editing item {currentEditIndex + 1} of {selectedItems.length}
             </p>
           </DialogHeader>
 
@@ -1325,7 +1384,11 @@ export default function RoomPage({ id }: RoomPageProps) {
                 className="w-full"
                 disabled={bulkEditItems.isPending}
               >
-                {bulkEditItems.isPending ? "Saving..." : "Save Changes"}
+                {bulkEditItems.isPending
+                  ? "Saving..."
+                  : currentEditIndex < selectedItems.length - 1
+                    ? "Save & Continue"
+                    : "Save & Finish"}
               </Button>
             </form>
           </Form>
