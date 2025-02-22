@@ -541,14 +541,11 @@ interface RoomPageProps {
 export default function RoomPage({ id }: RoomPageProps) {
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
-  const [isCollapsed, setIsCollapsed] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [location, setLocation] = useLocation();
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [showBulkDeleteDialog, setShowBulkDeleteDialog] = useState(false);
-  const [showBulkEditDialog, setShowBulkEditDialog] = useState(false);
   const [isSelectionMode, setIsSelectionMode] = useState(false);
-  const [currentEditIndex, setCurrentEditIndex] = useState(0); // Added state for bulk edit progress
 
   const form = useForm<ItemFormValues>({
     resolver: zodResolver(itemFormSchema),
@@ -694,7 +691,7 @@ export default function RoomPage({ id }: RoomPageProps) {
     deleteItem.mutate(itemId);
   };
 
-  // Add bulk delete mutation
+  // Bulk delete mutation
   const bulkDeleteItems = useMutation({
     mutationFn: async (itemIds: string[]) => {
       const { error } = await supabase
@@ -721,110 +718,10 @@ export default function RoomPage({ id }: RoomPageProps) {
     }
   });
 
-  // Add bulk edit mutation
-  const bulkEditItems = useMutation({
-    mutationFn: async (values: { itemIds: string[], updates: Partial<ItemFormValues> }) => {
-      const { error } = await supabase
-        .from("items")
-        .update(values.updates)
-        .in("id", values.itemIds);
-
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["items", id] });
-      setSelectedItems([]);
-      setShowBulkEditDialog(false);
-      toast({
-        title: "Success",
-        description: "Selected items updated successfully"
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to update items",
-        variant: "destructive"
-      });
-    }
-  });
-
   const handleBulkDelete = () => {
     bulkDeleteItems.mutate(selectedItems);
     setShowBulkDeleteDialog(false);
   };
-
-  // Update the function signature to include the new props
-  const handleBulkEdit = async (values: ItemFormValues) => {
-    try {
-      // Update current item
-      await bulkEditItems.mutateAsync({
-        itemIds: [selectedItems[currentEditIndex]],
-        updates: values
-      });
-
-      // Move to next item or close dialog if done
-      if (currentEditIndex < selectedItems.length - 1) {
-        setCurrentEditIndex(currentEditIndex + 1);
-        // Reset form with next item's values
-        const nextItem = items?.find(item => item.id === selectedItems[currentEditIndex + 1]);
-        if (nextItem) {
-          form.reset({
-            name: nextItem.name,
-            brand: nextItem.brand || "",
-            supplier: nextItem.supplier || "",
-            specifications: nextItem.specifications || "",
-            cost: nextItem.cost || undefined,
-            warranty_info: nextItem.warranty_info || "",
-            maintenance_notes: nextItem.maintenance_notes || "",
-            installation_date: nextItem.installation_date || "",
-            category: nextItem.category,
-            status: nextItem.status || "",
-            image_url: nextItem.image_url || "",
-            document_urls: nextItem.document_urls || [],
-          });
-        }
-      } else {
-        // All items have been edited
-        setShowBulkEditDialog(false);
-        setCurrentEditIndex(0);
-        setSelectedItems([]);
-        toast({
-          title: "Success",
-          description: "All selected items have been updated"
-        });
-      }
-    } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to update item",
-        variant: "destructive"
-      });
-    }
-  };
-
-  useEffect(() => {
-    if (showBulkEditDialog && items && selectedItems.length > 0) {
-      const currentEditItem = items.find(item => item.id === selectedItems[currentEditIndex]);
-      if (currentEditItem) {
-        form.reset({
-          name: currentEditItem.name,
-          brand: currentEditItem.brand || "",
-          supplier: currentEditItem.supplier || "",
-          specifications: currentEditItem.specifications || "",
-          cost: currentEditItem.cost || undefined,
-          warranty_info: currentEditItem.warranty_info || "",
-          maintenance_notes: currentEditItem.maintenance_notes || "",
-          installation_date: currentEditItem.installation_date || "",
-          category: currentEditItem.category,
-          status: currentEditItem.status || "",
-          image_url: currentEditItem.image_url || "",
-          document_urls: currentEditItem.document_urls || [],
-        });
-      }
-    }
-  }, [showBulkEditDialog, items, selectedItems, currentEditIndex]);
-
 
   const toggleSelectAll = () => {
     if (selectedItems.length === filteredItems?.length) {
@@ -897,26 +794,15 @@ export default function RoomPage({ id }: RoomPageProps) {
                   {selectedItems.length} selected
                 </span>
                 {selectedItems.length > 0 && (
-                  <>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setShowBulkEditDialog(true)}
-                      disabled={bulkEditItems.isPending}
-                    >
-                      <Pencil className="h-4 w-4 mr-2" />
-                      Edit Selected
-                    </Button>
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => setShowBulkDeleteDialog(true)}
-                      disabled={bulkDeleteItems.isPending}
-                    >
-                      <Trash2 className="h-4 w-4 mr-2" />
-                      Delete Selected
-                    </Button>
-                  </>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowBulkDeleteDialog(true)}
+                    disabled={bulkDeleteItems.isPending}
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete Selected
+                  </Button>
                 )}
                 <Button
                   variant="outline"
@@ -945,12 +831,6 @@ export default function RoomPage({ id }: RoomPageProps) {
                   Select Items
                 </Button>
                 <Dialog open={open} onOpenChange={setOpen}>
-                  <DialogTrigger asChild>
-                    <Button>
-                      <Plus className="mr-2 h-4 w-4" />
-                      Add Item
-                    </Button>
-                  </DialogTrigger>
                   <DialogContent className="max-w-2xl max-h-[90vh]">
                     <DialogHeader>
                       <DialogTitle>Add New Item</DialogTitle>
@@ -1202,208 +1082,6 @@ export default function RoomPage({ id }: RoomPageProps) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-
-      {/* Bulk Edit Dialog */}
-      <Dialog open={showBulkEditDialog} onOpenChange={(open) => {
-        if (!open) {
-          if (confirm("Are you sure you want to stop editing? Progress will be lost.")) {
-            setShowBulkEditDialog(false);
-            setCurrentEditIndex(0);
-            setSelectedItems([]);
-          }
-        }
-      }}>
-        <DialogContent className="max-w-2xl max-h-[90vh]">
-          <DialogHeader>
-            <DialogTitle>Edit Selected Items</DialogTitle>
-            <p className="text-sm text-muted-foreground">
-              Editing item {currentEditIndex + 1} of {selectedItems.length}
-            </p>
-            {items && selectedItems[currentEditIndex] && (
-              <p className="text-sm font-medium">
-                Current item: {items.find(item => item.id === selectedItems[currentEditIndex])?.name}
-              </p>
-            )}
-          </DialogHeader>
-
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(handleBulkEdit)} className="space-y-4">
-              <ScrollArea className="h-[65vh] px-4">
-                <div className="space-y-4 pr-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="name"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Name</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Enter item name" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="category"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Category</FormLabel>
-                          <FormControl>
-                            <Input placeholder="e.g., Paint, Flooring" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="brand"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Brand</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Brand name" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="supplier"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Supplier</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Supplier name" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
-                  <FormField
-                    control={form.control}
-                    name="specifications"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Specifications</FormLabel>
-                        <FormControl>
-                          <Textarea placeholder="Product specifications" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="warranty_info"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Warranty Information</FormLabel>
-                          <FormControl>
-                            <Textarea placeholder="Warranty details" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="maintenance_notes"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Maintenance Notes</FormLabel>
-                          <FormControl>
-                            <Textarea placeholder="Maintenance details" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="installation_date"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Installation Date</FormLabel>
-                          <FormControl>
-                            <Input type="date" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="cost"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Cost</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="number"
-                              step="0.01"
-                              placeholder="0.00"
-                              {...field}
-                              onChange={(e) => {
-                                const value = e.target.value;
-                                field.onChange(value === "" ? undefined : parseFloat(value));
-                              }}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
-                  <FormField
-                    control={form.control}
-                    name="status"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Status</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Item status" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              </ScrollArea>
-
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={bulkEditItems.isPending}
-              >
-                {bulkEditItems.isPending
-                  ? "Saving..."
-                  : currentEditIndex < selectedItems.length - 1
-                    ? "Save & Next"
-                    : "Save & Finish"}
-              </Button>
-            </form>
-          </Form>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }
