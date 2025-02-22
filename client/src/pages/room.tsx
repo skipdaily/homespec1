@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { supabase } from "@/lib/supabase";
-import { Plus, ChevronDown, ChevronUp, Pencil, Trash2, History, Home, ChevronRight, Search, Check } from "lucide-react";
+import { Plus, ChevronDown, ChevronUp, Pencil, Trash2, History, Home, ChevronRight, Search, Check, ChevronsUpDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -19,6 +19,8 @@ import type { Room } from "@shared/schema";
 import { cn } from "@/lib/utils";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Link, useLocation } from "wouter";
+import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 // Update interface to match database schema
 interface Item {
@@ -347,11 +349,62 @@ const ItemCard = ({ item, onDelete, isSelected, onSelect }: { item: Item; onDele
                       control={form.control}
                       name="category"
                       render={({ field }) => (
-                        <FormItem>
+                        <FormItem className="flex flex-col">
                           <FormLabel>Category*</FormLabel>
-                          <FormControl>
-                            <Input placeholder="e.g., Paint, Flooring" {...field} />
-                          </FormControl>
+                          <Popover open={openCombobox} onOpenChange={setOpenCombobox}>
+                            <PopoverTrigger asChild>
+                              <FormControl>
+                                <Button
+                                  variant="outline"
+                                  role="combobox"
+                                  aria-expanded={openCombobox}
+                                  className={cn(
+                                    "w-full justify-between",
+                                    !field.value && "text-muted-foreground"
+                                  )}
+                                >
+                                  {field.value || "Select or enter category..."}
+                                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                </Button>
+                              </FormControl>
+                            </PopoverTrigger>
+                            <PopoverContent className="w-full p-0">
+                              <Command>
+                                <CommandInput
+                                  placeholder="Search or enter new category..."
+                                  onValueChange={(value) => {
+                                    field.onChange(value);
+                                    setCategoryValue(value);
+                                  }}
+                                />
+                                <CommandEmpty>
+                                  Press enter to use "{categoryValue}" as a new category
+                                </CommandEmpty>
+                                {categories?.length > 0 && (
+                                  <CommandGroup>
+                                    {categories.map((category) => (
+                                      <CommandItem
+                                        key={category}
+                                        value={category}
+                                        onSelect={(value) => {
+                                          field.onChange(value);
+                                          setOpenCombobox(false);
+                                        }}
+                                      >
+                                        <Check
+                                          className={cn(
+                                            "mr-2 h-4 w-4",
+                                            field.value === category ? "opacity-100" : "opacity-0"
+                                          )}
+                                        />
+                                        {category}
+                                      </CommandItem>
+                                    ))}
+                                  </CommandGroup>
+                                )}
+                              </Command>
+                            </PopoverContent>
+                          </Popover>
                           <FormMessage />
                         </FormItem>
                       )}
@@ -546,6 +599,22 @@ export default function RoomPage({ id }: RoomPageProps) {
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [showBulkDeleteDialog, setShowBulkDeleteDialog] = useState(false);
   const [isSelectionMode, setIsSelectionMode] = useState(false);
+  const [openCombobox, setOpenCombobox] = useState(false);
+  const [categoryValue, setCategoryValue] = useState("");
+
+  // Add categories query
+  const { data: categories } = useQuery({
+    queryKey: ["categories"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("category")
+        .select("name")
+        .order("name");
+
+      if (error) throw error;
+      return data.map(cat => cat.name);
+    },
+  });
 
   const form = useForm<ItemFormValues>({
     resolver: zodResolver(itemFormSchema),
@@ -868,11 +937,62 @@ export default function RoomPage({ id }: RoomPageProps) {
                                 control={form.control}
                                 name="category"
                                 render={({ field }) => (
-                                  <FormItem>
+                                  <FormItem className="flex flex-col">
                                     <FormLabel>Category*</FormLabel>
-                                    <FormControl>
-                                      <Input placeholder="e.g., Paint, Flooring" {...field} />
-                                    </FormControl>
+                                    <Popover open={openCombobox} onOpenChange={setOpenCombobox}>
+                                      <PopoverTrigger asChild>
+                                        <FormControl>
+                                          <Button
+                                            variant="outline"
+                                            role="combobox"
+                                            aria-expanded={openCombobox}
+                                            className={cn(
+                                              "w-full justify-between",
+                                              !field.value && "text-muted-foreground"
+                                            )}
+                                          >
+                                            {field.value || "Select or enter category..."}
+                                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                          </Button>
+                                        </FormControl>
+                                      </PopoverTrigger>
+                                      <PopoverContent className="w-full p-0">
+                                        <Command>
+                                          <CommandInput
+                                            placeholder="Search or enter new category..."
+                                            onValueChange={(value) => {
+                                              field.onChange(value);
+                                              setCategoryValue(value);
+                                            }}
+                                          />
+                                          <CommandEmpty>
+                                            Press enter to use "{categoryValue}" as a new category
+                                          </CommandEmpty>
+                                          {categories?.length > 0 && (
+                                            <CommandGroup>
+                                              {categories.map((category) => (
+                                                <CommandItem
+                                                  key={category}
+                                                  value={category}
+                                                  onSelect={(value) => {
+                                                    field.onChange(value);
+                                                    setOpenCombobox(false);
+                                                  }}
+                                                >
+                                                  <Check
+                                                    className={cn(
+                                                      "mr-2 h-4 w-4",
+                                                      field.value === category ? "opacity-100" : "opacity-0"
+                                                    )}
+                                                  />
+                                                  {category}
+                                                </CommandItem>
+                                              ))}
+                                            </CommandGroup>
+                                          )}
+                                        </Command>
+                                      </PopoverContent>
+                                    </Popover>
                                     <FormMessage />
                                   </FormItem>
                                 )}
