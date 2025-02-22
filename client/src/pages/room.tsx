@@ -767,7 +767,7 @@ export default function RoomPage({ id }: RoomPageProps) {
       if (currentEditIndex < selectedItems.length - 1) {
         setCurrentEditIndex(currentEditIndex + 1);
         // Reset form with next item's values
-        const nextItem = items?.find(item => item.id === selectedItems[currentEditIndex]);
+        const nextItem = items?.find(item => item.id === selectedItems[currentEditIndex + 1]);
         if (nextItem) {
           form.reset({
             name: nextItem.name,
@@ -785,9 +785,14 @@ export default function RoomPage({ id }: RoomPageProps) {
           });
         }
       } else {
+        // All items have been edited
         setShowBulkEditDialog(false);
         setCurrentEditIndex(0);
         setSelectedItems([]);
+        toast({
+          title: "Success",
+          description: "All selected items have been updated"
+        });
       }
     } catch (error) {
       toast({
@@ -802,20 +807,20 @@ export default function RoomPage({ id }: RoomPageProps) {
     if (showBulkEditDialog && items && selectedItems.length > 0) {
       const currentEditItem = items.find(item => item.id === selectedItems[currentEditIndex]);
       if (currentEditItem) {
-          form.reset({
-            name: currentEditItem.name,
-            brand: currentEditItem.brand || "",
-            supplier: currentEditItem.supplier || "",
-            specifications: currentEditItem.specifications || "",
-            cost: currentEditItem.cost || undefined,
-            warranty_info: currentEditItem.warranty_info || "",
-            maintenance_notes: currentEditItem.maintenance_notes || "",
-            installation_date: currentEditItem.installation_date || "",
-            category: currentEditItem.category,
-            status: currentEditItem.status || "",
-            image_url: currentEditItem.image_url || "",
-            document_urls: currentEditItem.document_urls || [],
-          });
+        form.reset({
+          name: currentEditItem.name,
+          brand: currentEditItem.brand || "",
+          supplier: currentEditItem.supplier || "",
+          specifications: currentEditItem.specifications || "",
+          cost: currentEditItem.cost || undefined,
+          warranty_info: currentEditItem.warranty_info || "",
+          maintenance_notes: currentEditItem.maintenance_notes || "",
+          installation_date: currentEditItem.installation_date || "",
+          category: currentEditItem.category,
+          status: currentEditItem.status || "",
+          image_url: currentEditItem.image_url || "",
+          document_urls: currentEditItem.document_urls || [],
+        });
       }
     }
   }, [showBulkEditDialog, items, selectedItems, currentEditIndex]);
@@ -980,7 +985,7 @@ export default function RoomPage({ id }: RoomPageProps) {
                                   <FormItem>
                                     <FormLabel>Category*</FormLabel>
                                     <FormControl>
-                                                                     <Input placeholder="e.g., Paint, Flooring" {...field} />
+                                      <Input placeholder="e.g., Paint, Flooring" {...field} />
                                     </FormControl>
                                     <FormMessage />
                                   </FormItem>
@@ -1201,11 +1206,11 @@ export default function RoomPage({ id }: RoomPageProps) {
       {/* Bulk Edit Dialog */}
       <Dialog open={showBulkEditDialog} onOpenChange={(open) => {
         if (!open) {
-          setShowBulkEditDialog(false);
-          setCurrentEditIndex(0);
-          setSelectedItems([]);
-        } else {
-          setShowBulkEditDialog(true);
+          if (confirm("Are you sure you want to stop editing? Progress will be lost.")) {
+            setShowBulkEditDialog(false);
+            setCurrentEditIndex(0);
+            setSelectedItems([]);
+          }
         }
       }}>
         <DialogContent className="max-w-2xl max-h-[90vh]">
@@ -1214,6 +1219,11 @@ export default function RoomPage({ id }: RoomPageProps) {
             <p className="text-sm text-muted-foreground">
               Editing item {currentEditIndex + 1} of {selectedItems.length}
             </p>
+            {items && selectedItems[currentEditIndex] && (
+              <p className="text-sm font-medium">
+                Current item: {items.find(item => item.id === selectedItems[currentEditIndex])?.name}
+              </p>
+            )}
           </DialogHeader>
 
           <Form {...form}>
@@ -1387,7 +1397,7 @@ export default function RoomPage({ id }: RoomPageProps) {
                 {bulkEditItems.isPending
                   ? "Saving..."
                   : currentEditIndex < selectedItems.length - 1
-                    ? "Save & Continue"
+                    ? "Save & Next"
                     : "Save & Finish"}
               </Button>
             </form>
