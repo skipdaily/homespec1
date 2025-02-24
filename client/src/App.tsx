@@ -13,6 +13,7 @@ import Login from "./pages/login";
 import Dashboard from "./pages/dashboard";
 import Project from "./pages/project";
 import Room from "./pages/room";
+import Performance from "./pages/performance"; // Added import
 import NotFound from "./pages/not-found";
 
 interface PrivateRouteProps {
@@ -68,6 +69,9 @@ function Router() {
         <Route path="/room/:id">
           {(params) => <PrivateRoute component={Room} params={params} />}
         </Route>
+        <Route path="/performance"> {/* Added route */}
+          {() => <PrivateRoute component={Performance} />} {/* Added route */}
+        </Route> {/* Added route */}
         <Route component={NotFound} />
       </Switch>
     </>
