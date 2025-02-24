@@ -477,62 +477,91 @@ export default function ProjectPage({ id }: ProjectPageProps) {
     };
 
     return (
-      <Link key={room.id} href={`/room/${room.id}`}>
-        <Card className="group cursor-pointer hover:shadow-lg transition-all duration-200 border-2 hover:border-primary/20">
-          <CardHeader>
-            <div className="flex justify-between items-start">
-              <div className="space-y-1">
-                <CardTitle className="group-hover:text-primary transition-colors">
-                  {room.name}
-                </CardTitle>
-                <div className="flex items-center space-x-2">
-                  <Badge variant="secondary" className="rounded-md">
-                    {itemCount} {itemCount === 1 ? 'item' : 'items'}
-                  </Badge>
-                  {room.floor_number !== null && (
-                    <Badge variant="outline" className="rounded-md">
-                      Floor {room.floor_number}
+      <div className="relative">
+        <Link href={`/room/${room.id}`}>
+          <Card className="group cursor-pointer hover:shadow-lg transition-all duration-200 border-2 hover:border-primary/20">
+            <CardHeader>
+              <div className="flex justify-between items-start">
+                <div className="space-y-1">
+                  <CardTitle className="group-hover:text-primary transition-colors">
+                    {room.name}
+                  </CardTitle>
+                  <div className="flex items-center space-x-2">
+                    <Badge variant="secondary" className="rounded-md">
+                      {itemCount} {itemCount === 1 ? 'item' : 'items'}
                     </Badge>
-                  )}
+                    {room.floor_number !== null && (
+                      <Badge variant="outline" className="rounded-md">
+                        Floor {room.floor_number}
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+                <div className="flex space-x-2">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setShowEditDialog(true);
+                    }}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="opacity-0 group-hover:opacity-100 transition-opacity text-destructive"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setShowDeleteDialog(true);
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
                 </div>
               </div>
-              <div className="flex space-x-2">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="opacity-0 group-hover:opacity-100 transition-opacity"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    setShowEditDialog(true);
-                  }}
-                >
-                  <Pencil className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="opacity-0 group-hover:opacity-100 transition-opacity text-destructive"
-                  onClick={(e) => {
-                    e.preventDefault();
-                    setShowDeleteDialog(true);
-                  }}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {room.description && (
-              <p className="text-muted-foreground line-clamp-2">{room.description}</p>
-            )}
-            {room.dimensions && (
-              <p className="text-sm text-muted-foreground mt-2">
-                Size: {room.dimensions}
-              </p>
-            )}
-          </CardContent>
-        </Card>
+            </CardHeader>
+            <CardContent>
+              {room.description && (
+                <p className="text-muted-foreground line-clamp-2">{room.description}</p>
+              )}
+              {room.dimensions && (
+                <p className="text-sm text-muted-foreground mt-2">
+                  Size: {room.dimensions}
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        </Link>
+
+        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex space-x-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="bg-background/80 backdrop-blur hover:bg-background/90"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setShowEditDialog(true);
+            }}
+          >
+            <Pencil className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="bg-background/80 backdrop-blur hover:bg-background/90 text-destructive"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setShowDeleteDialog(true);
+            }}
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
 
         <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
           <DialogContent>
@@ -564,8 +593,8 @@ export default function ProjectPage({ id }: ProjectPageProps) {
                   defaultValue={room.dimensions || ''}
                 />
               </div>
-              <Button type="submit" className="w-full">
-                Save Changes
+              <Button type="submit" className="w-full" disabled={updateRoom.isPending}>
+                {updateRoom.isPending ? "Saving..." : "Save Changes"}
               </Button>
             </form>
           </DialogContent>
@@ -590,7 +619,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
-      </Link>
+      </div>
     );
   };
 
