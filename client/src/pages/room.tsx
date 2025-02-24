@@ -381,7 +381,7 @@ const ItemCard = ({ item, onDelete, isSelected, onSelect }: { item: Item; onDele
                                   Press enter to use "{categoryValue}" as a new category
                                 </CommandEmpty>
                                 {categories?.length > 0 && (
-                                  <ScrollArea className="h-[200px]">
+                                  <ScrollArea className="h-[200px] w-full" type="hover">
                                     <CommandGroup>
                                       {categories.map((category) => (
                                         <CommandItem
@@ -971,7 +971,7 @@ export default function RoomPage({ id }: RoomPageProps) {
                                             Press enter to use "{categoryValue}" as a new category
                                           </CommandEmpty>
                                           {categories?.length > 0 && (
-                                            <ScrollArea className="h-[200px]">
+                                            <ScrollArea className="h-[200px] w-full" type="hover">
                                               <CommandGroup>
                                                 {categories.map((category) => (
                                                   <CommandItem
@@ -984,8 +984,7 @@ export default function RoomPage({ id }: RoomPageProps) {
                                                   >
                                                     <Check
                                                       className={cn(
-                                                        "mr-2 h-4 w-4",
-                                                        field.value === category ? "opacity-100" : "opacity-0"
+                                                        "mr-2 h-4 w-4",                                                        field.value === category ? "opacity-100" : "opacity-0"
                                                       )}
                                                     />
                                                     {category}
