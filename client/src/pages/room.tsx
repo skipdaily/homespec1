@@ -66,6 +66,22 @@ const ItemCard = ({ item, onDelete, isSelected, onSelect }: { item: Item; onDele
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showHistorySheet, setShowHistorySheet] = useState(false);
+  const [openCombobox, setOpenCombobox] = useState(false);
+  const [categoryValue, setCategoryValue] = useState(item.category || "");
+
+  // Add categories query
+  const { data: categories } = useQuery({
+    queryKey: ["categories"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("category")
+        .select("name")
+        .order("name");
+
+      if (error) throw error;
+      return data.map(cat => cat.name);
+    },
+  });
 
   const form = useForm<ItemFormValues>({
     resolver: zodResolver(itemFormSchema),
@@ -970,7 +986,7 @@ export default function RoomPage({ id }: RoomPageProps) {
                                           <CommandEmpty>
                                             Press enter to use "{categoryValue}" as a new category
                                           </CommandEmpty>
-                                          {categories?.length > 0 && (
+                                          {categories?.length> 0 && (
                                             <ScrollArea className="h-[200px] w-full" type="hover">
                                               <CommandGroup>
                                                 {categories.map((category) => (
@@ -984,7 +1000,8 @@ export default function RoomPage({ id }: RoomPageProps) {
                                                   >
                                                     <Check
                                                       className={cn(
-                                                        "mr-2 h-4 w-4",                                                        field.value === category ? "opacity-100" : "opacity-0"
+                                                        "mr-2 h-4 w-4",
+                                                        field.value === category ? "opacity-100" : "opacity-0"
                                                       )}
                                                     />
                                                     {category}
