@@ -407,6 +407,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["rooms", id] });
       setOpen(false);
+      setAreaValue(""); // Reset area value after successful creation
       toast({
         title: "Success",
         description: "Area added successfully"
@@ -644,7 +645,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
                         Press enter to use "{areaValue}" as a new area
                       </CommandEmpty>
                       {areaTemplates?.length > 0 && (
-                        <ScrollArea className="h-[200px] w-full overflow-y-auto">
+                        <ScrollArea className="h-[300px] w-full overflow-y-auto"> {/* Height increased */}
                           <CommandGroup>
                             {areaTemplates.map((area) => (
                               <CommandItem
@@ -827,7 +828,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
                           Press enter to use "{areaValue}" as a new area
                         </CommandEmpty>
                         {areaTemplates?.length > 0 && (
-                          <ScrollArea className="h-[200px] w-full overflow-y-auto">
+                          <ScrollArea className="h-[300px] w-full overflow-y-auto"> {/* Height increased */}
                             <CommandGroup>
                               {areaTemplates.map((area) => (
                                 <CommandItem
