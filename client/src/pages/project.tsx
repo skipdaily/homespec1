@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { supabase } from "@/lib/supabase";
-import { Plus, Download, Upload, Pencil, Trash2, Search } from "lucide-react";
+import { Plus, Download, Upload, Pencil, Trash2, Search, ChevronsUpDown, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -30,6 +30,20 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+} from "@/components/ui/command";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Label } from "@/components/ui/label";
+import { cn } from "@/lib/utils";
 
 // Define the structure of the items data
 interface Item {
@@ -58,6 +72,22 @@ export default function ProjectPage({ id }: ProjectPageProps) {
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
+  const [openAreaCombobox, setOpenAreaCombobox] = useState(false);
+  const [areaValue, setAreaValue] = useState("");
+
+  // Add areas query
+  const { data: areaTemplates } = useQuery({
+    queryKey: ["areas"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("areas")
+        .select("name")
+        .order("name");
+
+      if (error) throw error;
+      return data.map(area => area.name);
+    },
+  });
 
   const { data: project } = useQuery<Project>({
     queryKey: ["project", id],
@@ -379,7 +409,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
       setOpen(false);
       toast({
         title: "Success",
-        description: "Room added successfully"
+        description: "Area added successfully"
       });
     }
   });
@@ -390,7 +420,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
 
     const floorNumber = formData.get("floor_number");
     createRoom.mutate({
-      name: formData.get("name") as string,
+      name: areaValue || (formData.get("name") as string), // Use combobox value or input field
       description: formData.get("description") as string || undefined,
       floor_number: floorNumber ? parseInt(floorNumber as string) : undefined,
       dimensions: formData.get("dimensions") as string || undefined
@@ -404,7 +434,23 @@ export default function ProjectPage({ id }: ProjectPageProps) {
   const AreaCard = ({ room, itemCount }: { room: Room; itemCount: number }) => {
     const [showEditDialog, setShowEditDialog] = useState(false);
     const [showDeleteDialog, setShowDeleteDialog] = useState(false);
+    const [openAreaCombobox, setOpenAreaCombobox] = useState(false);
+    const [areaValue, setAreaValue] = useState(room.name || "");
     const { toast } = useToast();
+
+    // Add areas query
+    const { data: areaTemplates } = useQuery({
+      queryKey: ["areas"],
+      queryFn: async () => {
+        const { data, error } = await supabase
+          .from("areas")
+          .select("name")
+          .order("name");
+
+        if (error) throw error;
+        return data.map(area => area.name);
+      },
+    });
 
     const updateRoom = useMutation({
       mutationFn: async (data: {
@@ -469,7 +515,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
 
       const floorNumber = formData.get("floor_number");
       updateRoom.mutate({
-        name: formData.get("name") as string,
+        name: areaValue,
         description: formData.get("description") as string || undefined,
         floor_number: floorNumber ? parseInt(floorNumber as string) : undefined,
         dimensions: formData.get("dimensions") as string || undefined
@@ -569,12 +615,62 @@ export default function ProjectPage({ id }: ProjectPageProps) {
               <DialogTitle>Edit Area</DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
-              <Input
-                name="name"
-                placeholder="Area Name*"
-                required
-                defaultValue={room.name}
-              />
+              <div className="flex flex-col space-y-2">
+                <Label>Area Name*</Label>
+                <Popover open={openAreaCombobox} onOpenChange={setOpenAreaCombobox}>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant="outline"
+                      role="combobox"
+                      aria-expanded={openAreaCombobox}
+                      className={cn(
+                        "w-full justify-between",
+                        !areaValue && "text-muted-foreground"
+                      )}
+                    >
+                      {areaValue || "Select or enter area name..."}
+                      <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-full p-0">
+                    <Command>
+                      <CommandInput
+                        placeholder="Search or enter new area..."
+                        onValueChange={(value) => {
+                          setAreaValue(value);
+                        }}
+                      />
+                      <CommandEmpty>
+                        Press enter to use "{areaValue}" as a new area
+                      </CommandEmpty>
+                      {areaTemplates?.length > 0 && (
+                        <ScrollArea className="h-[200px] w-full" type="hover">
+                          <CommandGroup>
+                            {areaTemplates.map((area) => (
+                              <CommandItem
+                                key={area}
+                                value={area}
+                                onSelect={(value) => {
+                                  setAreaValue(value);
+                                  setOpenAreaCombobox(false);
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    areaValue === area ? "opacity-100" : "opacity-0"
+                                  )}
+                                />
+                                {area}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </ScrollArea>
+                      )}
+                    </Command>
+                  </PopoverContent>
+                </Popover>
+              </div>
               <Textarea
                 name="description"
                 placeholder="Description"
@@ -701,11 +797,63 @@ export default function ProjectPage({ id }: ProjectPageProps) {
                 <DialogTitle>Add New Area</DialogTitle>
               </DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4">
-                <Input
-                  name="name"
-                  placeholder="Area Name*"
-                  required
-                />
+                <div className="flex flex-col space-y-2">
+                  <Label>Area Name*</Label>
+                  <Popover open={openAreaCombobox} onOpenChange={setOpenAreaCombobox}>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={openAreaCombobox}
+                        className={cn(
+                          "w-full justify-between",
+                          !areaValue && "text-muted-foreground"
+                        )}
+                      >
+                        {areaValue || "Select or enter area name..."}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-full p-0">
+                      <Command>
+                        <CommandInput
+                          placeholder="Search or enter new area..."
+                          name="name"
+                          onValueChange={(value) => {
+                            setAreaValue(value);
+                          }}
+                        />
+                        <CommandEmpty>
+                          Press enter to use "{areaValue}" as a new area
+                        </CommandEmpty>
+                        {areaTemplates?.length > 0 && (
+                          <ScrollArea className="h-[200px] w-full" type="hover">
+                            <CommandGroup>
+                              {areaTemplates.map((area) => (
+                                <CommandItem
+                                  key={area}
+                                  value={area}
+                                  onSelect={(value) => {
+                                    setAreaValue(value);
+                                    setOpenAreaCombobox(false);
+                                  }}
+                                >
+                                  <Check
+                                    className={cn(
+                                      "mr-2 h-4 w-4",
+                                      areaValue === area ? "opacity-100" : "opacity-0"
+                                    )}
+                                  />
+                                  {area}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </ScrollArea>
+                        )}
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                </div>
                 <Textarea
                   name="description"
                   placeholder="Description"
@@ -721,8 +869,8 @@ export default function ProjectPage({ id }: ProjectPageProps) {
                     placeholder="Dimensions (e.g., 12' x 15')"
                   />
                 </div>
-                <Button type="submit" className="w-full">
-                  Add Area
+                <Button type="submit" className="w-full" disabled={createRoom.isPending}>
+                  {createRoom.isPending ? "Adding..." : "Add Area"}
                 </Button>
               </form>
             </DialogContent>
