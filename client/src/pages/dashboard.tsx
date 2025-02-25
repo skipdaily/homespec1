@@ -369,8 +369,8 @@ export default function Dashboard() {
           </div>
           <Dialog open={createDialogOpen} onOpenChange={setCreateDialogOpen}>
             <DialogTrigger asChild>
-              <Button 
-                size="lg" 
+              <Button
+                size="lg"
                 className="bg-gradient-to-r from-primary to-primary/90 hover:from-primary/95 hover:to-primary/85 text-primary-foreground shadow-lg shadow-primary/20 transition-all duration-300"
               >
                 <Plus className="mr-2 h-5 w-5" />
@@ -402,11 +402,6 @@ export default function Dashboard() {
                 <CardHeader>
                   <CardTitle className="text-xl flex items-center justify-between">
                     <span className="font-semibold text-foreground/90">{project.name}</span>
-                    <div className="flex items-center space-x-2">
-                      <span className="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium bg-gradient-to-r from-emerald-50 to-emerald-50/80 text-emerald-700 ring-1 ring-inset ring-emerald-600/20">
-                        In Progress
-                      </span>
-                    </div>
                   </CardTitle>
                 </CardHeader>
                 <CardContent>
@@ -419,18 +414,18 @@ export default function Dashboard() {
                       <span className="font-medium mr-2">Builder:</span>
                       {project.builder_name}
                     </p>
-                    {project.completion_date && (
+                    {project.created_at && (
                       <div className="flex items-center text-sm text-muted-foreground space-x-2">
                         <Clock className="h-4 w-4 text-primary/60" />
-                        <span>Due {new Date(project.completion_date).toLocaleDateString()}</span>
+                        <span>Created {new Date(project.created_at).toLocaleDateString()}</span>
                       </div>
                     )}
                   </div>
                 </CardContent>
                 <CardFooter className="flex justify-between bg-muted/50 backdrop-blur supports-[backdrop-filter]:bg-white/5">
-                  <Button 
-                    variant="ghost" 
-                    asChild 
+                  <Button
+                    variant="ghost"
+                    asChild
                     className="text-primary hover:text-primary hover:bg-primary/10 transition-colors duration-200"
                   >
                     <Link href={`/project/${project.id}`}>View Details</Link>

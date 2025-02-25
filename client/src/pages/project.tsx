@@ -2,7 +2,16 @@ import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { supabase } from "@/lib/supabase";
-import { Plus, Download, Upload, Pencil, Trash2, Search, ChevronsUpDown, Check } from "lucide-react";
+import {
+  Plus,
+  Download,
+  Upload,
+  Pencil,
+  Trash2,
+  Search,
+  ChevronsUpDown,
+  Check,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -17,7 +26,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Link } from "wouter";
 import type { Project, Room } from "@shared/schema";
-import * as XLSX from 'xlsx';
+import * as XLSX from "xlsx";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -85,7 +94,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
         .order("name");
 
       if (error) throw error;
-      return data.map(area => area.name);
+      return data.map((area) => area.name);
     },
   });
 
@@ -103,7 +112,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
       if (error) throw error;
       return data;
     },
-    enabled: !!id
+    enabled: !!id,
   });
 
   const { data: rooms } = useQuery<Room[]>({
@@ -120,7 +129,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
       if (error) throw error;
       return data;
     },
-    enabled: !!id
+    enabled: !!id,
   });
 
   const { data: items } = useQuery<Item[]>({
@@ -130,7 +139,8 @@ export default function ProjectPage({ id }: ProjectPageProps) {
 
       const { data, error } = await supabase
         .from("items")
-        .select(`
+        .select(
+          `
           id,
           name,
           category,
@@ -146,8 +156,9 @@ export default function ProjectPage({ id }: ProjectPageProps) {
           rooms!inner (
             name
           )
-        `)
-        .order('created_at', { ascending: false });
+        `,
+        )
+        .order("created_at", { ascending: false });
 
       if (error) {
         console.error("Error fetching items:", error);
@@ -155,10 +166,12 @@ export default function ProjectPage({ id }: ProjectPageProps) {
       }
       return data || [];
     },
-    enabled: !!id && !!rooms?.length
+    enabled: !!id && !!rooms?.length,
   });
 
-  const handleFileUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     const file = event.target.files?.[0];
     if (!file || !rooms) return;
 
@@ -166,7 +179,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
       const reader = new FileReader();
       reader.onload = async (e) => {
         const data = e.target?.result;
-        const workbook = XLSX.read(data, { type: 'binary' });
+        const workbook = XLSX.read(data, { type: "binary" });
         const sheetName = workbook.SheetNames[0];
         const sheet = workbook.Sheets[sheetName];
         const jsonData = XLSX.utils.sheet_to_json<{
@@ -186,26 +199,30 @@ export default function ProjectPage({ id }: ProjectPageProps) {
         console.log("Imported data:", jsonData);
 
         // Get unique areas from import data
-        const importedAreas = new Set(jsonData.map(item => item.area?.toLowerCase()).filter(Boolean));
-        const existingRoomNames = new Set(rooms.map(room => room.name.toLowerCase()));
+        const importedAreas = new Set(
+          jsonData.map((item) => item.area?.toLowerCase()).filter(Boolean),
+        );
+        const existingRoomNames = new Set(
+          rooms.map((room) => room.name.toLowerCase()),
+        );
 
         // Create missing areas first
         for (const area of Array.from(importedAreas)) {
           if (!existingRoomNames.has(area)) {
-            const { error } = await supabase
-              .from("rooms")
-              .insert([{
+            const { error } = await supabase.from("rooms").insert([
+              {
                 project_id: id,
                 name: area.charAt(0).toUpperCase() + area.slice(1), // Capitalize first letter
-                created_at: new Date().toISOString()
-              }]);
+                created_at: new Date().toISOString(),
+              },
+            ]);
 
             if (error) {
               console.error("Error creating area:", error);
               toast({
                 title: "Warning",
                 description: `Failed to create area "${area}"`,
-                variant: "destructive"
+                variant: "destructive",
               });
             }
           }
@@ -223,32 +240,36 @@ export default function ProjectPage({ id }: ProjectPageProps) {
         }
 
         // Create updated room map with new areas
-        const roomMap = new Map(updatedRooms.map(room => [room.name.toLowerCase(), room.id]));
+        const roomMap = new Map(
+          updatedRooms.map((room) => [room.name.toLowerCase(), room.id]),
+        );
 
         // Process dates and convert to ISO format
-        const processExcelDate = (excelDate: string | number | undefined): string | null => {
+        const processExcelDate = (
+          excelDate: string | number | undefined,
+        ): string | null => {
           if (!excelDate) return null;
 
           // If it's already a valid date string, return it
-          if (typeof excelDate === 'string' && !isNaN(Date.parse(excelDate))) {
-            return new Date(excelDate).toISOString().split('T')[0];
+          if (typeof excelDate === "string" && !isNaN(Date.parse(excelDate))) {
+            return new Date(excelDate).toISOString().split("T")[0];
           }
 
           // Convert Excel serial number to date
-          const numericDate = typeof excelDate === 'string' ? parseInt(excelDate) : excelDate;
+          const numericDate =
+            typeof excelDate === "string" ? parseInt(excelDate) : excelDate;
           if (isNaN(numericDate)) return null;
 
           // Excel dates start from 1900-01-01
           const date = new Date(1900, 0, 1);
           date.setDate(date.getDate() + numericDate - 2); // Subtract 2 to account for Excel's date system quirks
 
-          return date.toISOString().split('T')[0];
+          return date.toISOString().split("T")[0];
         };
 
         // Fetch existing items to check for duplicates
-        const { data: existingItems, error: existingItemsError } = await supabase
-          .from("items")
-          .select(`
+        const { data: existingItems, error: existingItemsError } =
+          await supabase.from("items").select(`
             id,
             name,
             room_id,
@@ -261,61 +282,65 @@ export default function ProjectPage({ id }: ProjectPageProps) {
 
         // Create a map of existing items using room_id + name as key
         const existingItemsMap = new Map(
-          existingItems?.map(item => [`${item.room_id}-${item.name.toLowerCase()}`, item]) || []
+          existingItems?.map((item) => [
+            `${item.room_id}-${item.name.toLowerCase()}`,
+            item,
+          ]) || [],
         );
 
         // Process items with duplicate checking
         let skippedCount = 0;
-        const validItems = jsonData.filter(item => {
-          const roomId = roomMap.get(item.area?.toLowerCase());
-          if (!roomId) {
-            toast({
-              title: "Warning",
-              description: `Skipped item "${item.name}" - Area "${item.area}" not found`,
-              variant: "destructive"
-            });
-            return false;
-          }
+        const validItems = jsonData
+          .filter((item) => {
+            const roomId = roomMap.get(item.area?.toLowerCase());
+            if (!roomId) {
+              toast({
+                title: "Warning",
+                description: `Skipped item "${item.name}" - Area "${item.area}" not found`,
+                variant: "destructive",
+              });
+              return false;
+            }
 
-          // Check for duplicates using room_id + name combination
-          const itemKey = `${roomId}-${item.name.toLowerCase()}`;
-          if (existingItemsMap.has(itemKey)) {
-            skippedCount++;
-            return false;
-          }
+            // Check for duplicates using room_id + name combination
+            const itemKey = `${roomId}-${item.name.toLowerCase()}`;
+            if (existingItemsMap.has(itemKey)) {
+              skippedCount++;
+              return false;
+            }
 
-          return true;
-        }).map(item => ({
-          room_id: roomMap.get(item.area.toLowerCase())!,
-          name: item.name,
-          category: item.category,
-          brand: item.brand || null,
-          supplier: item.supplier || null,
-          specifications: item.specifications || null,
-          cost: item.cost || null,
-          warranty_info: item.warranty_info || null,
-          installation_date: processExcelDate(item.installation_date),
-          maintenance_notes: item.maintenance_notes || null,
-          status: item.status || null,
-          created_at: new Date().toISOString()
-        }));
+            return true;
+          })
+          .map((item) => ({
+            room_id: roomMap.get(item.area.toLowerCase())!,
+            name: item.name,
+            category: item.category,
+            brand: item.brand || null,
+            supplier: item.supplier || null,
+            specifications: item.specifications || null,
+            cost: item.cost || null,
+            warranty_info: item.warranty_info || null,
+            installation_date: processExcelDate(item.installation_date),
+            maintenance_notes: item.maintenance_notes || null,
+            status: item.status || null,
+            created_at: new Date().toISOString(),
+          }));
 
         console.log("Valid items:", validItems);
 
         if (validItems.length === 0) {
           toast({
             title: "Error",
-            description: skippedCount > 0
-              ? `All items were duplicates (${skippedCount} skipped)`
-              : "No valid items found to import",
-            variant: "destructive"
+            description:
+              skippedCount > 0
+                ? `All items were duplicates (${skippedCount} skipped)`
+                : "No valid items found to import",
+            variant: "destructive",
           });
           return;
         }
 
-        const { error } = await supabase
-          .from('items')
-          .insert(validItems);
+        const { error } = await supabase.from("items").insert(validItems);
 
         if (error) throw error;
 
@@ -325,8 +350,8 @@ export default function ProjectPage({ id }: ProjectPageProps) {
         toast({
           title: "Success",
           description: `Imported ${validItems.length} items successfully${
-            skippedCount > 0 ? ` (${skippedCount} duplicates skipped)` : ''
-          }`
+            skippedCount > 0 ? ` (${skippedCount} duplicates skipped)` : ""
+          }`,
         });
       };
       reader.readAsBinaryString(file);
@@ -335,7 +360,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
       toast({
         title: "Error",
         description: error.message || "Failed to import items",
-        variant: "destructive"
+        variant: "destructive",
       });
     }
   };
@@ -345,14 +370,14 @@ export default function ProjectPage({ id }: ProjectPageProps) {
       toast({
         title: "Error",
         description: "No items to export",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
 
     try {
       // Transform items to include room information
-      const exportData = items.map(item => ({
+      const exportData = items.map((item) => ({
         area: item.rooms.name,
         name: item.name,
         category: item.category,
@@ -363,7 +388,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
         warranty_info: item.warranty_info || "",
         installation_date: item.installation_date || "",
         maintenance_notes: item.maintenance_notes || "",
-        status: item.status || ""
+        status: item.status || "",
       }));
 
       // Create workbook and add items sheet
@@ -372,19 +397,19 @@ export default function ProjectPage({ id }: ProjectPageProps) {
       XLSX.utils.book_append_sheet(wb, ws, "Items");
 
       // Export the file
-      const fileName = `${project?.name || 'project'}_items.xlsx`;
+      const fileName = `${project?.name || "project"}_items.xlsx`;
       XLSX.writeFile(wb, fileName);
 
       toast({
         title: "Success",
-        description: "Items exported successfully"
+        description: "Items exported successfully",
       });
     } catch (error: any) {
       console.error("Export error:", error);
       toast({
         title: "Error",
         description: error.message || "Failed to export items",
-        variant: "destructive"
+        variant: "destructive",
       });
     }
   };
@@ -410,9 +435,9 @@ export default function ProjectPage({ id }: ProjectPageProps) {
       setAreaValue(""); // Reset area value after successful creation
       toast({
         title: "Success",
-        description: "Area added successfully"
+        description: "Area added successfully",
       });
-    }
+    },
   });
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -422,9 +447,9 @@ export default function ProjectPage({ id }: ProjectPageProps) {
     const floorNumber = formData.get("floor_number");
     createRoom.mutate({
       name: areaValue || (formData.get("name") as string), // Use combobox value or input field
-      description: formData.get("description") as string || undefined,
+      description: (formData.get("description") as string) || undefined,
       floor_number: floorNumber ? parseInt(floorNumber as string) : undefined,
-      dimensions: formData.get("dimensions") as string || undefined
+      dimensions: (formData.get("dimensions") as string) || undefined,
     });
   };
 
@@ -449,7 +474,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
           .order("name");
 
         if (error) throw error;
-        return data.map(area => area.name);
+        return data.map((area) => area.name);
       },
     });
 
@@ -463,7 +488,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
         const { error } = await supabase
           .from("rooms")
           .update(data)
-          .eq('id', room.id);
+          .eq("id", room.id);
 
         if (error) throw error;
       },
@@ -472,16 +497,16 @@ export default function ProjectPage({ id }: ProjectPageProps) {
         setShowEditDialog(false);
         toast({
           title: "Success",
-          description: "Area updated successfully"
+          description: "Area updated successfully",
         });
       },
       onError: (error: Error) => {
         toast({
           title: "Error",
           description: error.message || "Failed to update area",
-          variant: "destructive"
+          variant: "destructive",
         });
-      }
+      },
     });
 
     const deleteRoom = useMutation({
@@ -489,7 +514,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
         const { error } = await supabase
           .from("rooms")
           .delete()
-          .eq('id', room.id);
+          .eq("id", room.id);
 
         if (error) throw error;
       },
@@ -498,16 +523,16 @@ export default function ProjectPage({ id }: ProjectPageProps) {
         setShowDeleteDialog(false);
         toast({
           title: "Success",
-          description: "Area deleted successfully"
+          description: "Area deleted successfully",
         });
       },
       onError: (error: Error) => {
         toast({
           title: "Error",
           description: error.message || "Failed to delete area",
-          variant: "destructive"
+          variant: "destructive",
         });
-      }
+      },
     });
 
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -517,9 +542,9 @@ export default function ProjectPage({ id }: ProjectPageProps) {
       const floorNumber = formData.get("floor_number");
       updateRoom.mutate({
         name: areaValue,
-        description: formData.get("description") as string || undefined,
+        description: (formData.get("description") as string) || undefined,
         floor_number: floorNumber ? parseInt(floorNumber as string) : undefined,
-        dimensions: formData.get("dimensions") as string || undefined
+        dimensions: (formData.get("dimensions") as string) || undefined,
       });
     };
 
@@ -535,7 +560,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
                   </CardTitle>
                   <div className="flex items-center space-x-2">
                     <Badge variant="secondary" className="rounded-md">
-                      {itemCount} {itemCount === 1 ? 'item' : 'items'}
+                      {itemCount} {itemCount === 1 ? "item" : "items"}
                     </Badge>
                     {room.floor_number !== null && (
                       <Badge variant="outline" className="rounded-md">
@@ -572,7 +597,9 @@ export default function ProjectPage({ id }: ProjectPageProps) {
             </CardHeader>
             <CardContent>
               {room.description && (
-                <p className="text-muted-foreground line-clamp-2">{room.description}</p>
+                <p className="text-muted-foreground line-clamp-2">
+                  {room.description}
+                </p>
               )}
               {room.dimensions && (
                 <p className="text-sm text-muted-foreground mt-2">
@@ -618,7 +645,10 @@ export default function ProjectPage({ id }: ProjectPageProps) {
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="flex flex-col space-y-2">
                 <Label>Area Name*</Label>
-                <Popover open={openAreaCombobox} onOpenChange={setOpenAreaCombobox}>
+                <Popover
+                  open={openAreaCombobox}
+                  onOpenChange={setOpenAreaCombobox}
+                >
                   <PopoverTrigger asChild>
                     <Button
                       variant="outline"
@@ -626,7 +656,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
                       aria-expanded={openAreaCombobox}
                       className={cn(
                         "w-full justify-between",
-                        !areaValue && "text-muted-foreground"
+                        !areaValue && "text-muted-foreground",
                       )}
                     >
                       {areaValue || "Select or enter area name..."}
@@ -645,7 +675,9 @@ export default function ProjectPage({ id }: ProjectPageProps) {
                         Press enter to use "{areaValue}" as a new area
                       </CommandEmpty>
                       {areaTemplates?.length > 0 && (
-                        <ScrollArea className="h-[300px] w-full overflow-y-auto"> {/* Height increased */}
+                        <ScrollArea className="h-[300px] w-full overflow-y-auto">
+                          {" "}
+                          {/* Height increased */}
                           <CommandGroup>
                             {areaTemplates.map((area) => (
                               <CommandItem
@@ -659,7 +691,9 @@ export default function ProjectPage({ id }: ProjectPageProps) {
                                 <Check
                                   className={cn(
                                     "mr-2 h-4 w-4",
-                                    areaValue === area ? "opacity-100" : "opacity-0"
+                                    areaValue === area
+                                      ? "opacity-100"
+                                      : "opacity-0",
                                   )}
                                 />
                                 {area}
@@ -675,22 +709,26 @@ export default function ProjectPage({ id }: ProjectPageProps) {
               <Textarea
                 name="description"
                 placeholder="Description"
-                defaultValue={room.description || ''}
+                defaultValue={room.description || ""}
               />
               <div className="grid grid-cols-2 gap-4">
                 <Input
                   name="floor_number"
                   type="number"
                   placeholder="Floor Number"
-                  defaultValue={room.floor_number || ''}
+                  defaultValue={room.floor_number || ""}
                 />
                 <Input
                   name="dimensions"
                   placeholder="Dimensions (e.g., 12' x 15')"
-                  defaultValue={room.dimensions || ''}
+                  defaultValue={room.dimensions || ""}
                 />
               </div>
-              <Button type="submit" className="w-full" disabled={updateRoom.isPending}>
+              <Button
+                type="submit"
+                className="w-full"
+                disabled={updateRoom.isPending}
+              >
                 {updateRoom.isPending ? "Saving..." : "Save Changes"}
               </Button>
             </form>
@@ -702,7 +740,8 @@ export default function ProjectPage({ id }: ProjectPageProps) {
             <AlertDialogHeader>
               <AlertDialogTitle>Are you sure?</AlertDialogTitle>
               <AlertDialogDescription>
-                This will permanently delete "{room.name}" and all its items. This action cannot be undone.
+                This will permanently delete "{room.name}" and all its items.
+                This action cannot be undone.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -721,25 +760,29 @@ export default function ProjectPage({ id }: ProjectPageProps) {
   };
 
   // Filter items based on search query
-  const filteredItems = items?.filter(item => {
+  const filteredItems = items?.filter((item) => {
     if (!searchQuery.trim()) return true;
 
     const searchLower = searchQuery.toLowerCase();
     return (
       item.name.toLowerCase().includes(searchLower) ||
       item.category.toLowerCase().includes(searchLower) ||
-      (item.brand?.toLowerCase().includes(searchLower)) ||
-      (item.supplier?.toLowerCase().includes(searchLower)) ||
-      (item.specifications?.toLowerCase().includes(searchLower)) ||
-      (item.status?.toLowerCase().includes(searchLower))
+      item.brand?.toLowerCase().includes(searchLower) ||
+      item.supplier?.toLowerCase().includes(searchLower) ||
+      item.specifications?.toLowerCase().includes(searchLower) ||
+      item.status?.toLowerCase().includes(searchLower)
     );
   });
 
   // Group filtered items by room
-  const itemsByRoom = rooms?.reduce((acc, room) => {
-    acc[room.id] = filteredItems?.filter(item => item.room_id === room.id) || [];
-    return acc;
-  }, {} as Record<string, Item[]>);
+  const itemsByRoom = rooms?.reduce(
+    (acc, room) => {
+      acc[room.id] =
+        filteredItems?.filter((item) => item.room_id === room.id) || [];
+      return acc;
+    },
+    {} as Record<string, Item[]>,
+  );
 
   // Get total count of filtered items
   const totalFilteredItems = filteredItems?.length || 0;
@@ -750,7 +793,9 @@ export default function ProjectPage({ id }: ProjectPageProps) {
         <div>
           <h1 className="text-3xl font-bold">{project?.name}</h1>
           <p className="text-muted-foreground">Address: {project?.address}</p>
-          <p className="text-muted-foreground">Builder: {project?.builder_name}</p>
+          <p className="text-muted-foreground">
+            Builder: {project?.builder_name}
+          </p>
         </div>
 
         <div className="flex gap-2">
@@ -800,7 +845,10 @@ export default function ProjectPage({ id }: ProjectPageProps) {
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div className="flex flex-col space-y-2">
                   <Label>Area Name*</Label>
-                  <Popover open={openAreaCombobox} onOpenChange={setOpenAreaCombobox}>
+                  <Popover
+                    open={openAreaCombobox}
+                    onOpenChange={setOpenAreaCombobox}
+                  >
                     <PopoverTrigger asChild>
                       <Button
                         variant="outline"
@@ -808,7 +856,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
                         aria-expanded={openAreaCombobox}
                         className={cn(
                           "w-full justify-between",
-                          !areaValue && "text-muted-foreground"
+                          !areaValue && "text-muted-foreground",
                         )}
                       >
                         {areaValue || "Select or enter area name..."}
@@ -828,7 +876,9 @@ export default function ProjectPage({ id }: ProjectPageProps) {
                           Press enter to use "{areaValue}" as a new area
                         </CommandEmpty>
                         {areaTemplates?.length > 0 && (
-                          <ScrollArea className="h-[300px] w-full overflow-y-auto"> {/* Height increased */}
+                          <ScrollArea className="h-[300px] w-full overflow-y-auto">
+                            {" "}
+                            {/* Height increased */}
                             <CommandGroup>
                               {areaTemplates.map((area) => (
                                 <CommandItem
@@ -842,7 +892,9 @@ export default function ProjectPage({ id }: ProjectPageProps) {
                                   <Check
                                     className={cn(
                                       "mr-2 h-4 w-4",
-                                      areaValue === area ? "opacity-100" : "opacity-0"
+                                      areaValue === area
+                                        ? "opacity-100"
+                                        : "opacity-0",
                                     )}
                                   />
                                   {area}
@@ -855,10 +907,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
                     </PopoverContent>
                   </Popover>
                 </div>
-                <Textarea
-                  name="description"
-                  placeholder="Description"
-                />
+                <Textarea name="description" placeholder="Description" />
                 <div className="grid grid-cols-2 gap-4">
                   <Input
                     name="floor_number"
@@ -870,7 +919,11 @@ export default function ProjectPage({ id }: ProjectPageProps) {
                     placeholder="Dimensions (e.g., 12' x 15')"
                   />
                 </div>
-                <Button type="submit" className="w-full" disabled={createRoom.isPending}>
+                <Button
+                  type="submit"
+                  className="w-full"
+                  disabled={createRoom.isPending}
+                >
                   {createRoom.isPending ? "Adding..." : "Add Area"}
                 </Button>
               </form>
@@ -890,7 +943,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
 
           <div className="grid gap-4">
             {filteredItems?.map((item) => {
-              const room = rooms?.find(r => r.id === item.room_id);
+              const room = rooms?.find((r) => r.id === item.room_id);
               return (
                 <Link key={item.id} href={`/room/${item.room_id}`}>
                   <Card className="cursor-pointer hover:shadow-md transition-all duration-200">
@@ -939,11 +992,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
         {rooms?.map((room) => {
           const roomItems = itemsByRoom?.[room.id] || [];
           return (
-            <AreaCard
-              key={room.id}
-              room={room}
-              itemCount={roomItems.length}
-            />
+            <AreaCard key={room.id} room={room} itemCount={roomItems.length} />
           );
         })}
       </div>
