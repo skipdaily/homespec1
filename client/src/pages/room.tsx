@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { supabase } from "@/lib/supabase";
@@ -177,7 +177,6 @@ const ItemCard = ({ item, onDelete, isSelected, onSelect }: { item: Item; onDele
       queryClient.invalidateQueries({ queryKey: ["items", item.room_id] });
       queryClient.invalidateQueries({ queryKey: ["itemHistory", item.id] });
       setShowEditDialog(false);
-      setCategoryValue(""); // Reset category value after successful update
       toast({
         title: "Success",
         description: "Item updated successfully"
@@ -398,7 +397,7 @@ const ItemCard = ({ item, onDelete, isSelected, onSelect }: { item: Item; onDele
                                   Press enter to use "{categoryValue}" as a new category
                                 </CommandEmpty>
                                 {categories?.length > 0 && (
-                                  <ScrollArea className="h-[300px] w-full overflow-y-auto">
+                                  <ScrollArea className="h-[200px] w-full" type="hover">
                                     <CommandGroup>
                                       {categories.map((category) => (
                                         <CommandItem
@@ -728,10 +727,9 @@ export default function RoomPage({ id }: RoomPageProps) {
         throw new Error(error?.message || "Failed to save item");
       }
     },
-    onSuccess: () => {
+    onSuccess: (data) => {
       queryClient.invalidateQueries({ queryKey: ["items", id] });
       setOpen(false);
-      setCategoryValue(""); // Reset category value after successful creation
       form.reset();
       toast({
         title: "Success",
@@ -920,6 +918,12 @@ export default function RoomPage({ id }: RoomPageProps) {
                   Select Items
                 </Button>
                 <Dialog open={open} onOpenChange={setOpen}>
+                  <DialogTrigger asChild>
+                    <Button>
+                      <Plus className="mr-2 h-4 w-4" />
+                      Add Item
+                    </Button>
+                  </DialogTrigger>
                   <DialogContent className="max-w-2xl max-h-[90vh]">
                     <DialogHeader>
                       <DialogTitle>Add New Item</DialogTitle>
@@ -982,8 +986,8 @@ export default function RoomPage({ id }: RoomPageProps) {
                                           <CommandEmpty>
                                             Press enter to use "{categoryValue}" as a new category
                                           </CommandEmpty>
-                                          {categories?.length > 0 &&(
-                                            <ScrollArea className="h-[300px] w-full overflow-y-auto">
+                                          {categories?.length> 0 && (
+                                            <ScrollArea className="h-[200px] w-full" type="hover">
                                               <CommandGroup>
                                                 {categories.map((category) => (
                                                   <CommandItem
@@ -1014,6 +1018,7 @@ export default function RoomPage({ id }: RoomPageProps) {
                                 )}
                               />
                             </div>
+
                             <div className="grid grid-cols-2 gap-4">
                               <FormField
                                 control={form.control}
@@ -1158,71 +1163,71 @@ export default function RoomPage({ id }: RoomPageProps) {
             )}
           </div>
         </div>
-      </div>
 
-      {/* Main content */}
-      <div className="py-6">
-        <div className="grid gap-4">
-          {filteredItems?.map((item) => (
-            <div key={item.id} className="flex items-start gap-4">
-              {isSelectionMode && (
-                <Checkbox
-                  checked={selectedItems.includes(item.id)}
-                  onClick={() => {
-                    setSelectedItems(prev =>
-                      prev.includes(item.id)
-                        ? prev.filter(id => id !== item.id)
-                        : [...prev, item.id]
-                    );
-                  }}
-                />
-              )}
-              <div className="flex-1">
-                <ItemCard
-                  item={item}
-                  onDelete={handleDelete}
-                  isSelected={selectedItems.includes(item.id)}
-                  onSelect={() => {
-                    if (isSelectionMode) {
+        {/* Main content */}
+        <div className="py-6">
+          <div className="grid gap-4">
+            {filteredItems?.map((item) => (
+              <div key={item.id} className="flex items-start gap-4">
+                {isSelectionMode && (
+                  <Checkbox
+                    checked={selectedItems.includes(item.id)}
+                    onClick={() => {
                       setSelectedItems(prev =>
                         prev.includes(item.id)
                           ? prev.filter(id => id !== item.id)
                           : [...prev, item.id]
                       );
-                    }
-                  }}
-                />
+                    }}
+                  />
+                )}
+                <div className="flex-1">
+                  <ItemCard
+                    item={item}
+                    onDelete={handleDelete}
+                    isSelected={selectedItems.includes(item.id)}
+                    onSelect={() => {
+                      if (isSelectionMode) {
+                        setSelectedItems(prev =>
+                          prev.includes(item.id)
+                            ? prev.filter(id => id !== item.id)
+                            : [...prev, item.id]
+                        );
+                      }
+                    }}
+                  />
+                </div>
               </div>
-            </div>
-          ))}
-          {filteredItems?.length === 0 && (
-            <div className="text-center py-8 text-muted-foreground">
-              No items found matching your search.
-            </div>
-          )}
+            ))}
+            {filteredItems?.length === 0 && (
+              <div className="text-center py-8 text-muted-foreground">
+                No items found matching your search.
+              </div>
+            )}
+          </div>
         </div>
-      </div>
 
-      {/* Bulk Delete Dialog */}
-      <AlertDialog open={showBulkDeleteDialog} onOpenChange={setShowBulkDeleteDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will permanently delete {selectedItems.length} selected items. This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleBulkDelete}
-              disabled={bulkDeleteItems.isPending}
-            >
-              {bulkDeleteItems.isPending ? "Deleting..." : "Delete"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        {/* Bulk Delete Dialog */}
+        <AlertDialog open={showBulkDeleteDialog} onOpenChange={setShowBulkDeleteDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will permanently delete {selectedItems.length} selected items. This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleBulkDelete}
+                disabled={bulkDeleteItems.isPending}
+              >
+                {bulkDeleteItems.isPending ? "Deleting..." : "Delete"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
     </div>
   );
 }
