@@ -258,31 +258,10 @@ export default function Dashboard() {
     );
   }
 
+  // If not logged in, redirect to login page
   if (!session) {
-    return (
-      <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
-        <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-          <div className="container mx-auto px-4 h-16 flex items-center">
-            <div className="flex items-center space-x-4">
-              <div className="bg-gradient-to-r from-primary/10 to-primary/5 p-2 rounded-xl shadow-sm">
-                <Home className="h-6 w-6 text-primary" />
-              </div>
-              <h1 className="text-xl font-semibold text-foreground">
-                HomeSpec
-              </h1>
-            </div>
-          </div>
-        </header>
-        <div className="container mx-auto px-4 py-8">
-          <div className="max-w-md mx-auto text-center">
-            <h2 className="text-2xl font-bold mb-4">Welcome to HomeSpec</h2>
-            <p className="text-muted-foreground mb-6">
-              Please <Link href="/login" className="text-primary hover:underline">login</Link> to view and manage your projects
-            </p>
-          </div>
-        </div>
-      </div>
-    );
+    setLocation("/login");
+    return null;
   }
 
   if (isProjectsLoading) {
@@ -478,7 +457,6 @@ export default function Dashboard() {
             </motion.div>
           ))}
         </div>
-
         <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
           <DialogContent>
             <DialogHeader>
