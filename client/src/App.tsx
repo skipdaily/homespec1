@@ -13,7 +13,7 @@ import Login from "./pages/login";
 import Dashboard from "./pages/dashboard";
 import Project from "./pages/project";
 import Room from "./pages/room";
-import Performance from "./pages/performance"; // Added import
+import Performance from "./pages/performance";
 import NotFound from "./pages/not-found";
 
 interface PrivateRouteProps {
@@ -50,7 +50,12 @@ function PrivateRoute({ component: Component, params }: PrivateRouteProps) {
     return null;
   }
 
-  return <Component {...params} />;
+  return <Component {...params} isAuthenticated={true} />;
+}
+
+// Public Project Route
+function PublicProjectRoute({ params }: { params: { id: string } }) {
+  return <Project {...params} isAuthenticated={false} />;
 }
 
 function Router() {
@@ -64,14 +69,17 @@ function Router() {
           {() => <PrivateRoute component={Dashboard} />}
         </Route>
         <Route path="/project/:id">
+          {(params) => <PublicProjectRoute params={params} />}
+        </Route>
+        <Route path="/project/:id/edit">
           {(params) => <PrivateRoute component={Project} params={params} />}
         </Route>
         <Route path="/room/:id">
           {(params) => <PrivateRoute component={Room} params={params} />}
         </Route>
-        <Route path="/performance"> {/* Added route */}
-          {() => <PrivateRoute component={Performance} />} {/* Added route */}
-        </Route> {/* Added route */}
+        <Route path="/performance">
+          {() => <PrivateRoute component={Performance} />}
+        </Route>
         <Route component={NotFound} />
       </Switch>
     </>
