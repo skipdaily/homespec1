@@ -11,6 +11,7 @@ import {
   Search,
   ChevronsUpDown,
   Check,
+  Printer,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -53,6 +54,7 @@ import {
 } from "@/components/ui/popover";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
+import PrintView from "@/components/project/print-view";
 
 // Define the structure of the items data
 interface Item {
@@ -83,6 +85,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
   const [searchQuery, setSearchQuery] = useState("");
   const [openAreaCombobox, setOpenAreaCombobox] = useState(false);
   const [areaValue, setAreaValue] = useState("");
+  const [showPrintDialog, setShowPrintDialog] = useState(false);
 
   // Add areas query
   const { data: areaTemplates } = useQuery({
@@ -676,7 +679,6 @@ export default function ProjectPage({ id }: ProjectPageProps) {
                       </CommandEmpty>
                       {areaTemplates?.length > 0 && (
                         <ScrollArea className="h-[300px] w-full overflow-y-auto">
-                          {" "}
                           {/* Height increased */}
                           <CommandGroup>
                             {areaTemplates.map((area) => (
@@ -759,6 +761,12 @@ export default function ProjectPage({ id }: ProjectPageProps) {
     );
   };
 
+  // Calculate item counts for each room
+  const itemCounts = rooms?.reduce((acc, room) => {
+    acc[room.id] = items?.filter((item) => item.room_id === room.id).length || 0;
+    return acc;
+  }, {} as Record<string, number>) || {};
+
   // Filter items based on search query
   const filteredItems = items?.filter((item) => {
     if (!searchQuery.trim()) return true;
@@ -787,6 +795,9 @@ export default function ProjectPage({ id }: ProjectPageProps) {
   // Get total count of filtered items
   const totalFilteredItems = filteredItems?.length || 0;
 
+  // Get base URL for QR code
+  const baseUrl = window.location.origin;
+
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex justify-between items-center mb-8">
@@ -799,6 +810,14 @@ export default function ProjectPage({ id }: ProjectPageProps) {
         </div>
 
         <div className="flex gap-2">
+          <Button
+            variant="outline"
+            onClick={() => setShowPrintDialog(true)}
+            className="flex items-center gap-2"
+          >
+            <Printer className="h-4 w-4" />
+            Print Project
+          </Button>
           <div className="relative w-64">
             <Input
               type="text"
@@ -877,7 +896,6 @@ export default function ProjectPage({ id }: ProjectPageProps) {
                         </CommandEmpty>
                         {areaTemplates?.length > 0 && (
                           <ScrollArea className="h-[300px] w-full overflow-y-auto">
-                            {" "}
                             {/* Height increased */}
                             <CommandGroup>
                               {areaTemplates.map((area) => (
@@ -932,6 +950,38 @@ export default function ProjectPage({ id }: ProjectPageProps) {
         </div>
       </div>
 
+      {/* Print Dialog */}
+      <Dialog open={showPrintDialog} onOpenChange={setShowPrintDialog}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Print Project Details</DialogTitle>
+          </DialogHeader>
+          {project && rooms && (
+            <PrintView
+              project={project}
+              rooms={rooms}
+              itemCounts={itemCounts}
+              baseUrl={baseUrl}
+            />
+          )}
+          <div className="flex justify-end space-x-2">
+            <Button
+              variant="outline"
+              onClick={() => setShowPrintDialog(false)}
+            >
+              Close
+            </Button>
+            <Button
+              onClick={() => {
+                window.print();
+              }}
+            >
+              Print
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Search Results Section */}
       {searchQuery.trim() !== "" && (
         <div className="mb-8">
@@ -968,7 +1018,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
                           )}
                           {item.supplier && (
                             <p className="text-muted-foreground">
-                              Supplier: {item.supplier}
+                                                            Supplier: {item.supplier}
                             </p>
                           )}
                         </div>
