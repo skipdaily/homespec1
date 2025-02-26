@@ -49,21 +49,27 @@ export default function Dashboard() {
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
-  const [, setLocation] = useLocation();
+  const [, navigate] = useLocation();
 
+  // Session query with redirects handled in onSuccess/onError
   const { data: session, isLoading: isSessionLoading } = useQuery({
     queryKey: ["session"],
     queryFn: async () => {
       const { data: { session } } = await supabase.auth.getSession();
       return session;
     },
-    retry: false
+    onError: () => {
+      if (window.location.pathname !== '/login') {
+        navigate('/login');
+      }
+    }
   });
 
+  // Projects query depends on session
   const { data: projects, isLoading: isProjectsLoading } = useQuery<Project[]>({
     queryKey: ["projects"],
     queryFn: async () => {
-      if (!session?.user?.id) return [];
+      if (!session?.user?.id) throw new Error("No session");
 
       const { data, error } = await supabase
         .from("projects")
@@ -71,14 +77,26 @@ export default function Dashboard() {
         .eq('user_id', session.user.id)
         .order("created_at", { ascending: false });
 
-      if (error) {
-        console.error("Error fetching projects:", error);
-        throw error;
-      }
+      if (error) throw error;
       return data || [];
     },
     enabled: !!session?.user?.id
   });
+
+  // Loading state
+  if (isSessionLoading || isProjectsLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-muted/30">
+        <p>Loading...</p>
+      </div>
+    );
+  }
+
+  // Check for session only after loading is complete
+  if (!session && window.location.pathname !== '/login') {
+    navigate('/login');
+    return null;
+  }
 
   const createProject = useMutation({
     mutationFn: async (data: ProjectFormData) => {
@@ -115,7 +133,7 @@ export default function Dashboard() {
         title: "Success",
         description: "Project created successfully"
       });
-      setLocation(`/project/${newProject.id}`);
+      navigate(`/project/${newProject.id}`);
     },
     onError: (error: Error) => {
       toast({
@@ -247,29 +265,9 @@ export default function Dashboard() {
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
-    setLocation("/login");
+    navigate("/login");
   };
 
-  if (isSessionLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-muted/30">
-        <p>Loading...</p>
-      </div>
-    );
-  }
-
-  if (!session) {
-    setLocation("/login");
-    return null;
-  }
-
-  if (isProjectsLoading) {
-    return (
-      <div className="container mx-auto px-4 py-8">
-        <p className="text-center">Loading your projects...</p>
-      </div>
-    );
-  }
 
   const ProjectForm = ({ isEdit = false }: { isEdit?: boolean }) => (
     <form onSubmit={(e) => handleSubmit(e, isEdit)} className="space-y-4">

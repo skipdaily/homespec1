@@ -7,7 +7,7 @@ import { supabase } from "@/lib/supabase";
 import { useQuery } from "@tanstack/react-query";
 
 export default function Login() {
-  const [, setLocation] = useLocation();
+  const [, navigate] = useLocation();
 
   // Check if user is already logged in
   const { data: session, isLoading } = useQuery({
@@ -22,15 +22,20 @@ export default function Login() {
     // Subscribe to auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === "SIGNED_IN" && session) {
-        setLocation("/dashboard");
+        navigate("/dashboard");
       }
     });
 
     // Cleanup subscription
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [setLocation]);
+    return () => subscription.unsubscribe();
+  }, [navigate]);
+
+  // Handle session redirect in effect to avoid state updates during render
+  useEffect(() => {
+    if (session && !isLoading) {
+      navigate("/dashboard");
+    }
+  }, [session, isLoading, navigate]);
 
   // Show loading state
   if (isLoading) {
@@ -41,9 +46,8 @@ export default function Login() {
     );
   }
 
-  // If already logged in, redirect to dashboard
+  // Only render login form if not logged in
   if (session) {
-    setLocation("/dashboard");
     return null;
   }
 
