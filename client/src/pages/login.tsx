@@ -15,25 +15,24 @@ export default function Login() {
     queryFn: async () => {
       const { data: { session } } = await supabase.auth.getSession();
       return session;
-    },
+    }
   });
 
+  // Handle auth state changes
   useEffect(() => {
-    // Subscribe to auth state changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === "SIGNED_IN" && session) {
-        navigate("/dashboard");
+        setTimeout(() => navigate("/dashboard"), 0);
       }
     });
 
-    // Cleanup subscription
     return () => subscription.unsubscribe();
   }, [navigate]);
 
-  // Handle session redirect in effect to avoid state updates during render
+  // Handle initial session redirect
   useEffect(() => {
     if (session && !isLoading) {
-      navigate("/dashboard");
+      setTimeout(() => navigate("/dashboard"), 0);
     }
   }, [session, isLoading, navigate]);
 
@@ -46,7 +45,7 @@ export default function Login() {
     );
   }
 
-  // Only render login form if not logged in
+  // Don't render if already logged in
   if (session) {
     return null;
   }

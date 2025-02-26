@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useLocation, Link } from "wouter";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
@@ -51,25 +51,27 @@ export default function Dashboard() {
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
   const [, navigate] = useLocation();
 
-  // Session query with redirects handled in onSuccess/onError
+  // Session query
   const { data: session, isLoading: isSessionLoading } = useQuery({
     queryKey: ["session"],
     queryFn: async () => {
       const { data: { session } } = await supabase.auth.getSession();
       return session;
-    },
-    onError: () => {
-      if (window.location.pathname !== '/login') {
-        navigate('/login');
-      }
     }
   });
 
-  // Projects query depends on session
+  // Handle navigation based on auth state
+  useEffect(() => {
+    if (!isSessionLoading && !session && window.location.pathname !== '/login') {
+      navigate('/login');
+    }
+  }, [session, isSessionLoading, navigate]);
+
+  // Projects query
   const { data: projects, isLoading: isProjectsLoading } = useQuery<Project[]>({
     queryKey: ["projects"],
     queryFn: async () => {
-      if (!session?.user?.id) throw new Error("No session");
+      if (!session?.user?.id) return [];
 
       const { data, error } = await supabase
         .from("projects")
@@ -83,7 +85,7 @@ export default function Dashboard() {
     enabled: !!session?.user?.id
   });
 
-  // Loading state
+  // Show loading state
   if (isSessionLoading || isProjectsLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-muted/30">
@@ -92,9 +94,8 @@ export default function Dashboard() {
     );
   }
 
-  // Check for session only after loading is complete
-  if (!session && window.location.pathname !== '/login') {
-    navigate('/login');
+  // Don't render anything while redirecting
+  if (!session) {
     return null;
   }
 
@@ -267,7 +268,6 @@ export default function Dashboard() {
     await supabase.auth.signOut();
     navigate("/login");
   };
-
 
   const ProjectForm = ({ isEdit = false }: { isEdit?: boolean }) => (
     <form onSubmit={(e) => handleSubmit(e, isEdit)} className="space-y-4">
