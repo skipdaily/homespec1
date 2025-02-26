@@ -1,4 +1,4 @@
-import { pgTable, text, uuid, timestamp, integer, numeric, date } from "drizzle-orm/pg-core";
+import { pgTable, text, uuid, timestamp, integer, numeric, date, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod";
 
@@ -10,6 +10,8 @@ export const projects = pgTable("projects", {
   address: text("address").notNull(),
   builder_name: text("builder_name").notNull(),
   access_code: text("access_code").notNull().unique(),
+  require_pin: boolean("require_pin").default(false).notNull(),
+  edit_pin: text("edit_pin"),
   completion_date: date("completion_date"),
   created_at: timestamp("created_at").defaultNow().notNull()
 });

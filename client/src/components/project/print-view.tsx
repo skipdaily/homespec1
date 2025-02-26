@@ -18,6 +18,9 @@ export default function PrintView({ project, rooms, itemCounts, baseUrl }: Print
           <h1 className="text-4xl font-bold">{project.name}</h1>
           <p className="text-xl text-muted-foreground mt-2">{project.address}</p>
           <p className="text-lg text-muted-foreground">Builder: {project.builder_name}</p>
+          {project.require_pin && project.edit_pin && (
+            <p className="text-lg text-muted-foreground">Edit PIN: {project.edit_pin}</p>
+          )}
           {project.created_at && (
             <p className="text-sm text-muted-foreground">
               Created: {new Date(project.created_at).toLocaleDateString()}

@@ -12,6 +12,7 @@ import {
   ChevronsUpDown,
   Check,
   Printer,
+  Settings
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -55,6 +56,8 @@ import {
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import PrintView from "@/components/project/print-view";
+import { PinDialog } from "@/components/project/pin-dialog";
+import { SettingsDialog } from "@/components/project/settings-dialog";
 
 // Define the structure of the items data
 interface Item {
@@ -88,6 +91,9 @@ export default function ProjectPage({ id, isAuthenticated = false }: ProjectPage
   const [openAreaCombobox, setOpenAreaCombobox] = useState(false);
   const [areaValue, setAreaValue] = useState("");
   const [showPrintDialog, setShowPrintDialog] = useState(false);
+  const [showPinDialog, setShowPinDialog] = useState(false);
+  const [showSettingsDialog, setShowSettingsDialog] = useState(false);
+  const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
 
   // Add areas query
   const { data: areaTemplates } = useQuery({
@@ -445,6 +451,31 @@ export default function ProjectPage({ id, isAuthenticated = false }: ProjectPage
     },
   });
 
+  const handleEditAction = (action: () => void) => {
+    if (!project?.require_pin) {
+      action();
+      return;
+    }
+
+    setPendingAction(() => action);
+    setShowPinDialog(true);
+  };
+
+
+  const handlePinSubmit = async (pin: string) => {
+    if (pin === project?.edit_pin && pendingAction) {
+      setShowPinDialog(false);
+      pendingAction();
+      setPendingAction(null);
+    } else {
+      toast({
+        title: "Invalid PIN",
+        description: "The PIN you entered is incorrect",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
@@ -582,7 +613,7 @@ export default function ProjectPage({ id, isAuthenticated = false }: ProjectPage
                       className="opacity-0 group-hover:opacity-100 transition-opacity"
                       onClick={(e) => {
                         e.preventDefault();
-                        setShowEditDialog(true);
+                        handleEditAction(() => setShowEditDialog(true));
                       }}
                     >
                       <Pencil className="h-4 w-4" />
@@ -593,7 +624,7 @@ export default function ProjectPage({ id, isAuthenticated = false }: ProjectPage
                       className="opacity-0 group-hover:opacity-100 transition-opacity text-destructive"
                       onClick={(e) => {
                         e.preventDefault();
-                        setShowDeleteDialog(true);
+                        handleEditAction(() => setShowDeleteDialog(true));
                       }}
                     >
                       <Trash2 className="h-4 w-4" />
@@ -626,7 +657,7 @@ export default function ProjectPage({ id, isAuthenticated = false }: ProjectPage
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                setShowEditDialog(true);
+                handleEditAction(() => setShowEditDialog(true));
               }}
             >
               <Pencil className="h-4 w-4" />
@@ -638,7 +669,7 @@ export default function ProjectPage({ id, isAuthenticated = false }: ProjectPage
               onClick={(e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                setShowDeleteDialog(true);
+                handleEditAction(() => setShowDeleteDialog(true));
               }}
             >
               <Trash2 className="h-4 w-4" />
@@ -819,9 +850,19 @@ export default function ProjectPage({ id, isAuthenticated = false }: ProjectPage
         </div>
 
         <div className="flex gap-2">
+          {isAuthenticated && (
+            <Button
+              variant="outline"
+              onClick={() => setShowSettingsDialog(true)}
+              className="flex items-center gap-2"
+            >
+              <Settings className="h-4 w-4" />
+              Settings
+            </Button>
+          )}
           <Button
             variant="outline"
-            onClick={() => setShowPrintDialog(true)}
+            onClick={() => handleEditAction(() => setShowPrintDialog(true))}
             className="flex items-center gap-2"
           >
             <Printer className="h-4 w-4" />
@@ -857,7 +898,7 @@ export default function ProjectPage({ id, isAuthenticated = false }: ProjectPage
                 </Button>
               </label>
 
-              <Button variant="outline" onClick={handleExport}>
+              <Button variant="outline" onClick={() => handleEditAction(handleExport)}>
                 <Download className="mr-2 h-4 w-4" />
                 Export Items
               </Button>
@@ -972,6 +1013,28 @@ export default function ProjectPage({ id, isAuthenticated = false }: ProjectPage
         </div>
       </div>
 
+      {/* Settings Dialog */}
+      {project && (
+        <SettingsDialog
+          projectId={project.id}
+          open={showSettingsDialog}
+          onOpenChange={setShowSettingsDialog}
+          requirePin={project.require_pin}
+          editPin={project.edit_pin}
+        />
+      )}
+
+      {/* PIN Dialog */}
+      <PinDialog
+        open={showPinDialog}
+        onOpenChange={setShowPinDialog}
+        onPinSubmit={handlePinSubmit}
+        onCancel={() => {
+          setShowPinDialog(false);
+          setPendingAction(null);
+        }}
+      />
+
       {/* Print Dialog */}
       <Dialog open={showPrintDialog} onOpenChange={setShowPrintDialog}>
         <DialogContent className="max-w-4xl max-h-[80vh] flex flex-col">
@@ -1031,7 +1094,7 @@ export default function ProjectPage({ id, isAuthenticated = false }: ProjectPage
                           {room && (
                             <Badge variant="secondary" className="mt-2">
                               {room.name}
-                                                        </Badge>
+                            </Badge>
                           )}
                         </div>
                         <div className="space-y-1 text-sm text-right">
