@@ -952,19 +952,21 @@ export default function ProjectPage({ id }: ProjectPageProps) {
 
       {/* Print Dialog */}
       <Dialog open={showPrintDialog} onOpenChange={setShowPrintDialog}>
-        <DialogContent className="max-w-4xl">
+        <DialogContent className="max-w-4xl max-h-[80vh] flex flex-col">
           <DialogHeader>
             <DialogTitle>Print Project Details</DialogTitle>
           </DialogHeader>
-          {project && rooms && (
-            <PrintView
-              project={project}
-              rooms={rooms}
-              itemCounts={itemCounts}
-              baseUrl={baseUrl}
-            />
-          )}
-          <div className="flex justify-end space-x-2">
+          <ScrollArea className="flex-1 pr-4">
+            {project && rooms && (
+              <PrintView
+                project={project}
+                rooms={rooms}
+                itemCounts={itemCounts}
+                baseUrl={baseUrl}
+              />
+            )}
+          </ScrollArea>
+          <div className="flex justify-end space-x-2 pt-4 border-t mt-4">
             <Button
               variant="outline"
               onClick={() => setShowPrintDialog(false)}
@@ -1018,7 +1020,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
                           )}
                           {item.supplier && (
                             <p className="text-muted-foreground">
-                                                            Supplier: {item.supplier}
+                              Supplier: {item.supplier}
                             </p>
                           )}
                         </div>
