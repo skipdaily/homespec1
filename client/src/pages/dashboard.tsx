@@ -252,13 +252,12 @@ export default function Dashboard() {
 
   if (isSessionLoading) {
     return (
-      <div className="container mx-auto px-4 py-8">
-        <p className="text-center">Loading...</p>
+      <div className="min-h-screen flex items-center justify-center bg-muted/30">
+        <p>Loading...</p>
       </div>
     );
   }
 
-  // If not logged in, redirect to login page
   if (!session) {
     setLocation("/login");
     return null;

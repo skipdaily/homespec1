@@ -7,7 +7,7 @@ import { supabase } from "@/lib/supabase";
 import { useQuery } from "@tanstack/react-query";
 
 export default function Login() {
-  const [_, setLocation] = useLocation();
+  const [, setLocation] = useLocation();
 
   // Check if user is already logged in
   const { data: session, isLoading } = useQuery({
@@ -26,15 +26,11 @@ export default function Login() {
       }
     });
 
-    // Redirect if already logged in
-    if (session) {
-      setLocation("/dashboard");
-    }
-
+    // Cleanup subscription
     return () => {
       subscription.unsubscribe();
     };
-  }, [session, setLocation]);
+  }, [setLocation]);
 
   // Show loading state
   if (isLoading) {
@@ -45,8 +41,9 @@ export default function Login() {
     );
   }
 
-  // Don't show login form if already logged in
+  // If already logged in, redirect to dashboard
   if (session) {
+    setLocation("/dashboard");
     return null;
   }
 
@@ -59,6 +56,7 @@ export default function Login() {
             appearance={{ theme: ThemeSupa }}
             providers={[]}
             theme="light"
+            redirectTo={`${window.location.origin}/dashboard`}
           />
         </CardContent>
       </Card>
