@@ -1,0 +1,66 @@
+Warning: React has detected a change in the order of Hooks called by Dashboard. This will lead to bugs and errors if not fixed. For more information, read the Rules of Hooks: https://reactjs.org/link/rules-of-hooks
+
+   Previous render            Next render
+   ------------------------------------------------------
+1. useState                   useState
+2. useEffect                  useEffect
+3. useState                   useState
+4. useState                   useState
+5. useState                   useState
+6. useState                   useState
+7. useContext                 useContext
+8. useSyncExternalStore       useSyncExternalStore
+9. useRef                     useRef
+10. useInsertionEffect        useInsertionEffect
+11. useContext                useContext
+12. useContext                useContext
+13. useContext                useContext
+14. useEffect                 useEffect
+15. useState                  useState
+16. useCallback               useCallback
+17. useSyncExternalStore      useSyncExternalStore
+18. useEffect                 useEffect
+19. useEffect                 useEffect
+20. useContext                useContext
+21. useContext                useContext
+22. useContext                useContext
+23. useEffect                 useEffect
+24. useState                  useState
+25. useCallback               useCallback
+26. useSyncExternalStore      useSyncExternalStore
+27. useEffect                 useEffect
+28. undefined                 useContext
+   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+    at Dashboard (https://d7ec9911-1342-4d61-9d2d-baf86634957f-00-2awdk4ya6jc43.picard.replit.dev/src/pages/dashboard.tsx:56:21)
+    at PrivateRoute (https://d7ec9911-1342-4d61-9d2d-baf86634957f-00-2awdk4ya6jc43.picard.replit.dev/src/App.tsx?v=qSbtXjl_WhNc1n0cio7Y5:32:36)
+    at Route (https://d7ec9911-1342-4d61-9d2d-baf86634957f-00-2awdk4ya6jc43.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=b7748b4c:191:16)
+    at Switch (https://d7ec9911-1342-4d61-9d2d-baf86634957f-00-2awdk4ya6jc43.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=b7748b4c:247:17)
+    at Router
+    at QueryClientProvider (https://d7ec9911-1342-4d61-9d2d-baf86634957f-00-2awdk4ya6jc43.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=b7748b4c:2805:3)
+    at App
+Rendered more hooks than during the previous render.
+Rendered more hooks than during the previous render.
+The above error occurred in the <Dashboard> component:
+
+    at Dashboard (https://d7ec9911-1342-4d61-9d2d-baf86634957f-00-2awdk4ya6jc43.picard.replit.dev/src/pages/dashboard.tsx:56:21)
+    at PrivateRoute (https://d7ec9911-1342-4d61-9d2d-baf86634957f-00-2awdk4ya6jc43.picard.replit.dev/src/App.tsx?v=qSbtXjl_WhNc1n0cio7Y5:32:36)
+    at Route (https://d7ec9911-1342-4d61-9d2d-baf86634957f-00-2awdk4ya6jc43.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=b7748b4c:191:16)
+    at Switch (https://d7ec9911-1342-4d61-9d2d-baf86634957f-00-2awdk4ya6jc43.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=b7748b4c:247:17)
+    at Router
+    at QueryClientProvider (https://d7ec9911-1342-4d61-9d2d-baf86634957f-00-2awdk4ya6jc43.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=b7748b4c:2805:3)
+    at App
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries.
+Rendered more hooks than during the previous render.
+at updateWorkInProgressHook (https://d7ec9911-1342-4d61-9d2d-baf86634957f-00-2awdk4ya6jc43.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-UPELNCPK.js?v=b7748b4c:11678:21)
+at updateReducer (https://d7ec9911-1342-4d61-9d2d-baf86634957f-00-2awdk4ya6jc43.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-UPELNCPK.js?v=b7748b4c:11727:22)
+at updateState (https://d7ec9911-1342-4d61-9d2d-baf86634957f-00-2awdk4ya6jc43.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-UPELNCPK.js?v=b7748b4c:12021:18)
+at Object.useState (https://d7ec9911-1342-4d61-9d2d-baf86634957f-00-2awdk4ya6jc43.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-UPELNCPK.js?v=b7748b4c:12753:24)
+at Object.useState (https://d7ec9911-1342-4d61-9d2d-baf86634957f-00-2awdk4ya6jc43.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-BG45W2ER.js?v=b7748b4c:1066:29)
+at useMutation (https://d7ec9911-1342-4d61-9d2d-baf86634957f-00-2awdk4ya6jc43.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=b7748b4c:3276:30)
+at Dashboard (https://d7ec9911-1342-4d61-9d2d-baf86634957f-00-2awdk4ya6jc43.picard.replit.dev/src/pages/dashboard.tsx:98:25)
+at renderWithHooks (https://d7ec9911-1342-4d61-9d2d-baf86634957f-00-2awdk4ya6jc43.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-UPELNCPK.js?v=b7748b4c:11548:26)
+at updateFunctionComponent (https://d7ec9911-1342-4d61-9d2d-baf86634957f-00-2awdk4ya6jc43.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-UPELNCPK.js?v=b7748b4c:14582:28)
+at beginWork (https://d7ec9911-1342-4d61-9d2d-baf86634957f-00-2awdk4ya6jc43.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-UPELNCPK.js?v=b7748b4c:15924:22)
