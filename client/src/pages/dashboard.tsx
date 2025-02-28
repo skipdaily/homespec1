@@ -44,14 +44,17 @@ interface ProjectFormData {
 }
 
 export default function Dashboard() {
-  const { toast } = useToast();
+  // All useState hooks
   const [createDialogOpen, setCreateDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
   const [selectedProject, setSelectedProject] = useState<Project | null>(null);
-  const [, navigate] = useLocation();
 
-  // Session query
+  // All location/navigation hooks
+  const [, navigate] = useLocation();
+  const { toast } = useToast();
+
+  // Query hooks
   const { data: session, isLoading: isSessionLoading } = useQuery({
     queryKey: ["session"],
     queryFn: async () => {
@@ -60,19 +63,10 @@ export default function Dashboard() {
     }
   });
 
-  // Handle navigation based on auth state
-  useEffect(() => {
-    if (!isSessionLoading && !session && window.location.pathname !== '/login') {
-      navigate('/login');
-    }
-  }, [session, isSessionLoading, navigate]);
-
-  // Projects query
   const { data: projects, isLoading: isProjectsLoading } = useQuery<Project[]>({
     queryKey: ["projects"],
     queryFn: async () => {
       if (!session?.user?.id) return [];
-
       const { data, error } = await supabase
         .from("projects")
         .select("*")
@@ -85,20 +79,14 @@ export default function Dashboard() {
     enabled: !!session?.user?.id
   });
 
-  // Show loading state
-  if (isSessionLoading || isProjectsLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-muted/30">
-        <p>Loading...</p>
-      </div>
-    );
-  }
+  // Effect hooks
+  useEffect(() => {
+    if (!isSessionLoading && !session) {
+      navigate('/login');
+    }
+  }, [session, isSessionLoading, navigate]);
 
-  // Don't render anything while redirecting
-  if (!session) {
-    return null;
-  }
-
+  // Mutation hooks
   const createProject = useMutation({
     mutationFn: async (data: ProjectFormData) => {
       if (!session?.user?.id) {
@@ -106,7 +94,6 @@ export default function Dashboard() {
       }
 
       const access_code = Math.random().toString(36).substring(2, 12);
-
       const { data: newProject, error } = await supabase
         .from("projects")
         .insert([{
@@ -120,11 +107,7 @@ export default function Dashboard() {
         .select()
         .single();
 
-      if (error) {
-        console.error("Project creation error:", error);
-        throw error;
-      }
-
+      if (error) throw error;
       return newProject;
     },
     onSuccess: (newProject) => {
@@ -182,36 +165,6 @@ export default function Dashboard() {
 
   const deleteProject = useMutation({
     mutationFn: async (projectId: string) => {
-      const { data: rooms } = await supabase
-        .from("rooms")
-        .select("id")
-        .eq('project_id', projectId);
-
-      if (rooms && rooms.length > 0) {
-        const roomIds = rooms.map(room => room.id);
-
-        const { error: itemHistoryError } = await supabase
-          .from("item_history")
-          .delete()
-          .in('room_id', roomIds);
-
-        if (itemHistoryError) throw itemHistoryError;
-
-        const { error: itemsError } = await supabase
-          .from("items")
-          .delete()
-          .in('room_id', roomIds);
-
-        if (itemsError) throw itemsError;
-
-        const { error: roomsError } = await supabase
-          .from("rooms")
-          .delete()
-          .eq('project_id', projectId);
-
-        if (roomsError) throw roomsError;
-      }
-
       const { error } = await supabase
         .from("projects")
         .delete()
@@ -225,7 +178,7 @@ export default function Dashboard() {
       setSelectedProject(null);
       toast({
         title: "Success",
-        description: "Project and all related data deleted successfully"
+        description: "Project deleted successfully"
       });
     },
     onError: (error: Error) => {
@@ -237,6 +190,7 @@ export default function Dashboard() {
     }
   });
 
+  // Event handlers
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>, isEdit: boolean = false) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
@@ -269,6 +223,21 @@ export default function Dashboard() {
     navigate("/login");
   };
 
+  // Loading states
+  if (isSessionLoading || isProjectsLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-muted/30">
+        <p>Loading...</p>
+      </div>
+    );
+  }
+
+  // Auth check
+  if (!session) {
+    return null;
+  }
+
+  // Render methods
   const ProjectForm = ({ isEdit = false }: { isEdit?: boolean }) => (
     <form onSubmit={(e) => handleSubmit(e, isEdit)} className="space-y-4">
       <Input
