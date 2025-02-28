@@ -974,6 +974,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
                 rooms={rooms}
                 itemCounts={itemCounts}
                 baseUrl={baseUrl}
+                items={items}
               />
             )}
           </ScrollArea>
