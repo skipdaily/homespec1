@@ -11,8 +11,7 @@ import {
   Search,
   ChevronsUpDown,
   Check,
-  Printer,
-  Settings
+  Printer
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -56,8 +55,6 @@ import {
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import PrintView from "@/components/project/print-view";
-import { PinDialog } from "@/components/project/pin-dialog";
-import { SettingsDialog } from "@/components/project/settings-dialog";
 
 // Define the structure of the items data
 interface Item {
@@ -81,19 +78,15 @@ interface Item {
 // Update the ProjectPageProps interface
 interface ProjectPageProps {
   id?: string;
-  isAuthenticated?: boolean;
 }
 
-export default function ProjectPage({ id, isAuthenticated = false }: ProjectPageProps) {
+export default function ProjectPage({ id }: ProjectPageProps) {
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [openAreaCombobox, setOpenAreaCombobox] = useState(false);
   const [areaValue, setAreaValue] = useState("");
   const [showPrintDialog, setShowPrintDialog] = useState(false);
-  const [showPinDialog, setShowPinDialog] = useState(false);
-  const [showSettingsDialog, setShowSettingsDialog] = useState(false);
-  const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
 
   // Add areas query
   const { data: areaTemplates } = useQuery({
@@ -451,38 +444,13 @@ export default function ProjectPage({ id, isAuthenticated = false }: ProjectPage
     },
   });
 
-  const handleEditAction = (action: () => void) => {
-    if (!project?.require_pin) {
-      action();
-      return;
-    }
-
-    setPendingAction(() => action);
-    setShowPinDialog(true);
-  };
-
-
-  const handlePinSubmit = async (pin: string) => {
-    if (pin === project?.edit_pin && pendingAction) {
-      setShowPinDialog(false);
-      pendingAction();
-      setPendingAction(null);
-    } else {
-      toast({
-        title: "Invalid PIN",
-        description: "The PIN you entered is incorrect",
-        variant: "destructive",
-      });
-    }
-  };
-
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
 
     const floorNumber = formData.get("floor_number");
     createRoom.mutate({
-      name: areaValue || (formData.get("name") as string), // Use combobox value or input field
+      name: areaValue || (formData.get("name") as string),
       description: (formData.get("description") as string) || undefined,
       floor_number: floorNumber ? parseInt(floorNumber as string) : undefined,
       dimensions: (formData.get("dimensions") as string) || undefined,
@@ -493,7 +461,7 @@ export default function ProjectPage({ id, isAuthenticated = false }: ProjectPage
     return <div>Loading...</div>;
   }
 
-  const AreaCard = ({ room, itemCount, isAuthenticated }: { room: Room; itemCount: number; isAuthenticated: boolean }) => {
+  const AreaCard = ({ room, itemCount }: { room: Room; itemCount: number }) => {
     const [showEditDialog, setShowEditDialog] = useState(false);
     const [showDeleteDialog, setShowDeleteDialog] = useState(false);
     const [openAreaCombobox, setOpenAreaCombobox] = useState(false);
@@ -605,32 +573,30 @@ export default function ProjectPage({ id, isAuthenticated = false }: ProjectPage
                     )}
                   </div>
                 </div>
-                {isAuthenticated && (
-                  <div className="flex space-x-2">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="opacity-0 group-hover:opacity-100 transition-opacity"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        handleEditAction(() => setShowEditDialog(true));
-                      }}
-                    >
-                      <Pencil className="h-4 w-4" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="opacity-0 group-hover:opacity-100 transition-opacity text-destructive"
-                      onClick={(e) => {
-                        e.preventDefault();
-                        handleEditAction(() => setShowDeleteDialog(true));
-                      }}
-                    >
-                      <Trash2 className="h-4 w-4" />
-                    </Button>
-                  </div>
-                )}
+                <div className="flex space-x-2">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setShowEditDialog(true);
+                    }}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="opacity-0 group-hover:opacity-100 transition-opacity text-destructive"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setShowDeleteDialog(true);
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </div>
               </div>
             </CardHeader>
             <CardContent>
@@ -648,34 +614,32 @@ export default function ProjectPage({ id, isAuthenticated = false }: ProjectPage
           </Card>
         </Link>
 
-        {isAuthenticated && (
-          <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex space-x-2">
-            <Button
-              variant="ghost"
-              size="icon"
-              className="bg-background/80 backdrop-blur hover:bg-background/90"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                handleEditAction(() => setShowEditDialog(true));
-              }}
-            >
-              <Pencil className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              className="bg-background/80 backdrop-blur hover:bg-background/90 text-destructive"
-              onClick={(e) => {
-                e.preventDefault();
-                e.stopPropagation();
-                handleEditAction(() => setShowDeleteDialog(true));
-              }}
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </div>
-        )}
+        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex space-x-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="bg-background/80 backdrop-blur hover:bg-background/90"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setShowEditDialog(true);
+            }}
+          >
+            <Pencil className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="bg-background/80 backdrop-blur hover:bg-background/90 text-destructive"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setShowDeleteDialog(true);
+            }}
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
 
         <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
           <DialogContent>
@@ -798,9 +762,6 @@ export default function ProjectPage({ id, isAuthenticated = false }: ProjectPage
     );
   };
 
-  // Only show edit controls if authenticated
-  const showEditControls = isAuthenticated;
-
   // Calculate item counts for each room
   const itemCounts = rooms?.reduce((acc, room) => {
     acc[room.id] = items?.filter((item) => item.room_id === room.id).length || 0;
@@ -850,190 +811,155 @@ export default function ProjectPage({ id, isAuthenticated = false }: ProjectPage
         </div>
 
         <div className="flex gap-2">
-          {isAuthenticated && (
-            <Button
-              variant="outline"
-              onClick={() => setShowSettingsDialog(true)}
-              className="flex items-center gap-2"
-            >
-              <Settings className="h-4 w-4" />
-              Settings
-            </Button>
-          )}
           <Button
             variant="outline"
-            onClick={() => handleEditAction(() => setShowPrintDialog(true))}
+            onClick={() => setShowPrintDialog(true)}
             className="flex items-center gap-2"
           >
             <Printer className="h-4 w-4" />
             Print Project
           </Button>
 
-          {showEditControls && (
-            <>
-              <div className="relative w-64">
-                <Input
-                  type="text"
-                  placeholder="Search items..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-8"
-                />
-                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-              </div>
+          <div className="relative w-64">
+            <Input
+              type="text"
+              placeholder="Search items..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="pl-8"
+            />
+            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+          </div>
 
-              <input
-                type="file"
-                accept=".csv,.xlsx,.xls"
-                onChange={handleFileUpload}
-                className="hidden"
-                id="file-upload"
-              />
-              <label htmlFor="file-upload">
-                <Button variant="outline" asChild>
-                  <span>
-                    <Upload className="mr-2 h-4 w-4" />
-                    Import Items
-                  </span>
-                </Button>
-              </label>
-
-              <Button variant="outline" onClick={() => handleEditAction(handleExport)}>
-                <Download className="mr-2 h-4 w-4" />
-                Export Items
-              </Button>
-
-              <Dialog open={open} onOpenChange={setOpen}>
-                <DialogTrigger asChild>
-                  <Button>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Add Area
-                  </Button>
-                </DialogTrigger>
-                <DialogContent>
-                  <DialogHeader>
-                    <DialogTitle>Add New Area</DialogTitle>
-                  </DialogHeader>
-                  <form onSubmit={handleSubmit} className="space-y-4">
-                    <div className="flex flex-col space-y-2">
-                      <Label>Area Name*</Label>
-                      <Popover
-                        open={openAreaCombobox}
-                        onOpenChange={setOpenAreaCombobox}
-                      >
-                        <PopoverTrigger asChild>
-                          <Button
-                            variant="outline"
-                            role="combobox"
-                            aria-expanded={openAreaCombobox}
-                            className={cn(
-                              "w-full justify-between",
-                              !areaValue && "text-muted-foreground",
-                            )}
-                          >
-                            {areaValue || "Select or enter area name..."}
-                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                          </Button>
-                        </PopoverTrigger>
-                        <PopoverContent className="w-full p-0">
-                          <Command>
-                            <CommandInput
-                              placeholder="Search or enter new area..."
-                              name="name"
-                              onValueChange={(value) => {
-                                setAreaValue(value);
-                              }}
-                            />
-                            <CommandEmpty>
-                              Press enter to use "{areaValue}" as a new area
-                            </CommandEmpty>
-                            {areaTemplates?.length > 0 && (
-                              <ScrollArea className="h-[300px] w-full overflow-y-auto">
-                                {/* Height increased */}
-                                <CommandGroup>
-                                  {areaTemplates.map((area) => (
-                                    <CommandItem
-                                      key={area}
-                                      value={area}
-                                      onSelect={(value) => {
-                                        setAreaValue(value);
-                                        setOpenAreaCombobox(false);
-                                      }}
-                                    >
-                                      <Check
-                                        className={cn(
-                                          "mr-2 h-4 w-4",
-                                          areaValue === area
-                                            ? "opacity-100"
-                                            : "opacity-0",
-                                        )}
-                                      />
-                                      {area}
-                                    </CommandItem>
-                                  ))}
-                                </CommandGroup>
-                              </ScrollArea>
-                            )}
-                          </Command>
-                        </PopoverContent>
-                      </Popover>
-                    </div>
-                    <Textarea name="description" placeholder="Description" />
-                    <div className="grid grid-cols-2 gap-4">
-                      <Input
-                        name="floor_number"
-                        type="number"
-                        placeholder="Floor Number"
-                      />
-                      <Input
-                        name="dimensions"
-                        placeholder="Dimensions (e.g., 12' x 15')"
-                      />
-                    </div>
-                    <Button
-                      type="submit"
-                      className="w-full"
-                      disabled={createRoom.isPending}
-                    >
-                      {createRoom.isPending ? "Adding..." : "Add Area"}
-                    </Button>
-                  </form>
-                </DialogContent>
-              </Dialog>
-            </>
-          )}
-
-          {!isAuthenticated && (
+          <input
+            type="file"
+            accept=".csv,.xlsx,.xls"
+            onChange={handleFileUpload}
+            className="hidden"
+            id="file-upload"
+          />
+          <label htmlFor="file-upload">
             <Button variant="outline" asChild>
-              <Link href={`/login?redirect=/project/${id}/edit`}>
-                Sign in to edit
-              </Link>
+              <span>
+                <Upload className="mr-2 h-4 w-4" />
+                Import Items
+              </span>
             </Button>
-          )}
+          </label>
+
+          <Button variant="outline" onClick={handleExport}>
+            <Download className="mr-2 h-4 w-4" />
+            Export Items
+          </Button>
+
+          <Dialog open={open} onOpenChange={setOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                Add Area
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Add New Area</DialogTitle>
+              </DialogHeader>
+              <form onSubmit={handleSubmit} className="space-y-4">
+                <div className="flex flex-col space-y-2">
+                  <Label>Area Name*</Label>
+                  <Popover
+                    open={openAreaCombobox}
+                    onOpenChange={setOpenAreaCombobox}
+                  >
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        role="combobox"
+                        aria-expanded={openAreaCombobox}
+                        className={cn(
+                          "w-full justify-between",
+                          !areaValue && "text-muted-foreground",
+                        )}
+                      >
+                        {areaValue || "Select or enter area name..."}
+                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-full p-0">
+                      <Command>
+                        <CommandInput
+                          placeholder="Search or enter new area..."
+                          name="name"
+                          onValueChange={(value) => {
+                            setAreaValue(value);
+                          }}
+                        />
+                        <CommandEmpty>
+                          Press enter to use "{areaValue}" as a new area
+                        </CommandEmpty>
+                        {areaTemplates?.length > 0 && (
+                          <ScrollArea className="h-[300px] w-full overflow-y-auto">
+                            {/* Height increased */}
+                            <CommandGroup>
+                              {areaTemplates.map((area) => (
+                                <CommandItem
+                                  key={area}
+                                  value={area}
+                                  onSelect={(value) => {
+                                    setAreaValue(value);
+                                    setOpenAreaCombobox(false);
+                                  }}
+                                >
+                                  <Check
+                                    className={cn(
+                                      "mr-2 h-4 w-4",
+                                      areaValue === area
+                                        ? "opacity-100"
+                                        : "opacity-0",
+                                    )}
+                                  />
+                                  {area}
+                                </CommandItem>
+                              ))}
+                            </CommandGroup>
+                          </ScrollArea>
+                        )}
+                      </Command>
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                <Textarea name="description" placeholder="Description" />
+                <div className="grid grid-cols-2 gap-4">
+                  <Input
+                    name="floor_number"
+                    type="number"
+                    placeholder="Floor Number"
+                  />
+                  <Input
+                    name="dimensions"
+                    placeholder="Dimensions (e.g., 12' x 15')"
+                  />
+                </div>
+                <Button
+                  type="submit"
+                  className="w-full"
+                  disabled={createRoom.isPending}
+                >
+                  {createRoom.isPending ? "Adding..." : "Add Area"}
+                </Button>
+              </form>
+            </DialogContent>
+          </Dialog>
         </div>
       </div>
 
-      {/* Settings Dialog */}
-      {project && (
-        <SettingsDialog
-          projectId={project.id}
-          open={showSettingsDialog}
-          onOpenChange={setShowSettingsDialog}
-          requirePin={project.require_pin}
-          editPin={project.edit_pin}
-        />
-      )}
-
-      {/* PIN Dialog */}
-      <PinDialog
-        open={showPinDialog}
-        onOpenChange={setShowPinDialog}
-        onPinSubmit={handlePinSubmit}
-        onCancel={() => {
-          setShowPinDialog(false);
-          setPendingAction(null);
-        }}
-      />
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        {rooms?.map((room) => {
+          const roomItems = itemsByRoom?.[room.id] || [];
+          return (
+            <AreaCard key={room.id} room={room} itemCount={roomItems.length} />
+          );
+        })}
+      </div>
 
       {/* Print Dialog */}
       <Dialog open={showPrintDialog} onOpenChange={setShowPrintDialog}>
@@ -1059,80 +985,14 @@ export default function ProjectPage({ id, isAuthenticated = false }: ProjectPage
               Close
             </Button>
             <Button
-              onClick={() => {
-                window.print();
-              }}
+              variant="default"
+              onClick={() => window.print()}
             >
               Print
             </Button>
           </div>
         </DialogContent>
       </Dialog>
-
-      {/* Search Results Section */}
-      {searchQuery.trim() !== "" && (
-        <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-semibold">
-              Search Results ({totalFilteredItems})
-            </h2>
-          </div>
-
-          <div className="grid gap-4">
-            {filteredItems?.map((item) => {
-              const room = rooms?.find((r) => r.id === item.room_id);
-              return (
-                <Link key={item.id} href={`/room/${item.room_id}`}>
-                  <Card className="cursor-pointer hover:shadow-md transition-all duration-200">
-                    <CardContent className="pt-6">
-                      <div className="flex justify-between items-start">
-                        <div>
-                          <h3 className="font-semibold text-lg">{item.name}</h3>
-                          <p className="text-sm text-muted-foreground">
-                            Category: {item.category}
-                          </p>
-                          {room && (
-                            <Badge variant="secondary" className="mt-2">
-                              {room.name}
-                            </Badge>
-                          )}
-                        </div>
-                        <div className="space-y-1 text-sm text-right">
-                          {item.brand && (
-                            <p className="text-muted-foreground">
-                              Brand: {item.brand}
-                            </p>
-                          )}
-                          {item.supplier && (
-                            <p className="text-muted-foreground">
-                              Supplier: {item.supplier}
-                            </p>
-                          )}
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                </Link>
-              );
-            })}
-            {totalFilteredItems === 0 && (
-              <div className="text-center py-8 text-muted-foreground">
-                No items found matching your search.
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Rooms Grid Section */}
-      <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {rooms?.map((room) => {
-          const roomItems = itemsByRoom?.[room.id] || [];
-          return (
-            <AreaCard key={room.id} room={room} itemCount={roomItems.length} isAuthenticated={isAuthenticated} />
-          );
-        })}
-      </div>
     </div>
   );
 }
