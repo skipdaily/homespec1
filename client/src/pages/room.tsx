@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Link, useLocation } from "wouter";
 import { ImageUpload } from "@/components/ui/image-upload";
+import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
 
 
 // Update interface to match database schema
@@ -160,8 +161,8 @@ const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => vo
 
   return (
     <div className="border rounded-lg p-4">
-      <div className="flex justify-between items-start mb-2">
-        <div className="flex-grow">
+      <div className="flex justify-between items-start gap-4">
+        <div className="flex-grow space-y-4">
           <div className="flex items-center gap-2">
             <h3 className="font-semibold">{item.name}</h3>
           </div>
@@ -203,53 +204,76 @@ const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => vo
               )}
             </Button>
           </div>
-        </div>
-      </div>
 
-      {isDetailsVisible && (
-        <div className="space-y-2 mt-4 pt-4 border-t">
-          {item.brand && (
-            <p className="text-sm text-muted-foreground">
-              Brand: {item.brand}
-            </p>
-          )}
-          {item.supplier && (
-            <p className="text-sm text-muted-foreground">
-              Supplier: {item.supplier}
-            </p>
-          )}
-          {item.specifications && (
-            <p className="text-sm text-muted-foreground">
-              Specifications: {item.specifications}
-            </p>
-          )}
-          {item.status && (
-            <p className="text-sm text-muted-foreground">
-              Status: {item.status}
-            </p>
-          )}
-          {item.warranty_info && (
-            <p className="text-sm text-muted-foreground">
-              Warranty: {item.warranty_info}
-            </p>
-          )}
-          {item.maintenance_notes && (
-            <p className="text-sm text-muted-foreground">
-              Maintenance: {item.maintenance_notes}
-            </p>
-          )}
-          {item.installation_date && (
-            <p className="text-sm text-muted-foreground">
-              Installed: {item.installation_date}
-            </p>
-          )}
-          {item.cost !== null && item.cost !== undefined && (
-            <p className="text-sm text-muted-foreground">
-              Cost: ${item.cost.toString()}
-            </p>
+          {isDetailsVisible && (
+            <div className="space-y-2 pt-4 border-t">
+              {item.brand && (
+                <p className="text-sm text-muted-foreground">
+                  Brand: {item.brand}
+                </p>
+              )}
+              {item.supplier && (
+                <p className="text-sm text-muted-foreground">
+                  Supplier: {item.supplier}
+                </p>
+              )}
+              {item.specifications && (
+                <p className="text-sm text-muted-foreground">
+                  Specifications: {item.specifications}
+                </p>
+              )}
+              {item.status && (
+                <p className="text-sm text-muted-foreground">
+                  Status: {item.status}
+                </p>
+              )}
+              {item.warranty_info && (
+                <p className="text-sm text-muted-foreground">
+                  Warranty: {item.warranty_info}
+                </p>
+              )}
+              {item.maintenance_notes && (
+                <p className="text-sm text-muted-foreground">
+                  Maintenance: {item.maintenance_notes}
+                </p>
+              )}
+              {item.installation_date && (
+                <p className="text-sm text-muted-foreground">
+                  Installed: {item.installation_date}
+                </p>
+              )}
+              {item.cost !== null && item.cost !== undefined && (
+                <p className="text-sm text-muted-foreground">
+                  Cost: ${item.cost.toString()}
+                </p>
+              )}
+            </div>
           )}
         </div>
-      )}
+
+        {/* Add image carousel */}
+        {images && images.length > 0 && (
+          <div className="w-1/3">
+            <Carousel className="w-full">
+              <CarouselContent>
+                {images.map((image) => (
+                  <CarouselItem key={image.id}>
+                    <div className="aspect-square w-full">
+                      <img
+                        src={`${supabase.storage.from('item-images').getPublicUrl(image.url).data?.publicUrl}`}
+                        alt={`${item.name} image`}
+                        className="object-cover w-full h-full rounded-md"
+                      />
+                    </div>
+                  </CarouselItem>
+                ))}
+              </CarouselContent>
+              <CarouselPrevious />
+              <CarouselNext />
+            </Carousel>
+          </div>
+        )}
+      </div>
 
       {/* Image Upload Dialog */}
       <Dialog open={showImageDialog} onOpenChange={setShowImageDialog}>
