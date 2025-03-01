@@ -6,6 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { ImageUpload } from "@/components/ui/image-upload";
+import { Label } from "@/components/ui/label";
+import { Separator } from "@/components/ui/separator";
 import type { InsertItem, Image } from "@shared/schema";
 
 interface ItemFormProps {
@@ -59,51 +61,91 @@ export default function ItemForm({ roomId, onSuccess }: ItemFormProps) {
   };
 
   return (
-    <form onSubmit={handleSubmit} className="space-y-4">
-      <Input 
-        name="name"
-        placeholder="Item Name*"
-        required
-      />
-      <div className="grid grid-cols-2 gap-4">
-        <Input 
-          name="brand"
-          placeholder="Brand"
-        />
-        <Input 
-          name="supplier"
-          placeholder="Supplier"
-        />
+    <form onSubmit={handleSubmit} className="space-y-6">
+      <div className="space-y-4">
+        <div>
+          <Label htmlFor="name">Item Name*</Label>
+          <Input 
+            id="name"
+            name="name"
+            placeholder="Enter item name"
+            required
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="brand">Brand</Label>
+            <Input 
+              id="brand"
+              name="brand"
+              placeholder="Enter brand name"
+            />
+          </div>
+          <div>
+            <Label htmlFor="supplier">Supplier</Label>
+            <Input 
+              id="supplier"
+              name="supplier"
+              placeholder="Enter supplier name"
+            />
+          </div>
+        </div>
+
+        <div>
+          <Label htmlFor="specifications">Specifications</Label>
+          <Textarea
+            id="specifications"
+            name="specifications"
+            placeholder="Enter item specifications"
+          />
+        </div>
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <Label htmlFor="cost">Cost</Label>
+            <Input 
+              id="cost"
+              name="cost"
+              type="number"
+              step="0.01"
+              placeholder="Enter cost"
+            />
+          </div>
+          <div>
+            <Label htmlFor="category">Category</Label>
+            <Input 
+              id="category"
+              name="category"
+              placeholder="Enter category"
+            />
+          </div>
+        </div>
+
+        <div>
+          <Label htmlFor="warranty_info">Warranty Information</Label>
+          <Textarea
+            id="warranty_info"
+            name="warranty_info"
+            placeholder="Enter warranty information"
+          />
+        </div>
       </div>
-      <Textarea
-        name="specifications"
-        placeholder="Specifications"
-      />
-      <div className="grid grid-cols-2 gap-4">
-        <Input 
-          name="cost"
-          type="number"
-          step="0.01"
-          placeholder="Cost"
-        />
-        <Input 
-          name="category"
-          placeholder="Category"
-        />
-      </div>
-      <Textarea
-        name="warranty_info"
-        placeholder="Warranty Information"
-      />
-      <div className="space-y-2">
+
+      <Separator className="my-6" />
+
+      <div className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold">Images</h3>
+        </div>
         <ImageUpload 
           itemId={roomId} 
           onUploadComplete={(images: Image[]) => {
-            // Update UI or refresh data after images are uploaded
             queryClient.invalidateQueries({ queryKey: ["item-images", roomId] });
           }} 
         />
       </div>
+
       <Button type="submit" className="w-full">
         Add Item
       </Button>
