@@ -41,6 +41,15 @@ interface Item {
   updated_at?: string;
 }
 
+// Update interface to match database schema
+interface Image {
+  id: string;
+  item_id: string;
+  storage_path: string;
+  filename: string;
+  created_at: string;
+}
+
 // Create a schema for the form that matches the database
 const itemFormSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -58,14 +67,6 @@ const itemFormSchema = z.object({
 });
 
 type ItemFormValues = z.infer<typeof itemFormSchema>;
-
-// Image interface (assuming this exists elsewhere or needs to be added)
-interface Image {
-  id: string;
-  item_id: string;
-  url: string;
-  created_at: string;
-}
 
 
 // ItemCard component to handle individual item state
@@ -260,7 +261,7 @@ const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => vo
                   <CarouselItem key={image.id}>
                     <div className="aspect-square w-full">
                       <img
-                        src={`${supabase.storage.from('item-images').getPublicUrl(image.url).data?.publicUrl}`}
+                        src={`${supabase.storage.from('item-images').getPublicUrl(image.storage_path).data?.publicUrl}`}
                         alt={`${item.name} image`}
                         className="object-cover w-full h-full rounded-md"
                       />
