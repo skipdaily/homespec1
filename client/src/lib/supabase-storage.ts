@@ -31,9 +31,11 @@ export async function ensureStorageBucket() {
       console.error(
         'Storage bucket "item-images" is not properly configured. Please check:\n' +
         '1. Bucket exists and is named "item-images"\n' +
-        '2. Bucket is set to public\n' +
-        '3. Storage policy allows file uploads\n' +
-        '4. You are properly authenticated'
+        '2. Enable RLS and create the following policy in SQL editor:\n' +
+        '   CREATE POLICY "Enable insert for authenticated users only"\n' +
+        '   ON storage.objects FOR INSERT TO authenticated\n' +
+        '   WITH CHECK (bucket_id = \'item-images\' AND auth.role() = \'authenticated\');\n' +
+        '3. Make sure the bucket is public for reading files'
       );
       return false;
     }
