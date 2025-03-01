@@ -19,6 +19,9 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import { Link, useLocation } from "wouter";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious } from "@/components/ui/carousel";
+import {Checkbox} from "@/components/ui/checkbox";
+import {Popover, PopoverContent, PopoverTrigger} from "@/components/ui/popover";
+import {Command, CommandEmpty, CommandGroup, CommandInput, CommandItem} from "@/components/ui/command";
 
 
 // Update interface to match database schema
@@ -207,73 +210,77 @@ const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => vo
           </div>
 
           {isDetailsVisible && (
-            <div className="space-y-2 pt-4 border-t">
-              {item.brand && (
-                <p className="text-sm text-muted-foreground">
-                  Brand: {item.brand}
-                </p>
-              )}
-              {item.supplier && (
-                <p className="text-sm text-muted-foreground">
-                  Supplier: {item.supplier}
-                </p>
-              )}
-              {item.specifications && (
-                <p className="text-sm text-muted-foreground">
-                  Specifications: {item.specifications}
-                </p>
-              )}
-              {item.status && (
-                <p className="text-sm text-muted-foreground">
-                  Status: {item.status}
-                </p>
-              )}
-              {item.warranty_info && (
-                <p className="text-sm text-muted-foreground">
-                  Warranty: {item.warranty_info}
-                </p>
-              )}
-              {item.maintenance_notes && (
-                <p className="text-sm text-muted-foreground">
-                  Maintenance: {item.maintenance_notes}
-                </p>
-              )}
-              {item.installation_date && (
-                <p className="text-sm text-muted-foreground">
-                  Installed: {item.installation_date}
-                </p>
-              )}
-              {item.cost !== null && item.cost !== undefined && (
-                <p className="text-sm text-muted-foreground">
-                  Cost: ${item.cost.toString()}
-                </p>
-              )}
+            <div className="space-y-4 pt-4 border-t">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  {item.brand && (
+                    <p className="text-sm text-muted-foreground">
+                      Brand: {item.brand}
+                    </p>
+                  )}
+                  {item.supplier && (
+                    <p className="text-sm text-muted-foreground">
+                      Supplier: {item.supplier}
+                    </p>
+                  )}
+                  {item.specifications && (
+                    <p className="text-sm text-muted-foreground">
+                      Specifications: {item.specifications}
+                    </p>
+                  )}
+                  {item.status && (
+                    <p className="text-sm text-muted-foreground">
+                      Status: {item.status}
+                    </p>
+                  )}
+                  {item.warranty_info && (
+                    <p className="text-sm text-muted-foreground">
+                      Warranty: {item.warranty_info}
+                    </p>
+                  )}
+                  {item.maintenance_notes && (
+                    <p className="text-sm text-muted-foreground">
+                      Maintenance: {item.maintenance_notes}
+                    </p>
+                  )}
+                  {item.installation_date && (
+                    <p className="text-sm text-muted-foreground">
+                      Installed: {item.installation_date}
+                    </p>
+                  )}
+                  {item.cost !== null && item.cost !== undefined && (
+                    <p className="text-sm text-muted-foreground">
+                      Cost: ${item.cost.toString()}
+                    </p>
+                  )}
+                </div>
+
+                {/* Image carousel in expanded view */}
+                {images && images.length > 0 && (
+                  <div className="w-full">
+                    <Carousel className="w-full">
+                      <CarouselContent>
+                        {images.map((image) => (
+                          <CarouselItem key={image.id}>
+                            <div className="aspect-square w-full">
+                              <img
+                                src={`${supabase.storage.from('item-images').getPublicUrl(image.storage_path).data?.publicUrl}`}
+                                alt={`${item.name} image`}
+                                className="object-cover w-full h-full rounded-md"
+                              />
+                            </div>
+                          </CarouselItem>
+                        ))}
+                      </CarouselContent>
+                      <CarouselPrevious />
+                      <CarouselNext />
+                    </Carousel>
+                  </div>
+                )}
+              </div>
             </div>
           )}
         </div>
-
-        {/* Add image carousel */}
-        {images && images.length > 0 && (
-          <div className="w-1/3">
-            <Carousel className="w-full">
-              <CarouselContent>
-                {images.map((image) => (
-                  <CarouselItem key={image.id}>
-                    <div className="aspect-square w-full">
-                      <img
-                        src={`${supabase.storage.from('item-images').getPublicUrl(image.storage_path).data?.publicUrl}`}
-                        alt={`${item.name} image`}
-                        className="object-cover w-full h-full rounded-md"
-                      />
-                    </div>
-                  </CarouselItem>
-                ))}
-              </CarouselContent>
-              <CarouselPrevious />
-              <CarouselNext />
-            </Carousel>
-          </div>
-        )}
       </div>
 
       {/* Image Upload Dialog */}
@@ -984,7 +991,7 @@ export default function RoomPage({ id }: RoomPageProps) {
                     onClick={() => {
                       setSelectedItems(prev =>
                         prev.includes(item.id)
-                          ? prev.filter(id => id !== item.id)
+                          ? prev.filter(id => id!== item.id)
                           : [...prev, item.id]
                       );
                     }}
