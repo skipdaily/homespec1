@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { supabase } from "@/lib/supabase";
-import { Plus, ChevronDown, ChevronUp, Pencil, Trash2, History, Home, ChevronRight, Search, Check, ChevronsUpDown, ImageIcon } from "lucide-react";
+import { Plus, ChevronDown, ChevronUp, Pencil, Trash2, Home, ChevronRight, Search, Check, ChevronsUpDown, ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -11,16 +11,16 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { z } from "zod";
-import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
+import { zodResolver } from "@hookform/resolvers/zod";
+import { z } from "zod";
 import type { Room } from "@shared/schema";
 import { cn } from "@/lib/utils";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Link, useLocation } from "wouter";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+
 
 // Update interface to match database schema
 interface Item {
@@ -69,12 +69,12 @@ interface Image {
 }
 
 // ImageUpload component (needs to be implemented separately)
-const ImageUpload = ({ itemId, onUploadComplete }: { itemId: string; onUploadComplete: (images: Image[]) => void }) => {
+const ImageUpload = ({ itemId, onUploadComplete }: { itemId: string; onUploadComplete: () => void }) => {
   //Implementation for image upload using supabase or other method
   //This is a placeholder, replace with actual implementation.
   const [images, setImages] = useState<Image[]>([]);
   useEffect(() => {
-    onUploadComplete(images);
+    onUploadComplete();
   }, [images, onUploadComplete]);
 
   return (
@@ -88,12 +88,70 @@ const ImageUpload = ({ itemId, onUploadComplete }: { itemId: string; onUploadCom
 };
 
 // ItemCard component to handle individual item state
-const ItemCard = ({ item }: { item: Item }) => {
+const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => void }) => {
   const [isDetailsVisible, setIsDetailsVisible] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showImageDialog, setShowImageDialog] = useState(false);
   const { toast } = useToast();
+
+  // Initialize form
+  const form = useForm<ItemFormValues>({
+    resolver: zodResolver(itemFormSchema),
+    defaultValues: {
+      name: item.name,
+      brand: item.brand || "",
+      supplier: item.supplier || "",
+      specifications: item.specifications || "",
+      cost: item.cost || undefined,
+      warranty_info: item.warranty_info || "",
+      maintenance_notes: item.maintenance_notes || "",
+      installation_date: item.installation_date || "",
+      category: item.category,
+      status: item.status || "",
+      document_urls: item.document_urls || [],
+    },
+  });
+
+  // Mutation for updating an item
+  const updateItem = useMutation({
+    mutationFn: async (values: ItemFormValues) => {
+      const { error } = await supabase
+        .from("items")
+        .update({
+          name: values.name,
+          brand: values.brand || null,
+          supplier: values.supplier || null,
+          specifications: values.specifications || null,
+          cost: values.cost || null,
+          warranty_info: values.warranty_info || null,
+          maintenance_notes: values.maintenance_notes || null,
+          installation_date: values.installation_date || null,
+          category: values.category,
+          status: values.status || null,
+          document_urls: values.document_urls || [],
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', item.id);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["items", item.room_id] });
+      setShowEditDialog(false);
+      toast({
+        title: "Success",
+        description: "Item updated successfully"
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to update item",
+        variant: "destructive"
+      });
+    }
+  });
 
   // Query to fetch images for this item
   const { data: images } = useQuery<Image[]>({
@@ -109,6 +167,17 @@ const ItemCard = ({ item }: { item: Item }) => {
       return data || [];
     }
   });
+
+  const onSubmit = (values: ItemFormValues) => {
+    updateItem.mutate(values);
+  };
+
+  const Label = ({htmlFor, children}: {htmlFor: string, children: React.ReactNode}) => (
+    <label htmlFor={htmlFor} className="block text-sm font-medium text-gray-700">
+      {children}
+    </label>
+  );
+
 
   return (
     <div className="border rounded-lg p-4">
@@ -211,7 +280,7 @@ const ItemCard = ({ item }: { item: Item }) => {
           </DialogHeader>
           <ImageUpload 
             itemId={item.id}
-            onUploadComplete={(images: Image[]) => {
+            onUploadComplete={() => {
               queryClient.invalidateQueries({ queryKey: ["item-images", item.id] });
               setShowImageDialog(false);
               toast({
@@ -223,240 +292,88 @@ const ItemCard = ({ item }: { item: Item }) => {
         </DialogContent>
       </Dialog>
 
+      {/* Edit Dialog */}
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
         <DialogContent className="max-w-2xl max-h-[90vh]">
           <DialogHeader>
             <DialogTitle>Edit Item</DialogTitle>
           </DialogHeader>
-
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <ScrollArea className="h-[65vh] px-4">
-                <div className="space-y-4 pr-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="name"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Name*</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Enter item name" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="category"
-                      render={({ field }) => (
-                        <FormItem className="flex flex-col">
-                          <FormLabel>Category*</FormLabel>
-                          <Popover open={openCombobox} onOpenChange={setOpenCombobox}>
-                            <PopoverTrigger asChild>
-                              <FormControl>
-                                <Button
-                                  variant="outline"
-                                  role="combobox"
-                                  aria-expanded={openCombobox}
-                                  className={cn(
-                                    "w-full justify-between",
-                                    !field.value && "text-muted-foreground"
-                                  )}
-                                >
-                                  {field.value || "Select or enter category..."}
-                                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                </Button>
-                              </FormControl>
-                            </PopoverTrigger>
-                            <PopoverContent className="w-full p-0">
-                              <Command>
-                                <CommandInput
-                                  placeholder="Search or enter new category..."
-                                  onValueChange={(value) => {
-                                    field.onChange(value);
-                                    setCategoryValue(value);
-                                  }}
-                                />
-                                <CommandEmpty>
-                                  Press enter to use "{categoryValue}" as a new category
-                                </CommandEmpty>
-                                {categories?.length > 0 && (
-                                  <ScrollArea className="h-[200px] w-full" type="hover">
-                                    <CommandGroup>
-                                      {categories.map((category) => (
-                                        <CommandItem
-                                          key={category}
-                                          value={category}
-                                          onSelect={(value) => {
-                                            field.onChange(value);
-                                            setOpenCombobox(false);
-                                          }}
-                                        >
-                                          <Check
-                                            className={cn(
-                                              "mr-2 h-4 w-4",
-                                              field.value === category ? "opacity-100" : "opacity-0"
-                                            )}
-                                          />
-                                          {category}
-                                        </CommandItem>
-                                      ))}
-                                    </CommandGroup>
-                                  </ScrollArea>
-                                )}
-                              </Command>
-                            </PopoverContent>
-                          </Popover>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="brand"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Brand</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Brand name" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="supplier"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Supplier</FormLabel>
-                          <FormControl>
-                            <Input placeholder="Supplier name" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
-                  <FormField
-                    control={form.control}
-                    name="specifications"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Specifications</FormLabel>
-                        <FormControl>
-                          <Textarea placeholder="Product specifications" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="warranty_info"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Warranty Information</FormLabel>
-                          <FormControl>
-                            <Textarea placeholder="Warranty details" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="maintenance_notes"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Maintenance Notes</FormLabel>
-                          <FormControl>
-                            <Textarea placeholder="Maintenance details" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <FormField
-                      control={form.control}
-                      name="installation_date"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Installation Date</FormLabel>
-                          <FormControl>
-                            <Input type="date" {...field} />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-
-                    <FormField
-                      control={form.control}
-                      name="cost"
-                      render={({ field }) => (
-                        <FormItem>
-                          <FormLabel>Cost</FormLabel>
-                          <FormControl>
-                            <Input
-                              type="number"
-                              step="0.01"
-                              placeholder="0.00"
-                              {...field}
-                              onChange={(e) => {
-                                const value = e.target.value;
-                                field.onChange(value === "" ? undefined : parseFloat(value));
-                              }}
-                            />
-                          </FormControl>
-                          <FormMessage />
-                        </FormItem>
-                      )}
-                    />
-                  </div>
-
-                  <FormField
-                    control={form.control}
-                    name="status"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Status</FormLabel>
-                        <FormControl>
-                          <Input placeholder="Item status" {...field} />
-                        </FormControl>
-                        <FormMessage />
-                      </FormItem>
-                    )}
-                  />
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+            <ScrollArea className="h-[65vh] px-4">
+              <div className="space-y-4 pr-4">
+                <div>
+                  <Label htmlFor="name">Name*</Label>
+                  <Input {...form.register("name")} id="name" />
                 </div>
-              </ScrollArea>
 
-              <Button
-                type="submit"
-                className="w-full"
-                disabled={updateItem.isPending}
-              >
-                {updateItem.isPending ? "Saving..." : "Save Changes"}
-              </Button>
-            </form>
-          </Form>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="brand">Brand</Label>
+                    <Input {...form.register("brand")} id="brand" />
+                  </div>
+                  <div>
+                    <Label htmlFor="supplier">Supplier</Label>
+                    <Input {...form.register("supplier")} id="supplier" />
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="specifications">Specifications</Label>
+                  <Textarea {...form.register("specifications")} id="specifications" />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <Label htmlFor="cost">Cost</Label>
+                    <Input 
+                      {...form.register("cost", { 
+                        setValueAs: (v) => v === "" ? undefined : parseFloat(v)
+                      })} 
+                      type="number" 
+                      step="0.01"
+                      id="cost" 
+                    />
+                  </div>
+                  <div>
+                    <Label htmlFor="category">Category</Label>
+                    <Input {...form.register("category")} id="category" />
+                  </div>
+                </div>
+
+                <div>
+                  <Label htmlFor="warranty_info">Warranty Information</Label>
+                  <Textarea {...form.register("warranty_info")} id="warranty_info" />
+                </div>
+
+                <div>
+                  <Label htmlFor="maintenance_notes">Maintenance Notes</Label>
+                  <Textarea {...form.register("maintenance_notes")} id="maintenance_notes" />
+                </div>
+
+                <div>
+                  <Label htmlFor="installation_date">Installation Date</Label>
+                  <Input {...form.register("installation_date")} type="date" id="installation_date" />
+                </div>
+
+                <div>
+                  <Label htmlFor="status">Status</Label>
+                  <Input {...form.register("status")} id="status" />
+                </div>
+              </div>
+            </ScrollArea>
+
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={updateItem.isPending}
+            >
+              {updateItem.isPending ? "Saving..." : "Save Changes"}
+            </Button>
+          </form>
         </DialogContent>
       </Dialog>
 
+      {/* Delete Dialog */}
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
@@ -905,7 +822,6 @@ export default function RoomPage({ id }: RoomPageProps) {
                                 )}
                               />
                             </div>
-
                             <div className="grid grid-cols-2 gap-4">
                               <FormField
                                 control={form.control}
@@ -1029,10 +945,10 @@ export default function RoomPage({ id }: RoomPageProps) {
                                     <Input placeholder="Item status" {...field} />
                                   </FormControl>
                                   <FormMessage />
-                               </FormItem>
-                                )}
-                              />
-                            </div>
+                                </FormItem>
+                              )}
+                            />
+                          </div>
                         </ScrollArea>
 
                         <Button
@@ -1072,22 +988,12 @@ export default function RoomPage({ id }: RoomPageProps) {
                   <ItemCard
                     item={item}
                     onDelete={handleDelete}
-                    isSelected={selectedItems.includes(item.id)}
-                    onSelect={() => {
-                      if (isSelectionMode) {
-                        setSelectedItems(prev =>
-                          prev.includes(item.id)
-                            ? prev.filter(id => id !== item.id)
-                            : [...prev, item.id]
-                        );
-                      }
-                    }}
                   />
                 </div>
               </div>
             ))}
             {filteredItems?.length === 0 && (
-              <div className="text-center py-8 text-muted-foreground">
+              <div className="text-center py8 text-muted-foreground">
                 No items found matching your search.
               </div>
             )}
