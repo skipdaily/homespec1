@@ -62,7 +62,7 @@ export function ImageUpload({ itemId, onUploadComplete }: ImageUploadProps) {
             .from('images')
             .insert([{
               item_id: itemId,
-              storage_path: storageData.path,
+              url: filePath, // Store just the path, not the full URL
               filename: file.name,
               size: file.size,
               mime_type: file.type
