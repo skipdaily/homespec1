@@ -6,15 +6,17 @@ import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious
 import { Button } from "@/components/ui/button";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Image as ImageIcon, ChevronLeft, ChevronRight, X } from "lucide-react";
+import { Image as ImageIcon, ChevronLeft, ChevronRight, X, Pencil, Trash2 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 
 interface ItemCardProps {
   item: Item;
+  onEdit?: () => void;
+  onDelete?: () => void;
 }
 
-export default function ItemCard({ item }: ItemCardProps) {
+export default function ItemCard({ item, onEdit, onDelete }: ItemCardProps) {
   const [showImageDialog, setShowImageDialog] = useState(false);
   const [showFullscreenImage, setShowFullscreenImage] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -56,14 +58,36 @@ export default function ItemCard({ item }: ItemCardProps) {
       <CardHeader>
         <div className="flex justify-between items-start">
           <CardTitle>{item.name}</CardTitle>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => setShowImageDialog(true)}
-            className="h-8 w-8"
-          >
-            <ImageIcon className="h-4 w-4" />
-          </Button>
+          <div className="flex space-x-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowImageDialog(true)}
+              className="h-8 w-8"
+            >
+              <ImageIcon className="h-4 w-4" />
+            </Button>
+            {onEdit && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={onEdit}
+                className="h-8 w-8"
+              >
+                <Pencil className="h-4 w-4" />
+              </Button>
+            )}
+            {onDelete && (
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={onDelete}
+                className="h-8 w-8 text-destructive"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            )}
+          </div>
         </div>
       </CardHeader>
       <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
