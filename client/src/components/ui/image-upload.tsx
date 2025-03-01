@@ -5,14 +5,14 @@ import { Label } from "./label";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
 import { Loader2, Upload, X } from "lucide-react";
-import { Image, insertImageSchema } from "@shared/schema";
+import { Image } from "@shared/schema";
 import { useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { cn } from "@/lib/utils";
 
 interface ImageUploadProps {
   itemId: string;
-  onUploadComplete?: (images: Image[]) => void;
+  onUploadComplete?: () => void;
 }
 
 export function ImageUpload({ itemId, onUploadComplete }: ImageUploadProps) {
@@ -28,6 +28,13 @@ export function ImageUpload({ itemId, onUploadComplete }: ImageUploadProps) {
 
       try {
         for (const file of files) {
+          if (!file.type.startsWith('image/')) {
+            throw new Error(`${file.name} is not an image file`);
+          }
+          if (file.size > 5 * 1024 * 1024) { // 5MB limit
+            throw new Error(`${file.name} exceeds 5MB limit`);
+          }
+
           // Upload file to Supabase Storage
           const fileExt = file.name.split('.').pop();
           const filePath = `${itemId}/${Date.now()}.${fileExt}`;
@@ -46,7 +53,7 @@ export function ImageUpload({ itemId, onUploadComplete }: ImageUploadProps) {
               storage_path: storageData.path,
               filename: file.name,
               size: file.size,
-              mime_type: file.type,
+              mime_type: file.type
             }])
             .select()
             .single();
@@ -68,7 +75,7 @@ export function ImageUpload({ itemId, onUploadComplete }: ImageUploadProps) {
         title: "Success",
         description: `Successfully uploaded ${uploadedImages.length} image${uploadedImages.length === 1 ? '' : 's'}`,
       });
-      onUploadComplete?.(uploadedImages);
+      onUploadComplete?.();
     },
     onError: (error: Error) => {
       toast({
@@ -101,7 +108,6 @@ export function ImageUpload({ itemId, onUploadComplete }: ImageUploadProps) {
   }, []);
 
   const handleFiles = (selectedFiles: File[]) => {
-    // Validate file types and sizes
     const validFiles = selectedFiles.filter(file => {
       if (!file.type.startsWith('image/')) {
         toast({
@@ -121,7 +127,7 @@ export function ImageUpload({ itemId, onUploadComplete }: ImageUploadProps) {
       }
       return true;
     });
-    setFiles(validFiles);
+    setFiles(prevFiles => [...prevFiles, ...validFiles]);
   };
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -132,7 +138,7 @@ export function ImageUpload({ itemId, onUploadComplete }: ImageUploadProps) {
   };
 
   const handleRemoveFile = (index: number) => {
-    setFiles(files.filter((_, i) => i !== index));
+    setFiles(prevFiles => prevFiles.filter((_, i) => i !== index));
   };
 
   const handleUpload = () => {
