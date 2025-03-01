@@ -4,7 +4,6 @@ import { queryClient } from "@/lib/queryClient";
 import { supabase } from "@/lib/supabase";
 import { Plus, ChevronDown, ChevronUp, Pencil, Trash2, Home, ChevronRight, Search, Check, ChevronsUpDown, ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
@@ -17,10 +16,8 @@ import { z } from "zod";
 import type { Room } from "@shared/schema";
 import { cn } from "@/lib/utils";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { Link, useLocation } from "wouter";
-import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Link } from "wouter";
+import { ImageUpload } from "@/components/ui/image-upload";
 
 
 // Update interface to match database schema
@@ -69,24 +66,6 @@ interface Image {
   created_at: string;
 }
 
-// ImageUpload component (needs to be implemented separately)
-const ImageUpload = ({ itemId, onUploadComplete }: { itemId: string; onUploadComplete: () => void }) => {
-  //Implementation for image upload using supabase or other method
-  //This is a placeholder, replace with actual implementation.
-  const [images, setImages] = useState<Image[]>([]);
-  useEffect(() => {
-    onUploadComplete();
-  }, [images, onUploadComplete]);
-
-  return (
-    <div>
-      {/* Your image upload UI here */}
-      <input type="file" onChange={(e) => {
-        //handle file upload and update images state
-      }} multiple/>
-    </div>
-  );
-};
 
 // ItemCard component to handle individual item state
 const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => void }) => {
@@ -114,7 +93,21 @@ const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => vo
     },
   });
 
-  // Mutation for updating an item
+  // Query to fetch images for this item
+  const { data: images } = useQuery<Image[]>({
+    queryKey: ["item-images", item.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("images")
+        .select("*")
+        .eq("item_id", item.id)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    }
+  });
+
   const updateItem = useMutation({
     mutationFn: async (values: ItemFormValues) => {
       const { error } = await supabase
@@ -151,21 +144,6 @@ const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => vo
         description: error.message || "Failed to update item",
         variant: "destructive"
       });
-    }
-  });
-
-  // Query to fetch images for this item
-  const { data: images } = useQuery<Image[]>({
-    queryKey: ["item-images", item.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("images")
-        .select("*")
-        .eq("item_id", item.id)
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      return data || [];
     }
   });
 
@@ -273,23 +251,25 @@ const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => vo
         </div>
       )}
 
-      {/* Image Management Dialog */}
+      {/* Image Upload Dialog */}
       <Dialog open={showImageDialog} onOpenChange={setShowImageDialog}>
-        <DialogContent className="max-w-2xl">
+        <DialogContent className="sm:max-w-[600px]">
           <DialogHeader>
-            <DialogTitle>Manage Images - {item.name}</DialogTitle>
+            <DialogTitle>Upload Images - {item.name}</DialogTitle>
           </DialogHeader>
-          <ImageUpload 
-            itemId={item.id}
-            onUploadComplete={() => {
-              queryClient.invalidateQueries({ queryKey: ["item-images", item.id] });
-              setShowImageDialog(false);
-              toast({
-                title: "Success",
-                description: "Images uploaded successfully"
-              });
-            }}
-          />
+          <div className="grid gap-4 py-4">
+            <ImageUpload
+              itemId={item.id}
+              onUploadComplete={() => {
+                queryClient.invalidateQueries({ queryKey: ["item-images", item.id] });
+                setShowImageDialog(false);
+                toast({
+                  title: "Success",
+                  description: "Images uploaded successfully"
+                });
+              }}
+            />
+          </div>
         </DialogContent>
       </Dialog>
 
@@ -326,13 +306,13 @@ const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => vo
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="cost">Cost</Label>
-                    <Input 
-                      {...form.register("cost", { 
+                    <Input
+                      {...form.register("cost", {
                         setValueAs: (v) => v === "" ? undefined : parseFloat(v)
-                      })} 
-                      type="number" 
+                      })}
+                      type="number"
                       step="0.01"
-                      id="cost" 
+                      id="cost"
                     />
                   </div>
                   <div>
@@ -998,7 +978,8 @@ export default function RoomPage({ id }: RoomPageProps) {
                 No items found matching your search.
               </div>
             )}
-          </div>        </div>
+          </div>
+        </div>
 
         {/* Bulk Delete Dialog */}
         <AlertDialog open={showBulkDeleteDialog} onOpenChange={setShowBulkDeleteDialog}>
