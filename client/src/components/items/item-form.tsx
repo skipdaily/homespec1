@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { supabase } from "@/lib/supabase";
@@ -137,6 +138,7 @@ export default function ItemForm({ roomId, onSuccess }: ItemFormProps) {
       <div className="space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="text-lg font-semibold">Images</h3>
+          <p className="text-sm text-muted-foreground">Drag & drop images or click to upload</p>
         </div>
         <ImageUpload 
           itemId={roomId} 
