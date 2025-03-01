@@ -1,49 +1,59 @@
 import { supabase } from './supabase';
-import { useToast } from '@/hooks/use-toast';
 
-export async function ensureStorageBucket() {
+// Function to check if storage is properly configured
+export async function checkStorageAccess() {
   try {
-    // Check if bucket exists
-    const { data: buckets, error: listError } = await supabase
-      .storage
-      .listBuckets();
+    // First check if we can list buckets
+    const { data: buckets, error: listError } = await supabase.storage.listBuckets();
 
     if (listError) {
       console.error('Error listing buckets:', listError);
       return false;
     }
 
-    const bucketExists = buckets?.some(bucket => bucket.name === 'item-images');
+    const bucket = buckets?.find(b => b.name === 'item-images');
+    if (!bucket) {
+      console.error('Bucket "item-images" not found');
+      return false;
+    }
 
-    if (!bucketExists) {
-      console.error('Storage bucket "item-images" does not exist. Please create it in the Supabase dashboard with the following settings:\n' +
-        '1. Bucket name: item-images\n' +
-        '2. Public bucket: Yes\n' +
-        '3. File size limit: 5MB\n' +
-        '4. Allowed mime types: image/jpeg, image/png, image/gif');
+    // Then test if we can list files in the bucket
+    const { error: testError } = await supabase
+      .storage
+      .from('item-images')
+      .list('', {
+        limit: 1,
+        offset: 0,
+      });
+
+    if (testError) {
+      console.error('Error accessing bucket:', testError);
       return false;
     }
 
     return true;
   } catch (error) {
-    console.error('Error checking storage bucket:', error);
+    console.error('Storage access check failed:', error);
     return false;
   }
 }
 
-// Function to check if storage is properly configured
-export async function checkStorageAccess() {
+export async function ensureStorageBucket() {
   try {
-    const { data: buckets, error } = await supabase.storage.listBuckets();
-
-    if (error) {
-      throw error;
+    const storageAccessible = await checkStorageAccess();
+    if (!storageAccessible) {
+      console.error(
+        'Storage bucket "item-images" is not properly configured. Please check:\n' +
+        '1. Bucket exists and is named "item-images"\n' +
+        '2. Bucket is set to public\n' +
+        '3. SQL policy allows authenticated users to read/write\n' +
+        '4. Storage policy allows file uploads'
+      );
+      return false;
     }
-
-    const bucket = buckets?.find(b => b.name === 'item-images');
-    return !!bucket;
+    return true;
   } catch (error) {
-    console.error('Storage access check failed:', error);
+    console.error('Error checking storage bucket:', error);
     return false;
   }
 }
