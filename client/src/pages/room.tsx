@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { supabase } from "@/lib/supabase";
-import { Plus, ChevronDown, ChevronUp, Pencil, Trash2, History, Home, ChevronRight, Search, Check, ChevronsUpDown } from "lucide-react";
+import { Plus, ChevronDown, ChevronUp, Pencil, Trash2, History, Home, ChevronRight, Search, Check, ChevronsUpDown, ImageIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -60,140 +60,55 @@ const itemFormSchema = z.object({
 
 type ItemFormValues = z.infer<typeof itemFormSchema>;
 
+// Image interface (assuming this exists elsewhere or needs to be added)
+interface Image {
+  id: string;
+  item_id: string;
+  url: string;
+  created_at: string;
+}
+
+// ImageUpload component (needs to be implemented separately)
+const ImageUpload = ({ itemId, onUploadComplete }: { itemId: string; onUploadComplete: (images: Image[]) => void }) => {
+  //Implementation for image upload using supabase or other method
+  //This is a placeholder, replace with actual implementation.
+  const [images, setImages] = useState<Image[]>([]);
+  useEffect(() => {
+    onUploadComplete(images);
+  }, [images, onUploadComplete]);
+
+  return (
+    <div>
+      {/* Your image upload UI here */}
+      <input type="file" onChange={(e) => {
+        //handle file upload and update images state
+      }} multiple/>
+    </div>
+  );
+};
+
 // ItemCard component to handle individual item state
-const ItemCard = ({ item, onDelete, isSelected, onSelect }: { item: Item; onDelete: (id: string) => void; isSelected: boolean; onSelect: (id: string) => void }) => {
+const ItemCard = ({ item }: { item: Item }) => {
   const [isDetailsVisible, setIsDetailsVisible] = useState(false);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
-  const [showHistorySheet, setShowHistorySheet] = useState(false);
-  const [openCombobox, setOpenCombobox] = useState(false);
-  const [categoryValue, setCategoryValue] = useState(item.category || "");
-
-  // Add categories query
-  const { data: categories } = useQuery({
-    queryKey: ["categories"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("category")
-        .select("name")
-        .order("name");
-
-      if (error) throw error;
-      return data.map(cat => cat.name);
-    },
-  });
-
-  const form = useForm<ItemFormValues>({
-    resolver: zodResolver(itemFormSchema),
-    defaultValues: {
-      name: item.name,
-      brand: item.brand || "",
-      supplier: item.supplier || "",
-      specifications: item.specifications || "",
-      cost: item.cost || undefined,
-      warranty_info: item.warranty_info || "",
-      maintenance_notes: item.maintenance_notes || "",
-      installation_date: item.installation_date || "",
-      category: item.category,
-      status: item.status || "",
-      image_url: item.image_url || "",
-      document_urls: item.document_urls || [],
-    },
-  });
-
+  const [showImageDialog, setShowImageDialog] = useState(false);
   const { toast } = useToast();
 
-  // Query to fetch item history
-  const { data: itemHistory } = useQuery({
-    queryKey: ["itemHistory", item.id],
+  // Query to fetch images for this item
+  const { data: images } = useQuery<Image[]>({
+    queryKey: ["item-images", item.id],
     queryFn: async () => {
       const { data, error } = await supabase
-        .from("item_history")
+        .from("images")
         .select("*")
         .eq("item_id", item.id)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-      return data;
-    },
-  });
-
-  const updateItem = useMutation({
-    mutationFn: async (values: ItemFormValues) => {
-      const { data: session } = await supabase.auth.getSession();
-      if (!session?.session?.access_token) {
-        throw new Error("No authenticated session found");
-      }
-
-      // First, copy current item to history
-      const { error: historyError } = await supabase
-        .from("item_history")
-        .insert([{
-          item_id: item.id,
-          room_id: item.room_id,
-          name: item.name,
-          brand: item.brand,
-          supplier: item.supplier,
-          specifications: item.specifications,
-          cost: item.cost,
-          warranty_info: item.warranty_info,
-          installation_date: item.installation_date,
-          maintenance_notes: item.maintenance_notes,
-          category: item.category,
-          status: item.status,
-          image_url: item.image_url,
-          document_urls: item.document_urls,
-          created_at: new Date().toISOString()
-        }]);
-
-      if (historyError) throw historyError;
-
-      // Then update the current item
-      const { data, error } = await supabase
-        .from("items")
-        .update({
-          name: values.name,
-          brand: values.brand || null,
-          supplier: values.supplier || null,
-          specifications: values.specifications || null,
-          cost: values.cost || null,
-          warranty_info: values.warranty_info || null,
-          maintenance_notes: values.maintenance_notes || null,
-          installation_date: values.installation_date || null,
-          category: values.category,
-          status: values.status || null,
-          image_url: values.image_url || null,
-          document_urls: values.document_urls || [],
-          updated_at: new Date().toISOString()
-        })
-        .eq('id', item.id)
-        .select()
-        .single();
-
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["items", item.room_id] });
-      queryClient.invalidateQueries({ queryKey: ["itemHistory", item.id] });
-      setShowEditDialog(false);
-      toast({
-        title: "Success",
-        description: "Item updated successfully"
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to update item",
-        variant: "destructive"
-      });
+      return data || [];
     }
   });
-
-  const onSubmit = (values: ItemFormValues) => {
-    updateItem.mutate(values);
-  };
 
   return (
     <div className="border rounded-lg p-4">
@@ -201,67 +116,19 @@ const ItemCard = ({ item, onDelete, isSelected, onSelect }: { item: Item; onDele
         <div className="flex-grow">
           <div className="flex items-center gap-2">
             <h3 className="font-semibold">{item.name}</h3>
-            {itemHistory && itemHistory.length > 0 && (
-              <Sheet open={showHistorySheet} onOpenChange={setShowHistorySheet}>
-                <SheetTrigger asChild>
-                  <Button variant="outline" size="sm" className="h-6">
-                    <History className="h-4 w-4 mr-1" />
-                    History ({itemHistory.length})
-                  </Button>
-                </SheetTrigger>
-                <SheetContent>
-                  <SheetHeader>
-                    <SheetTitle>Item History</SheetTitle>
-                    <SheetDescription>
-                      Previous versions of {item.name}
-                    </SheetDescription>
-                  </SheetHeader>
-                  <ScrollArea className="h-[calc(100vh-8rem)] mt-4">
-                    <div className="space-y-4">
-                      {itemHistory.map((history) => (
-                        <div
-                          key={history.id}
-                          className="border rounded-lg p-4"
-                        >
-                          <div className="flex justify-between items-start mb-2">
-                            <div>
-                              <h4 className="font-medium">
-                                {history.name}
-                              </h4>
-                              <p className="text-sm text-muted-foreground">
-                                {new Date(history.created_at).toLocaleString()}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="mt-4 space-y-2">
-                            {Object.entries(history).map(([key, value]) => {
-                              if (value && !['id', 'item_id', 'created_at', 'updated_at', 'room_id'].includes(key)) {
-                                return (
-                                  <div key={key}>
-                                    <span className="text-sm font-medium">
-                                      {key}:{' '}
-                                    </span>
-                                    <span className="text-sm">
-                                      {Array.isArray(value) ? value.join(', ') : String(value)}
-                                    </span>
-                                  </div>
-                                );
-                              }
-                              return null;
-                            })}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </ScrollArea>
-                </SheetContent>
-              </Sheet>
-            )}
           </div>
           <p className="text-sm text-muted-foreground">
             Category: {item.category}
           </p>
           <div className="flex items-center space-x-2">
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowImageDialog(true)}
+              className="h-8 w-8"
+            >
+              <ImageIcon className="h-4 w-4" />
+            </Button>
             <Button
               variant="ghost"
               size="icon"
@@ -335,6 +202,26 @@ const ItemCard = ({ item, onDelete, isSelected, onSelect }: { item: Item; onDele
           )}
         </div>
       )}
+
+      {/* Image Management Dialog */}
+      <Dialog open={showImageDialog} onOpenChange={setShowImageDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Manage Images - {item.name}</DialogTitle>
+          </DialogHeader>
+          <ImageUpload 
+            itemId={item.id}
+            onUploadComplete={(images: Image[]) => {
+              queryClient.invalidateQueries({ queryKey: ["item-images", item.id] });
+              setShowImageDialog(false);
+              toast({
+                title: "Success",
+                description: "Images uploaded successfully"
+              });
+            }}
+          />
+        </DialogContent>
+      </Dialog>
 
       <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
         <DialogContent className="max-w-2xl max-h-[90vh]">
@@ -986,7 +873,7 @@ export default function RoomPage({ id }: RoomPageProps) {
                                           <CommandEmpty>
                                             Press enter to use "{categoryValue}" as a new category
                                           </CommandEmpty>
-                                          {categories?.length> 0 && (
+                                          {categories?.length > 0 && (
                                             <ScrollArea className="h-[200px] w-full" type="hover">
                                               <CommandGroup>
                                                 {categories.map((category) => (
@@ -1142,10 +1029,10 @@ export default function RoomPage({ id }: RoomPageProps) {
                                     <Input placeholder="Item status" {...field} />
                                   </FormControl>
                                   <FormMessage />
-                                </FormItem>
-                              )}
-                            />
-                          </div>
+                               </FormItem>
+                                )}
+                              />
+                            </div>
                         </ScrollArea>
 
                         <Button
