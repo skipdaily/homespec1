@@ -16,6 +16,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import type { Room } from "@shared/schema";
 import { cn } from "@/lib/utils";
+import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Link, useLocation } from "wouter";
 import { Command, CommandEmpty, CommandGroup, CommandInput, CommandItem } from "@/components/ui/command";
@@ -997,8 +998,7 @@ export default function RoomPage({ id }: RoomPageProps) {
                 No items found matching your search.
               </div>
             )}
-          </div>
-        </div>
+          </div>        </div>
 
         {/* Bulk Delete Dialog */}
         <AlertDialog open={showBulkDeleteDialog} onOpenChange={setShowBulkDeleteDialog}>
