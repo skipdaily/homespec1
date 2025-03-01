@@ -5,7 +5,8 @@ import { useToast } from "@/hooks/use-toast";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
-import type { InsertItem } from "@shared/schema";
+import { ImageUpload } from "@/components/ui/image-upload";
+import type { InsertItem, Image } from "@shared/schema";
 
 interface ItemFormProps {
   roomId: string;
@@ -47,11 +48,10 @@ export default function ItemForm({ roomId, onSuccess }: ItemFormProps) {
       specifications: formData.get("specifications") as string || null,
       cost: costValue ? parseFloat(costValue) : null,
       warranty_info: formData.get("warranty_info") as string || null,
-      category: formData.get("category") as string || null,
+      category: formData.get("category") as string || "uncategorized",
       maintenance_notes: null,
       installation_date: null,
       status: 'pending',
-      image_url: null,
       document_urls: []
     };
 
@@ -95,6 +95,15 @@ export default function ItemForm({ roomId, onSuccess }: ItemFormProps) {
         name="warranty_info"
         placeholder="Warranty Information"
       />
+      <div className="space-y-2">
+        <ImageUpload 
+          itemId={roomId} 
+          onUploadComplete={(images: Image[]) => {
+            // Update UI or refresh data after images are uploaded
+            queryClient.invalidateQueries({ queryKey: ["item-images", roomId] });
+          }} 
+        />
+      </div>
       <Button type="submit" className="w-full">
         Add Item
       </Button>
