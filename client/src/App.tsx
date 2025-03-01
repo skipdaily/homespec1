@@ -5,6 +5,7 @@ import { queryClient } from "./lib/queryClient";
 import { useEffect, useState } from "react";
 import { supabase } from "./lib/supabase";
 import { type Session } from "@supabase/supabase-js";
+import { ensureStorageBucket } from "./lib/supabase-storage";
 
 // Components
 import Navbar from "./components/layout/navbar";
@@ -59,6 +60,11 @@ function PublicProjectRoute({ params }: { params: { id: string } }) {
 }
 
 function Router() {
+  useEffect(() => {
+    // Ensure storage bucket exists when app initializes
+    ensureStorageBucket().catch(console.error);
+  }, []);
+
   return (
     <>
       <Navbar />
