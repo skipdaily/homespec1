@@ -16,7 +16,7 @@ import { z } from "zod";
 import type { Room } from "@shared/schema";
 import { cn } from "@/lib/utils";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { Link } from "wouter";
+import { Link, useLocation } from "wouter";
 import { ImageUpload } from "@/components/ui/image-upload";
 
 
@@ -398,7 +398,7 @@ export default function RoomPage({ id }: RoomPageProps) {
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
-  const [location, setLocation] = useLocation();
+  const [, setLocation] = useLocation();
   const [selectedItems, setSelectedItems] = useState<string[]>([]);
   const [showBulkDeleteDialog, setShowBulkDeleteDialog] = useState(false);
   const [isSelectionMode, setIsSelectionMode] = useState(false);
