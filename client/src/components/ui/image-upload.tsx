@@ -1,14 +1,16 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Button } from "./button";
 import { Input } from "./input";
 import { Label } from "./label";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Upload, X } from "lucide-react";
+import { Loader2, Upload, X, AlertCircle } from "lucide-react";
 import { Image } from "@shared/schema";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { cn } from "@/lib/utils";
+import { Alert, AlertDescription, AlertTitle } from "./alert";
+import { checkStorageAccess } from "@/lib/supabase-storage";
 
 interface ImageUploadProps {
   itemId: string;
@@ -21,8 +23,18 @@ export function ImageUpload({ itemId, onUploadComplete }: ImageUploadProps) {
   const [isDragging, setIsDragging] = useState(false);
   const { toast } = useToast();
 
+  // Check if storage is properly configured
+  const { data: storageAccessible, isLoading: checkingStorage } = useQuery({
+    queryKey: ["storage-access"],
+    queryFn: checkStorageAccess,
+  });
+
   const uploadMutation = useMutation({
     mutationFn: async (files: File[]) => {
+      if (!storageAccessible) {
+        throw new Error("Storage bucket not configured");
+      }
+
       setUploading(true);
       const uploadedImages: Image[] = [];
 
@@ -146,6 +158,32 @@ export function ImageUpload({ itemId, onUploadComplete }: ImageUploadProps) {
       uploadMutation.mutate(files);
     }
   };
+
+  if (checkingStorage) {
+    return (
+      <div className="flex items-center justify-center p-8">
+        <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+      </div>
+    );
+  }
+
+  if (!storageAccessible) {
+    return (
+      <Alert variant="destructive">
+        <AlertCircle className="h-4 w-4" />
+        <AlertTitle>Storage Not Configured</AlertTitle>
+        <AlertDescription>
+          Please create a storage bucket named 'item-images' in your Supabase dashboard with the following settings:
+          <ul className="list-disc list-inside mt-2">
+            <li>Bucket name: item-images</li>
+            <li>Public bucket: Yes</li>
+            <li>File size limit: 5MB</li>
+            <li>Allowed mime types: image/jpeg, image/png, image/gif</li>
+          </ul>
+        </AlertDescription>
+      </Alert>
+    );
+  }
 
   return (
     <div className="space-y-4">
