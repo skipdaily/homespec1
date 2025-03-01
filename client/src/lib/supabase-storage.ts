@@ -3,22 +3,8 @@ import { supabase } from './supabase';
 // Function to check if storage is properly configured
 export async function checkStorageAccess() {
   try {
-    // First check if we can list buckets
-    const { data: buckets, error: listError } = await supabase.storage.listBuckets();
-
-    if (listError) {
-      console.error('Error listing buckets:', listError);
-      return false;
-    }
-
-    const bucket = buckets?.find(b => b.name === 'item-images');
-    if (!bucket) {
-      console.error('Bucket "item-images" not found');
-      return false;
-    }
-
-    // Then test if we can list files in the bucket
-    const { error: testError } = await supabase
+    // Test if we can list files in the bucket
+    const { error } = await supabase
       .storage
       .from('item-images')
       .list('', {
@@ -26,8 +12,8 @@ export async function checkStorageAccess() {
         offset: 0,
       });
 
-    if (testError) {
-      console.error('Error accessing bucket:', testError);
+    if (error) {
+      console.error('Error accessing bucket:', error);
       return false;
     }
 
@@ -46,8 +32,8 @@ export async function ensureStorageBucket() {
         'Storage bucket "item-images" is not properly configured. Please check:\n' +
         '1. Bucket exists and is named "item-images"\n' +
         '2. Bucket is set to public\n' +
-        '3. SQL policy allows authenticated users to read/write\n' +
-        '4. Storage policy allows file uploads'
+        '3. Storage policy allows file uploads\n' +
+        '4. You are properly authenticated'
       );
       return false;
     }
