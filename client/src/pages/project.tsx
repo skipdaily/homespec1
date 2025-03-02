@@ -765,9 +765,12 @@ export default function ProjectPage({ id }: ProjectPageProps) {
     );
   };
 
-  // Calculate item counts for each room
+  // Calculate item counts and group items by room
   const itemCounts = rooms?.reduce((acc, room) => {
-    acc[room.id] = items?.filter((item) => item.room_id === room.id).length || 0;
+    // If there's a search query, only count filtered items
+    acc[room.id] = searchQuery.trim()
+      ? filteredItems?.filter((item) => item.room_id === room.id).length || 0
+      : items?.filter((item) => item.room_id === room.id).length || 0;
     return acc;
   }, {} as Record<string, number>) || {};
 
@@ -776,25 +779,24 @@ export default function ProjectPage({ id }: ProjectPageProps) {
     if (!searchQuery.trim()) return true;
 
     const searchLower = searchQuery.toLowerCase();
+    const roomName = rooms?.find((r) => r.id === item.room_id)?.name.toLowerCase() || '';
+
     return (
       item.name.toLowerCase().includes(searchLower) ||
       item.category.toLowerCase().includes(searchLower) ||
-      item.brand?.toLowerCase().includes(searchLower) ||
-      item.supplier?.toLowerCase().includes(searchLower) ||
-      item.specifications?.toLowerCase().includes(searchLower) ||
-      item.status?.toLowerCase().includes(searchLower)
+      (item.brand?.toLowerCase() || '').includes(searchLower) ||
+      (item.supplier?.toLowerCase() || '').includes(searchLower) ||
+      (item.specifications?.toLowerCase() || '').includes(searchLower) ||
+      (item.status?.toLowerCase() || '').includes(searchLower) ||
+      roomName.includes(searchLower)
     );
   });
 
   // Group filtered items by room
-  const itemsByRoom = rooms?.reduce(
-    (acc, room) => {
-      acc[room.id] =
-        filteredItems?.filter((item) => item.room_id === room.id) || [];
-      return acc;
-    },
-    {} as Record<string, Item[]>,
-  );
+  const itemsByRoom = rooms?.reduce((acc, room) => {
+    acc[room.id] = filteredItems?.filter((item) => item.room_id === room.id) || [];
+    return acc;
+  }, {} as Record<string, Item[]>);
 
   // Get total count of filtered items
   const totalFilteredItems = filteredItems?.length || 0;
