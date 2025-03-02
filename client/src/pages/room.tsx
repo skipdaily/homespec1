@@ -43,6 +43,8 @@ interface Item {
   document_urls?: string[];
   created_at?: string;
   updated_at?: string;
+  link?: string;
+  notes?: string;
 }
 
 // Update interface to match database schema
@@ -54,7 +56,7 @@ interface Image {
   created_at: string;
 }
 
-// Create a schema for the form that matches the database
+// Update schema to include new fields
 const itemFormSchema = z.object({
   name: z.string().min(1, "Name is required"),
   brand: z.string().optional(),
@@ -68,6 +70,8 @@ const itemFormSchema = z.object({
   status: z.string().optional(),
   image_url: z.string().optional(),
   document_urls: z.array(z.string()).optional(),
+  link: z.string().url("Please enter a valid URL").optional(),
+  notes: z.string().optional(),
 });
 
 type ItemFormValues = z.infer<typeof itemFormSchema>;
@@ -96,22 +100,9 @@ const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => vo
       category: item.category,
       status: item.status || "",
       document_urls: item.document_urls || [],
+      link: item.link || "",
+      notes: item.notes || "",
     },
-  });
-
-  // Query to fetch images for this item
-  const { data: images } = useQuery<Image[]>({
-    queryKey: ["item-images", item.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("images")
-        .select("*")
-        .eq("item_id", item.id)
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-      return data || [];
-    }
   });
 
   const updateItem = useMutation({
@@ -130,7 +121,9 @@ const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => vo
           category: values.category,
           status: values.status || null,
           document_urls: values.document_urls || [],
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
+          link: values.link || null,
+          notes: values.notes || null,
         })
         .eq('id', item.id);
 
@@ -254,6 +247,16 @@ const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => vo
                       Cost: ${item.cost.toString()}
                     </p>
                   )}
+                  {item.link && (
+                    <p className="text-sm text-muted-foreground">
+                      Link: <a href={item.link} target="_blank" rel="noopener noreferrer">{item.link}</a>
+                    </p>
+                  )}
+                  {item.notes && (
+                    <p className="text-sm text-muted-foreground">
+                      Notes: {item.notes}
+                    </p>
+                  )}
                 </div>
 
                 {/* Image carousel in expanded view */}
@@ -373,6 +376,14 @@ const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => vo
                   <Label htmlFor="status">Status</Label>
                   <Input {...form.register("status")} id="status" />
                 </div>
+                <div>
+                  <Label htmlFor="link">External Link</Label>
+                  <Input {...form.register("link")} id="link" />
+                </div>
+                <div>
+                  <Label htmlFor="notes">Additional Notes</Label>
+                  <Textarea {...form.register("notes")} id="notes" />
+                </div>
               </div>
             </ScrollArea>
 
@@ -467,6 +478,8 @@ export default function RoomPage({ id }: RoomPageProps) {
       status: "",
       image_url: "",
       document_urls: [],
+      link: "",
+      notes: "",
     },
   });
 
@@ -530,7 +543,9 @@ export default function RoomPage({ id }: RoomPageProps) {
             status: values.status || null,
             image_url: values.image_url || null,
             document_urls: values.document_urls || [],
-            created_at: new Date().toISOString()
+            created_at: new Date().toISOString(),
+            link: values.link || null,
+            notes: values.notes || null,
           }])
           .select();
 
@@ -647,7 +662,9 @@ export default function RoomPage({ id }: RoomPageProps) {
       (item.brand?.toLowerCase().includes(searchLower)) ||
       (item.supplier?.toLowerCase().includes(searchLower)) ||
       (item.specifications?.toLowerCase().includes(searchLower)) ||
-      (item.status?.toLowerCase().includes(searchLower))
+      (item.status?.toLowerCase().includes(searchLower)) ||
+      (item.link?.toLowerCase().includes(searchLower)) ||
+      (item.notes?.toLowerCase().includes(searchLower))
     );
   });
 
@@ -961,6 +978,32 @@ export default function RoomPage({ id }: RoomPageProps) {
                                       <FormLabel>Status</FormLabel>
                                       <FormControl>
                                         <Input placeholder="Item status" {...field} />
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+                                <FormField
+                                  control={form.control}
+                                  name="link"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel>External Link</FormLabel>
+                                      <FormControl>
+                                        <Input placeholder="https://..." {...field} />
+                                      </FormControl>
+                                      <FormMessage />
+                                    </FormItem>
+                                  )}
+                                />
+                                <FormField
+                                  control={form.control}
+                                  name="notes"
+                                  render={({ field }) => (
+                                    <FormItem>
+                                      <FormLabel>Additional Notes</FormLabel>
+                                      <FormControl>
+                                        <Textarea placeholder="Any additional notes or comments..." {...field} />
                                       </FormControl>
                                       <FormMessage />
                                     </FormItem>
