@@ -688,21 +688,6 @@ export default function RoomPage({ id }: RoomPageProps) {
 
             {/* Right Column - Actions */}
             <div className="flex flex-col justify-between">
-              <div className="flex items-center justify-end gap-4">
-                <Button variant="outline" size="sm" className="gap-2">
-                  <Printer className="h-4 w-4" />
-                  Print Project
-                </Button>
-                <Button variant="outline" size="sm" className="gap-2">
-                  <Download className="h-4 w-4" />
-                  Import Items
-                </Button>
-                <Button variant="outline" size="sm" className="gap-2">
-                  <Upload className="h-4 w-4" />
-                  Export Items
-                </Button>
-              </div>
-
               <div className="flex items-center gap-4 mt-4">
                 <div className="relative flex-1">
                   <Input
