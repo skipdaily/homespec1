@@ -105,6 +105,21 @@ const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => vo
     },
   });
 
+  // Query to fetch images for this item
+  const { data: images } = useQuery<Image[]>({
+    queryKey: ["item-images", item.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("images")
+        .select("*")
+        .eq("item_id", item.id)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    }
+  });
+
   const updateItem = useMutation({
     mutationFn: async (values: ItemFormValues) => {
       const { error } = await supabase
@@ -954,14 +969,9 @@ export default function RoomPage({ id }: RoomPageProps) {
                                         <FormLabel>Cost</FormLabel>
                                         <FormControl>
                                           <Input
-                                            type="number"
-                                            step="0.01"
-                                            placeholder="0.00"
+                                            type="number"                                            step="0.01"
+                                            placeholder="Enter cost"
                                             {...field}
-                                            onChange={(e) => {
-                                              const value = e.target.value;
-                                              field.onChange(value === "" ? undefined : parseFloat(value));
-                                            }}
                                           />
                                         </FormControl>
                                         <FormMessage />
