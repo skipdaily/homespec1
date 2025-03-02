@@ -11,7 +11,10 @@ import {
   Search,
   ChevronsUpDown,
   Check,
-  Printer
+  Printer,
+  HomeIcon, // Import HomeIcon
+  Calendar, // Import Calendar
+  User //Import User
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -801,199 +804,208 @@ export default function ProjectPage({ id }: ProjectPageProps) {
 
   return (
     <div className="container mx-auto px-4 py-8">
-      <div className="flex justify-between items-center mb-8">
-        <div>
-          <h1 className="text-3xl font-bold">{project?.name}</h1>
-          <p className="text-muted-foreground">Address: {project?.address}</p>
-          <p className="text-muted-foreground">
-            Builder: {project?.builder_name}
-          </p>
-        </div>
-
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            onClick={() => setShowPrintDialog(true)}
-            className="flex items-center gap-2"
-          >
-            <Printer className="h-4 w-4" />
-            Print Project
-          </Button>
-
-          <div className="relative w-64">
-            <Input
-              type="text"
-              placeholder="Search items..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-8"
-            />
-            <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+      <div className="mb-8 bg-card rounded-lg p-6 shadow-sm border">
+        <div className="grid lg:grid-cols-2 gap-8">
+          {/* Left Column - Project Info */}
+          <div className="space-y-4">
+            <div className="space-y-2">
+              <h1 className="text-4xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/80">
+                {project?.name}
+              </h1>
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <HomeIcon className="h-4 w-4" />
+                  <span>{project?.address}</span>
+                </div>
+                <div className="flex items-center gap-2 text-muted-foreground">
+                  <User className="h-4 w-4" />
+                  <span>Builder: {project?.builder_name}</span>
+                </div>
+                {project?.completion_date && (
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <Calendar className="h-4 w-4" />
+                    <span>Expected completion: {new Date(project.completion_date).toLocaleDateString()}</span>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
 
-          <input
-            type="file"
-            accept=".csv,.xlsx,.xls"
-            onChange={handleFileUpload}
-            className="hidden"
-            id="file-upload"
-          />
-          <label htmlFor="file-upload">
-            <Button variant="outline" asChild>
-              <span>
-                <Upload className="mr-2 h-4 w-4" />
-                Import Items
-              </span>
-            </Button>
-          </label>
-
-          <Button variant="outline" onClick={handleExport}>
-            <Download className="mr-2 h-4 w-4" />
-            Export Items
-          </Button>
-
-          <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-              <Button>
-                <Plus className="mr-2 h-4 w-4" />
-                Add Area
+          {/* Right Column - Actions */}
+          <div className="flex flex-col gap-4 lg:items-end">
+            <div className="flex flex-wrap gap-3">
+              <Button
+                variant="outline"
+                onClick={() => setShowPrintDialog(true)}
+                className="flex items-center gap-2"
+              >
+                <Printer className="h-4 w-4" />
+                Print Project
               </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Add New Area</DialogTitle>
-              </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="flex flex-col space-y-2">
-                  <Label>Area Name*</Label>
-                  <Popover
-                    open={openAreaCombobox}
-                    onOpenChange={setOpenAreaCombobox}
-                  >
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        aria-expanded={openAreaCombobox}
-                        className={cn(
-                          "w-full justify-between",
-                          !areaValue && "text-muted-foreground",
-                        )}
-                      >
-                        {areaValue || "Select or enter area name..."}
-                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-full p-0">
-                      <Command>
-                        <CommandInput
-                          placeholder="Search or enter new area..."
-                          name="name"
-                          onValueChange={(value) => {
-                            setAreaValue(value);
-                          }}
-                        />
-                        <CommandEmpty>
-                          Press enter to use "{areaValue}" as a new area
-                        </CommandEmpty>
-                        {areaTemplates?.length > 0 && (
-                          <ScrollArea className="h-[300px] w-full overflow-y-auto">
-                            {/* Height increased */}
-                            <CommandGroup>
-                              {areaTemplates.map((area) => (
-                                <CommandItem
-                                  key={area}
-                                  value={area}
-                                  onSelect={(value) => {
-                                    setAreaValue(value);
-                                    setOpenAreaCombobox(false);
-                                  }}
-                                >
-                                  <Check
-                                    className={cn(
-                                      "mr-2 h-4 w-4",
-                                      areaValue === area
-                                        ? "opacity-100"
-                                        : "opacity-0",
-                                    )}
-                                  />
-                                  {area}
-                                </CommandItem>
-                              ))}
-                            </CommandGroup>
-                          </ScrollArea>
-                        )}
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                </div>
-                <Textarea name="description" placeholder="Description" />
-                <div className="grid grid-cols-2 gap-4">
-                  <Input
-                    name="floor_number"
-                    type="number"
-                    placeholder="Floor Number"
-                  />
-                  <Input
-                    name="dimensions"
-                    placeholder="Dimensions (e.g., 12' x 15')"
-                  />
-                </div>
-                <Button
-                  type="submit"
-                  className="w-full"
-                  disabled={createRoom.isPending}
-                >
-                  {createRoom.isPending ? "Adding..." : "Add Area"}
+
+              <div className="flex items-center gap-2">
+                <input
+                  type="file"
+                  accept=".csv,.xlsx,.xls"
+                  onChange={handleFileUpload}
+                  className="hidden"
+                  id="file-upload"
+                />
+                <label htmlFor="file-upload">
+                  <Button variant="outline" asChild>
+                    <span>
+                      <Upload className="mr-2 h-4 w-4" />
+                      Import Items
+                    </span>
+                  </Button>
+                </label>
+
+                <Button variant="outline" onClick={handleExport}>
+                  <Download className="mr-2 h-4 w-4" />
+                  Export Items
                 </Button>
-              </form>
-            </DialogContent>
-          </Dialog>
-        </div>
-      </div>
+              </div>
+            </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {rooms?.map((room) => {
-          const roomItems = itemsByRoom?.[room.id] || [];
-          return (
-            <AreaCard key={room.id} room={room} itemCount={roomItems.length} />
-          );
-        })}
-      </div>
-
-      {/* Print Dialog */}
-      <Dialog open={showPrintDialog} onOpenChange={setShowPrintDialog}>
-        <DialogContent className="max-w-4xl max-h-[80vh] flex flex-col">
-          <DialogHeader>
-            <DialogTitle>Print Project Details</DialogTitle>
-          </DialogHeader>
-          <ScrollArea className="flex-1 pr-4">
-            {project && rooms && (
-              <PrintView
-                project={project}
-                rooms={rooms}
-                itemCounts={itemCounts}
-                baseUrl={baseUrl}
-                items={items}
-              />
-            )}
-          </ScrollArea>
-          <div className="flex justify-end space-x-2 pt-4 border-t mt-4">
-            <Button
-              variant="outline"
-              onClick={() => setShowPrintDialog(false)}
-            >
-              Close
-            </Button>
-            <Button
-              variant="default"
-              onClick={() => window.print()}
-            >
-              Print
-            </Button>
+            <div className="flex items-center gap-3 mt-2">
+              <div className="relative flex-1 min-w-[200px]">
+                <Input
+                  type="text"
+                  placeholder="Search items..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-8"
+                />
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+              </div>
+              <Dialog open={open} onOpenChange={setOpen}>
+                <DialogTrigger asChild>
+                  <Button variant="default" className="whitespace-nowrap">
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add Area
+                  </Button>
+                </DialogTrigger>
+                <DialogContent>
+                  <DialogHeader>
+                    <DialogTitle>Add New Area</DialogTitle>
+                  </DialogHeader>
+                  <form onSubmit={handleSubmit} className="space-y-4">
+                    <div className="flex flex-col space-y-2">
+                      <Label>Area Name*</Label>
+                      <Popover
+                        open={openAreaCombobox}
+                        onOpenChange={setOpenAreaCombobox}
+                      >
+                        <PopoverTrigger asChild>
+                          <Button
+                            variant="outline"
+                            role="combobox"
+                            aria-expanded={openAreaCombobox}
+                            className={cn(
+                              "w-full justify-between",
+                              !areaValue && "text-muted-foreground",
+                            )}
+                          >
+                            {areaValue || "Select or enter area name..."}
+                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                          </Button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-full p-0">
+                          <Command>
+                            <CommandInput
+                              placeholder="Search or enter new area..."
+                              name="name"
+                              onValueChange={(value) => {
+                                setAreaValue(value);
+                              }}
+                            />
+                            <CommandEmpty>
+                              Press enter to use "{areaValue}" as a new area
+                            </CommandEmpty>
+                            {areaTemplates?.length > 0 && (
+                              <ScrollArea className="h-[300px] w-full overflow-y-auto">
+                                <CommandGroup>
+                                  {areaTemplates.map((area) => (
+                                    <CommandItem
+                                      key={area}
+                                      value={area}
+                                      onSelect={(value) => {
+                                        setAreaValue(value);
+                                        setOpenAreaCombobox(false);
+                                      }}
+                                    >
+                                      <Check
+                                        className={cn(
+                                          "mr-2 h-4 w-4",
+                                          areaValue === area
+                                            ? "opacity-100"
+                                            : "opacity-0",
+                                        )}
+                                      />
+                                      {area}
+                                    </CommandItem>
+                                  ))}
+                                </CommandGroup>
+                              </ScrollArea>
+                            )}
+                          </Command>
+                        </PopoverContent>
+                      </Popover>
+                    </div>
+                    <Textarea name="description" placeholder="Description" />
+                    <div className="grid grid-cols-2 gap-4">
+                      <Input
+                        name="floor_number"
+                        type="number"
+                        placeholder="Floor Number"
+                      />
+                      <Input
+                        name="dimensions"
+                        placeholder="Dimensions (e.g., 12' x 15')"
+                      />
+                    </div>
+                    <Button
+                      type="submit"
+                      className="w-full"
+                      disabled={createRoom.isPending}
+                    >
+                      {createRoom.isPending ? "Adding..." : "Add Area"}
+                    </Button>
+                  </form>
+                </DialogContent>
+              </Dialog>
+            </div>
           </div>
-        </DialogContent>
-      </Dialog>
+        </div>
+
+        {/* Areas Grid */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {rooms?.map((room) => {
+            const itemCount = itemCounts[room.id] || 0;
+            return <AreaCard key={room.id} room={room} itemCount={itemCount} />;
+          })}
+        </div>
+
+        {/* Print Dialog */}
+        <Dialog open={showPrintDialog} onOpenChange={setShowPrintDialog}>
+          <DialogContent className="max-w-4xl">
+            <DialogHeader>
+              <DialogTitle>Print Project Details</DialogTitle>
+            </DialogHeader>
+            <div className="h-[80vh] overflow-y-auto">
+              {project && rooms && (
+                <PrintView
+                  project={project!}
+                  rooms={rooms || []}
+                  itemCounts={itemCounts}
+                  baseUrl={window.location.origin}
+                  items={items}
+                />
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
     </div>
   );
 }
