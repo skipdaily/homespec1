@@ -22,6 +22,7 @@ import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious
 import {Checkbox} from "@/components/ui/checkbox";
 import {Popover, PopoverContent, PopoverTrigger} from "@/components/ui/popover";
 import {Command, CommandEmpty, CommandGroup, CommandInput, CommandItem} from "@/components/ui/command";
+import { NavBreadcrumb } from "@/components/layout/nav-breadcrumb";
 
 
 // Update interface to match database schema
@@ -656,10 +657,17 @@ export default function RoomPage({ id }: RoomPageProps) {
 
   return (
     <div className="container mx-auto px-4">
+      <NavBreadcrumb
+        items={[
+          { label: "Dashboard", href: "/dashboard" },
+          { label: room.projects.name, href: `/project/${room.project_id}` },
+          { label: room.name },
+        ]}
+      />
       {/* Project Header Section */}
       <div className="sticky top-0 bg-background z-10 pb-4 border-b space-y-6">
         <div className="bg-card rounded-lg p-6 shadow-sm">
-          <div className="grid grid-cols-2 gap-8">
+          <div className="grid lg:grid-cols-2 gap-8">
             {/* Left Column - Project Details */}
             <div className="space-y-4">
               <div>
@@ -977,62 +985,62 @@ export default function RoomPage({ id }: RoomPageProps) {
               </div>
             </div>
           </div>
-
-          {/* Main content */}
-          <div className="py-6">
-            <div className="grid gap-4">
-              {filteredItems?.map((item) => (
-                <div key={item.id} className="flex items-start gap-4">
-                  {isSelectionMode && (
-                    <Checkbox
-                      checked={selectedItems.includes(item.id)}
-                      onClick={() => {
-                        setSelectedItems(prev =>
-                          prev.includes(item.id)
-                            ? prev.filter(id => id!== item.id)
-                            : [...prev, item.id]
-                        );
-                      }}
-                    />
-                  )}
-                  <div className="flex-1">
-                    <ItemCard
-                      item={item}
-                      onDelete={handleDelete}
-                    />
-                  </div>
-                </div>
-              ))}
-              {filteredItems?.length === 0 && (
-                <div className="text-center py8 text-muted-foreground">
-                  No items found matching your search.
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Bulk Delete Dialog */}
-          <AlertDialog open={showBulkDeleteDialog} onOpenChange={setShowBulkDeleteDialog}>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  This will permanently delete {selectedItems.length} selected items. This action cannot be undone.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={handleBulkDelete}
-                  disabled={bulkDeleteItems.isPending}
-                >
-                  {bulkDeleteItems.isPending ? "Deleting..." : "Delete"}
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
         </div>
       </div>
+
+      {/* Main content */}
+      <div className="py-6">
+        <div className="grid gap-4">
+          {filteredItems?.map((item) => (
+            <div key={item.id} className="flex items-start gap-4">
+              {isSelectionMode && (
+                <Checkbox
+                  checked={selectedItems.includes(item.id)}
+                  onClick={() => {
+                    setSelectedItems(prev =>
+                      prev.includes(item.id)
+                        ? prev.filter(id => id!== item.id)
+                        : [...prev, item.id]
+                    );
+                  }}
+                />
+              )}
+              <div className="flex-1">
+                <ItemCard
+                  item={item}
+                  onDelete={handleDelete}
+                />
+              </div>
+            </div>
+          ))}
+          {filteredItems?.length === 0 && (
+            <div className="text-center py8 text-muted-foreground">
+              No items found matching your search.
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Bulk Delete Dialog */}
+      <AlertDialog open={showBulkDeleteDialog} onOpenChange={setShowBulkDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete {selectedItems.length} selected items. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleBulkDelete}
+              disabled={bulkDeleteItems.isPending}
+            >
+              {bulkDeleteItems.isPending ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

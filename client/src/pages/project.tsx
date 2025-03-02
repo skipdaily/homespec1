@@ -58,6 +58,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import PrintView from "@/components/project/print-view";
+import { NavBreadcrumb } from "@/components/layout/nav-breadcrumb";
 
 // Define the structure of the items data
 interface Item {
@@ -803,6 +804,13 @@ export default function ProjectPage({ id }: ProjectPageProps) {
 
   return (
     <div className="container mx-auto px-4 py-8">
+      <NavBreadcrumb
+        items={[
+          { label: "Projects", href: "/dashboard" },
+          { label: project?.name || "Project" },
+        ]}
+      />
+
       <div className="mb-8 bg-card rounded-lg p-6 shadow-sm border">
         <div className="grid lg:grid-cols-2 gap-8">
           {/* Left Column - Project Info */}
