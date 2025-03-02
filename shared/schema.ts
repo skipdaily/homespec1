@@ -19,7 +19,9 @@ export const projects = pgTable("projects", {
 // Rooms/areas in the home
 export const rooms = pgTable("rooms", {
   id: uuid("id").primaryKey().defaultRandom(),
-  project_id: uuid("project_id").notNull().references(() => projects.id),
+  project_id: uuid("project_id")
+    .notNull()
+    .references(() => projects.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   floor_number: integer("floor_number"),
   description: text("description"),
@@ -31,7 +33,9 @@ export const rooms = pgTable("rooms", {
 // Images table for storing image metadata
 export const images = pgTable("images", {
   id: uuid("id").primaryKey().defaultRandom(),
-  item_id: uuid("item_id").notNull().references(() => items.id),
+  item_id: uuid("item_id")
+    .notNull()
+    .references(() => items.id, { onDelete: "cascade" }),
   storage_path: text("storage_path").notNull(),
   filename: text("filename").notNull(),
   size: integer("size").notNull(),
@@ -45,7 +49,9 @@ export const images = pgTable("images", {
 // Items table (updated with image relations)
 export const items = pgTable("items", {
   id: uuid("id").primaryKey().defaultRandom(),
-  room_id: uuid("room_id").notNull().references(() => rooms.id),
+  room_id: uuid("room_id")
+    .notNull()
+    .references(() => rooms.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   brand: text("brand"),
   supplier: text("supplier"),
