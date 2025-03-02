@@ -765,15 +765,6 @@ export default function ProjectPage({ id }: ProjectPageProps) {
     );
   };
 
-  // Calculate item counts and group items by room
-  const itemCounts = rooms?.reduce((acc, room) => {
-    // If there's a search query, only count filtered items
-    acc[room.id] = searchQuery.trim()
-      ? filteredItems?.filter((item) => item.room_id === room.id).length || 0
-      : items?.filter((item) => item.room_id === room.id).length || 0;
-    return acc;
-  }, {} as Record<string, number>) || {};
-
   // Filter items based on search query
   const filteredItems = items?.filter((item) => {
     if (!searchQuery.trim()) return true;
@@ -791,6 +782,12 @@ export default function ProjectPage({ id }: ProjectPageProps) {
       roomName.includes(searchLower)
     );
   });
+
+  // Calculate item counts for each room
+  const itemCounts = rooms?.reduce((acc, room) => {
+    acc[room.id] = filteredItems?.filter((item) => item.room_id === room.id).length || 0;
+    return acc;
+  }, {} as Record<string, number>) || {};
 
   // Group filtered items by room
   const itemsByRoom = rooms?.reduce((acc, room) => {
