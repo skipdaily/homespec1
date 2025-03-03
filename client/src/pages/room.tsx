@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { supabase } from "@/lib/supabase";
-import { Plus, ChevronDown, ChevronUp, Pencil, Trash2, Home, ChevronRight, Search, Check, ChevronsUpDown, ImageIcon, Printer, Download, Upload, FileText } from "lucide-react";
+import { Plus, ChevronDown, ChevronUp, Pencil, Trash2, Home, ChevronRight, Search, Check, ChevronsUpDown, ImageIcon, Printer, Download, Upload, FileText, History } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -57,6 +57,29 @@ interface Image {
   created_at: string;
 }
 
+// Add a History interface to match the database schema
+interface ItemHistory {
+  id: string;
+  item_id: string;
+  room_id: string;
+  name: string;
+  brand?: string;
+  supplier?: string;
+  specifications?: string;
+  cost?: number;
+  warranty_info?: string;
+  installation_date?: string;
+  maintenance_notes?: string;
+  category: string;
+  status?: string;
+  image_url?: string;
+  document_urls?: string[];
+  link?: string;
+  notes?: string;
+  created_at: string;
+  updated_at: string;
+}
+
 // Update schema to include new fields
 const itemFormSchema = z.object({
   name: z.string().min(1, "Name is required"),
@@ -85,6 +108,7 @@ const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => vo
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showImageDialog, setShowImageDialog] = useState(false);
   const [showDocumentDialog, setShowDocumentDialog] = useState(false);
+  const [showHistoryDialog, setShowHistoryDialog] = useState(false);
   const { toast } = useToast();
 
   // Delete image mutation
@@ -215,6 +239,22 @@ const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => vo
     }
   });
 
+  // Add history query
+  const { data: itemHistory } = useQuery<ItemHistory[]>({
+    queryKey: ["item-history", item.id],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("item_history")
+        .select("*")
+        .eq("item_id", item.id)
+        .order("created_at", { ascending: false });
+
+      if (error) throw error;
+      return data || [];
+    },
+    enabled: showHistoryDialog // Only fetch when dialog is open
+  });
+
   const updateItem = useMutation({
     mutationFn: async (values: ItemFormValues) => {
       const { error: updateError } = await supabase
@@ -285,6 +325,14 @@ const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => vo
               className="h-8 w-8"
             >
               <ImageIcon className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowHistoryDialog(true)}
+              className="h-8 w-8"
+            >
+              <History className="h-4 w-4" />
             </Button>
             <Button
               variant="ghost"
@@ -603,6 +651,65 @@ const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => vo
               }}
             />
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Add History Dialog */}
+      <Dialog open={showHistoryDialog} onOpenChange={setShowHistoryDialog}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden">
+          <DialogHeader>
+            <DialogTitle>Item History - {item.name}</DialogTitle>
+          </DialogHeader>
+          <ScrollArea className="h-[60vh]">
+            <div className="space-y-6 p-4">
+              {itemHistory?.map((version, index) => (
+                <div key={version.id} className="border rounded-lg p-4 space-y-4">
+                  <div className="flex justify-between items-center">
+                    <h4 className="font-medium">
+                      Version from {new Date(version.created_at).toLocaleDateString()}
+                    </h4>
+                    <span className="text-sm text-muted-foreground">
+                      {new Date(version.created_at).toLocaleTimeString()}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                      <p><strong>Name:</strong> {version.name}</p>
+                      {version.brand && <p><strong>Brand:</strong> {version.brand}</p>}
+                      {version.supplier && <p><strong>Supplier:</strong> {version.supplier}</p>}
+                      {version.specifications && (
+                        <p><strong>Specifications:</strong> {version.specifications}</p>
+                      )}
+                      {version.cost && <p><strong>Cost:</strong> ${version.cost}</p>}
+                    </div>
+                    <div>
+                      {version.warranty_info && (
+                        <p><strong>Warranty:</strong> {version.warranty_info}</p>
+                      )}
+                      {version.installation_date && (
+                        <p><strong>Installation Date:</strong> {version.installation_date}</p>
+                      )}
+                      {version.maintenance_notes && (
+                        <p><strong>Maintenance Notes:</strong> {version.maintenance_notes}</p>
+                      )}
+                      <p><strong>Category:</strong> {version.category}</p>
+                      {version.status && <p><strong>Status:</strong> {version.status}</p>}
+                      {version.link && (
+                        <p><strong>Link:</strong> <a href={version.link} target="_blank" rel="noopener noreferrer">{version.link}</a></p>
+                      )}
+                      {version.notes && <p><strong>Notes:</strong> {version.notes}</p>}
+                    </div>
+                  </div>
+                </div>
+              ))}
+              {(!itemHistory || itemHistory.length === 0) && (
+                <div className="text-center py-8 text-muted-foreground">
+                  No history found for this item.
+                </div>
+              )}
+            </div>
+          </ScrollArea>
         </DialogContent>
       </Dialog>
     </div>
