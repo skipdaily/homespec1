@@ -72,7 +72,7 @@ const itemFormSchema = z.object({
   status: z.string().optional(),
   image_url: z.string().optional(),
   document_urls: z.array(z.string()).optional(),
-  link: z.string().url("Please enter a valid URL").optional(),
+  link: z.string().url("Please enter a valid URL").optional().or(z.literal('')),
   notes: z.string().optional(),
 });
 
@@ -959,7 +959,7 @@ export default function RoomPage({ id }: RoomPageProps) {
                         onClick={() => setShowBulkDeleteDialog(true)}
                         disabled={bulkDeleteItems.isPending}
                       >
-                        <Trash2 className="h-4 w-4 mr-2" />
+                        <Trash2 className="h4 w-4 mr-2" />
                         Delete Selected
                       </Button>
                     )}
