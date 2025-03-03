@@ -315,7 +315,8 @@ const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => vo
             Category: {item.category}
           </p>
           <div className="flex items-center space-x-2">
-            <div className="relative">
+            <div className="flex items-center">
+              <span className="text-sm text-muted-foreground mr-1">{images.length || 0}</span>
               <Button
                 variant="ghost"
                 size="icon"
@@ -324,12 +325,10 @@ const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => vo
               >
                 <ImageIcon className="h-4 w-4" />
               </Button>
-              <span className="absolute -top-2 -right-2 bg-primary text-primary-foreground rounded-full w-4 h-4 text-xs flex items-center justify-center">
-                {images.length || 0}
-              </span>
             </div>
 
-            <div className="relative">
+            <div className="flex items-center">
+              <span className="text-sm text-muted-foreground mr-1">{itemHistory.length || 0}</span>
               <Button
                 variant="ghost"
                 size="icon"
@@ -338,12 +337,10 @@ const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => vo
               >
                 <History className="h-4 w-4" />
               </Button>
-              <span className="absolute -top-2 -right-2 bg-primary text-primary-foreground rounded-full w-4 h-4 text-xs flex items-center justify-center">
-                {itemHistory.length || 0}
-              </span>
             </div>
 
-            <div className="relative">
+            <div className="flex items-center">
+              <span className="text-sm text-muted-foreground mr-1">{documents.length || 0}</span>
               <Button
                 variant="ghost"
                 size="icon"
@@ -352,9 +349,6 @@ const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => vo
               >
                 <FileText className="h-4 w-4" />
               </Button>
-              <span className="absolute -top-2 -right-2 bg-primary text-primary-foreground rounded-full w-4 h-4 text-xs flex items-center justify-center">
-                {documents.length || 0}
-              </span>
             </div>
 
             <Button
