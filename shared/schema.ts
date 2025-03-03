@@ -40,7 +40,6 @@ export const images = pgTable("images", {
   filename: text("filename").notNull(),
   size: integer("size").notNull(),
   mime_type: text("mime_type").notNull(),
-  bucket: text("bucket").notNull().default('item-images'),
   width: integer("width"),
   height: integer("height"),
   description: text("description"),

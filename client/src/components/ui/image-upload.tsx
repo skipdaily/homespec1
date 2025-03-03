@@ -1,10 +1,10 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Button } from "./button";
 import { Input } from "./input";
 import { Label } from "./label";
 import { supabase } from "@/lib/supabase";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Upload, X, AlertCircle, FileIcon } from "lucide-react";
+import { Loader2, Upload, X, AlertCircle } from "lucide-react";
 import { Image } from "@shared/schema";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
@@ -17,14 +17,8 @@ interface ImageUploadProps {
   onUploadComplete?: () => void;
 }
 
-type FileWithPreview = {
-  file: File;
-  preview?: string;
-  type: 'image' | 'pdf';
-};
-
 export function ImageUpload({ itemId, onUploadComplete }: ImageUploadProps) {
-  const [files, setFiles] = useState<FileWithPreview[]>([]);
+  const [files, setFiles] = useState<File[]>([]);
   const [uploading, setUploading] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const { toast } = useToast();
@@ -32,80 +26,66 @@ export function ImageUpload({ itemId, onUploadComplete }: ImageUploadProps) {
   // Check if storage is properly configured
   const { data: storageAccessible, isLoading: checkingStorage } = useQuery({
     queryKey: ["storage-access"],
-    queryFn: async () => {
-      const [imagesAccess, documentsAccess] = await Promise.all([
-        checkStorageAccess('item-images'),
-        checkStorageAccess('item-documents')
-      ]);
-      return imagesAccess && documentsAccess;
-    },
+    queryFn: checkStorageAccess,
   });
 
   const uploadMutation = useMutation({
-    mutationFn: async (files: FileWithPreview[]) => {
+    mutationFn: async (files: File[]) => {
       if (!storageAccessible) {
-        throw new Error("Storage buckets not configured");
+        throw new Error("Storage bucket not configured");
       }
 
       setUploading(true);
-      const uploadedFiles: Image[] = [];
+      const uploadedImages: Image[] = [];
 
       try {
-        for (const fileData of files) {
-          const { file } = fileData;
-          const isImage = file.type.startsWith('image/');
-          const isPDF = file.type === 'application/pdf';
-
-          if (!isImage && !isPDF) {
-            throw new Error(`${file.name} is not a supported file type`);
+        for (const file of files) {
+          if (!file.type.startsWith('image/')) {
+            throw new Error(`${file.name} is not an image file`);
           }
-
-          const maxSize = 5 * 1024 * 1024; // 5MB limit
-          if (file.size > maxSize) {
+          if (file.size > 5 * 1024 * 1024) { // 5MB limit
             throw new Error(`${file.name} exceeds 5MB limit`);
           }
 
-          // Choose bucket based on file type
-          const bucket = isImage ? 'item-images' : 'item-documents';
+          // Upload file to Supabase Storage
           const fileExt = file.name.split('.').pop();
           const filePath = `${itemId}/${Date.now()}.${fileExt}`;
 
           const { data: storageData, error: storageError } = await supabase.storage
-            .from(bucket)
+            .from('item-images')
             .upload(filePath, file);
 
           if (storageError) throw storageError;
 
-          // Create file metadata record
+          // Create image metadata record
           const { data: imageData, error: dbError } = await supabase
             .from('images')
             .insert([{
               item_id: itemId,
-              storage_path: filePath,
+              storage_path: filePath, // Use storage_path instead of url
               filename: file.name,
               size: file.size,
-              mime_type: file.type,
-              bucket: bucket
+              mime_type: file.type
             }])
             .select()
             .single();
 
           if (dbError) throw dbError;
 
-          uploadedFiles.push(imageData);
+          uploadedImages.push(imageData);
         }
 
-        return uploadedFiles;
+        return uploadedImages;
       } finally {
         setUploading(false);
       }
     },
-    onSuccess: (uploadedFiles) => {
+    onSuccess: (uploadedImages) => {
       queryClient.invalidateQueries({ queryKey: ["item-images", itemId] });
       setFiles([]);
       toast({
         title: "Success",
-        description: `Successfully uploaded ${uploadedFiles.length} file${uploadedFiles.length === 1 ? '' : 's'}`,
+        description: `Successfully uploaded ${uploadedImages.length} image${uploadedImages.length === 1 ? '' : 's'}`,
       });
       onUploadComplete?.();
     },
@@ -141,18 +121,14 @@ export function ImageUpload({ itemId, onUploadComplete }: ImageUploadProps) {
 
   const handleFiles = (selectedFiles: File[]) => {
     const validFiles = selectedFiles.filter(file => {
-      const isImage = file.type.startsWith('image/');
-      const isPDF = file.type === 'application/pdf';
-
-      if (!isImage && !isPDF) {
+      if (!file.type.startsWith('image/')) {
         toast({
           title: "Invalid file type",
-          description: `${file.name} is not a supported file type. Please upload images or PDFs only.`,
+          description: `${file.name} is not an image file`,
           variant: "destructive",
         });
         return false;
       }
-
       if (file.size > 5 * 1024 * 1024) { // 5MB limit
         toast({
           title: "File too large",
@@ -162,12 +138,7 @@ export function ImageUpload({ itemId, onUploadComplete }: ImageUploadProps) {
         return false;
       }
       return true;
-    }).map(file => ({
-      file,
-      preview: file.type.startsWith('image/') ? URL.createObjectURL(file) : undefined,
-      type: file.type.startsWith('image/') ? 'image' as const : 'pdf' as const
-    }));
-
+    });
     setFiles(prevFiles => [...prevFiles, ...validFiles]);
   };
 
@@ -179,11 +150,7 @@ export function ImageUpload({ itemId, onUploadComplete }: ImageUploadProps) {
   };
 
   const handleRemoveFile = (index: number) => {
-    setFiles(prevFiles => {
-      const newFiles = prevFiles.filter((_, i) => i !== index);
-      prevFiles[index].preview && URL.revokeObjectURL(prevFiles[index].preview);
-      return newFiles;
-    });
+    setFiles(prevFiles => prevFiles.filter((_, i) => i !== index));
   };
 
   const handleUpload = () => {
@@ -206,12 +173,12 @@ export function ImageUpload({ itemId, onUploadComplete }: ImageUploadProps) {
         <AlertCircle className="h-4 w-4" />
         <AlertTitle>Storage Not Configured</AlertTitle>
         <AlertDescription>
-          Please create storage buckets named 'item-images' and 'item-documents' in your Supabase dashboard with the following settings:
+          Please create a storage bucket named 'item-images' in your Supabase dashboard with the following settings:
           <ul className="list-disc list-inside mt-2">
-            <li>Bucket names: item-images, item-documents</li>
+            <li>Bucket name: item-images</li>
             <li>Public bucket: Yes</li>
             <li>File size limit: 5MB</li>
-            <li>Allowed mime types: image/jpeg, image/png, image/gif, application/pdf</li>
+            <li>Allowed mime types: image/jpeg, image/png, image/gif</li>
           </ul>
         </AlertDescription>
       </Alert>
@@ -234,44 +201,40 @@ export function ImageUpload({ itemId, onUploadComplete }: ImageUploadProps) {
         )}
       >
         <Input
-          id="file-upload"
+          id="image-upload"
           type="file"
-          accept="image/*,application/pdf"
+          accept="image/*"
           multiple
           onChange={handleFileSelect}
           className="hidden"
         />
         <Label
-          htmlFor="file-upload"
+          htmlFor="image-upload"
           className="flex flex-col items-center justify-center gap-2 cursor-pointer"
         >
           <Upload className="h-8 w-8 text-muted-foreground" />
           <p className="text-sm text-muted-foreground">
-            Drag & drop files here or click to select
+            Drag & drop images here or click to select
           </p>
           <p className="text-xs text-muted-foreground">
-            Supports: JPG, PNG, GIF, PDF (up to 5MB)
+            Supports: JPG, PNG, GIF (up to 5MB)
           </p>
         </Label>
       </div>
 
       {files.length > 0 && (
         <div className="space-y-2">
-          {files.map((fileData, index) => (
+          {files.map((file, index) => (
             <div key={index} className="flex items-center justify-between gap-2 p-2 border rounded">
               <div className="flex items-center gap-2 flex-1">
-                <div className="h-10 w-10 rounded overflow-hidden bg-muted flex items-center justify-center">
-                  {fileData.type === 'image' && fileData.preview ? (
-                    <img
-                      src={fileData.preview}
-                      alt={fileData.file.name}
-                      className="h-full w-full object-cover"
-                    />
-                  ) : (
-                    <FileIcon className="h-6 w-6 text-muted-foreground" />
-                  )}
+                <div className="h-10 w-10 rounded overflow-hidden bg-muted">
+                  <img
+                    src={URL.createObjectURL(file)}
+                    alt={file.name}
+                    className="h-full w-full object-cover"
+                  />
                 </div>
-                <span className="truncate text-sm flex-1">{fileData.file.name}</span>
+                <span className="truncate text-sm flex-1">{file.name}</span>
               </div>
               <Button
                 variant="ghost"
@@ -297,7 +260,7 @@ export function ImageUpload({ itemId, onUploadComplete }: ImageUploadProps) {
             ) : (
               <>
                 <Upload className="mr-2 h-4 w-4" />
-                Upload {files.length} file{files.length === 1 ? '' : 's'}
+                Upload {files.length} image{files.length === 1 ? '' : 's'}
               </>
             )}
           </Button>

@@ -6,7 +6,6 @@ CREATE TABLE IF NOT EXISTS images (
   filename TEXT NOT NULL,
   size INTEGER NOT NULL,
   mime_type TEXT NOT NULL,
-  bucket TEXT NOT NULL DEFAULT 'item-images',
   width INTEGER,
   height INTEGER,
   description TEXT,
