@@ -87,6 +87,73 @@ const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => vo
   const [showDocumentDialog, setShowDocumentDialog] = useState(false);
   const { toast } = useToast();
 
+  // Delete image mutation
+  const deleteImage = useMutation({
+    mutationFn: async (imageId: string) => {
+      const { data, error } = await supabase
+        .from('images')
+        .select('storage_path')
+        .eq('id', imageId)
+        .single();
+
+      if (error) throw error;
+
+      // Delete from storage
+      const { error: storageError } = await supabase.storage
+        .from('item-images')
+        .remove([data.storage_path]);
+
+      if (storageError) throw storageError;
+
+      // Delete from database
+      const { error: dbError } = await supabase
+        .from('images')
+        .delete()
+        .eq('id', imageId);
+
+      if (dbError) throw dbError;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["item-images", item.id] });
+      toast({
+        title: "Success",
+        description: "Image deleted successfully"
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete image",
+        variant: "destructive"
+      });
+    }
+  });
+
+  // Delete document mutation
+  const deleteDocument = useMutation({
+    mutationFn: async (fileName: string) => {
+      const { error } = await supabase.storage
+        .from('item-documents')
+        .remove([`${item.id}/${fileName}`]);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["item-documents", item.id] });
+      toast({
+        title: "Success",
+        description: "Document deleted successfully"
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete document",
+        variant: "destructive"
+      });
+    }
+  });
+
   // Initialize form
   const form = useForm<ItemFormValues>({
     resolver: zodResolver(itemFormSchema),
@@ -310,19 +377,31 @@ const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => vo
                   )}
                 </div>
 
-                {/* Image carousel in expanded view */}
+                {/* Updated image carousel with delete buttons */}
                 {images && images.length > 0 && (
                   <div className="w-full">
                     <Carousel className="w-full">
                       <CarouselContent>
                         {images.map((image) => (
                           <CarouselItem key={image.id}>
-                            <div className="aspect-square w-full">
+                            <div className="relative aspect-square w-full">
                               <img
                                 src={`${supabase.storage.from('item-images').getPublicUrl(image.storage_path).data?.publicUrl}`}
                                 alt={`${item.name} image`}
                                 className="object-cover w-full h-full rounded-md"
                               />
+                              <Button
+                                variant="destructive"
+                                size="icon"
+                                className="absolute top-2 right-2"
+                                onClick={() => {
+                                  if (confirm('Are you sure you want to delete this image?')) {
+                                    deleteImage.mutate(image.id);
+                                  }
+                                }}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
                             </div>
                           </CarouselItem>
                         ))}
@@ -333,21 +412,36 @@ const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => vo
                   </div>
                 )}
               </div>
+
+              {/* Updated documents section with delete buttons */}
               {isDetailsVisible && documents && documents.length > 0 && (
                 <div className="mt-4 space-y-2">
                   <h4 className="text-sm font-medium">Documents</h4>
                   <div className="grid gap-2">
                     {documents.map((doc) => (
-                      <a
-                        key={doc.name}
-                        href={doc.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
-                      >
-                        <FileText className="h-4 w-4" />
-                        {doc.name}
-                      </a>
+                      <div key={doc.name} className="flex items-center justify-between group hover:bg-muted/50 p-2 rounded-md">
+                        <a
+                          href={doc.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+                        >
+                          <FileText className="h-4 w-4" />
+                          {doc.name}
+                        </a>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="opacity-0 group-hover:opacity-100 transition-opacity"
+                          onClick={() => {
+                            if (confirm('Are you sure you want to delete this document?')) {
+                              deleteDocument.mutate(doc.name);
+                            }
+                          }}
+                        >
+                          <Trash2 className="h-4 w-4 text-destructive" />
+                        </Button>
+                      </div>
                     ))}
                   </div>
                 </div>
