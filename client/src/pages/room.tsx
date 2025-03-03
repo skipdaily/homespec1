@@ -46,6 +46,7 @@ interface Item {
   updated_at?: string;
   link?: string;
   notes?: string;
+  version?: number; // Added version field
 }
 
 // Update interface to match database schema
@@ -217,7 +218,44 @@ const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => vo
 
   const updateItem = useMutation({
     mutationFn: async (values: ItemFormValues) => {
-      const { error } = await supabase
+      // First get the current item state
+      const { data: currentItem, error: fetchError } = await supabase
+        .from("items")
+        .select("*")
+        .eq("id", item.id)
+        .single();
+
+      if (fetchError) throw fetchError;
+
+      // Insert the current state into history
+      const { error: historyError } = await supabase
+        .from("item_history")
+        .insert([{
+          item_id: item.id,
+          room_id: currentItem.room_id,
+          name: currentItem.name,
+          brand: currentItem.brand,
+          supplier: currentItem.supplier,
+          specifications: currentItem.specifications,
+          cost: currentItem.cost,
+          warranty_info: currentItem.warranty_info,
+          installation_date: currentItem.installation_date,
+          maintenance_notes: currentItem.maintenance_notes,
+          category: currentItem.category,
+          status: currentItem.status,
+          image_url: currentItem.image_url,
+          document_urls: currentItem.document_urls,
+          version: currentItem.version, // Assuming version exists
+          link: currentItem.link,
+          notes: currentItem.notes,
+          created_at: currentItem.created_at,
+          updated_at: currentItem.updated_at
+        }]);
+
+      if (historyError) throw historyError;
+
+      // Now update the item
+      const { error: updateError } = await supabase
         .from("items")
         .update({
           name: values.name,
@@ -237,7 +275,7 @@ const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => vo
         })
         .eq('id', item.id);
 
-      if (error) throw error;
+      if (updateError) throw updateError;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["items", item.room_id] });
@@ -963,7 +1001,7 @@ export default function RoomPage({ id }: RoomPageProps) {
                                 <div className="grid grid-cols-2 gap-4">
                                   <FormField
                                     control={form.control}
-                                                                   name="name"
+                                    name="name"
                                     render={({ field }) => (
                                       <FormItem>
                                         <FormLabel>Name*</FormLabel>
@@ -1101,7 +1139,6 @@ export default function RoomPage({ id }: RoomPageProps) {
                                       </FormItem>
                                     )}
                                   />
-
                                   <FormField
                                     control={form.control}
                                     name="maintenance_notes"
