@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { supabase } from "@/lib/supabase";
-import { Plus, ChevronDown, ChevronUp, Pencil, Trash2, Home, ChevronRight, Search, Check, ChevronsUpDown, ImageIcon, Printer, Download, Upload } from "lucide-react";
+import { Plus, ChevronDown, ChevronUp, Pencil, Trash2, Home, ChevronRight, Search, Check, ChevronsUpDown, ImageIcon, Printer, Download, Upload, FileText } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -23,6 +23,7 @@ import {Checkbox} from "@/components/ui/checkbox";
 import {Popover, PopoverContent, PopoverTrigger} from "@/components/ui/popover";
 import {Command, CommandEmpty, CommandGroup, CommandInput, CommandItem} from "@/components/ui/command";
 import { NavBreadcrumb } from "@/components/layout/nav-breadcrumb";
+import { DocumentUpload } from "@/components/ui/document-upload";
 
 
 // Update interface to match database schema
@@ -83,6 +84,7 @@ const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => vo
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showImageDialog, setShowImageDialog] = useState(false);
+  const [showDocumentDialog, setShowDocumentDialog] = useState(false);
   const { toast } = useToast();
 
   // Initialize form
@@ -117,6 +119,32 @@ const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => vo
 
       if (error) throw error;
       return data || [];
+    }
+  });
+
+  const { data: documents } = useQuery<{ name: string, url: string }[]>({
+    queryKey: ["item-documents", item.id],
+    queryFn: async () => {
+      const { data: files, error } = await supabase.storage
+        .from('item-documents')
+        .list(item.id);
+
+      if (error) throw error;
+
+      const docs = await Promise.all(
+        (files || []).map(async (file) => {
+          const { data } = supabase.storage
+            .from('item-documents')
+            .getPublicUrl(`${item.id}/${file.name}`);
+
+          return {
+            name: file.name,
+            url: data.publicUrl
+          };
+        })
+      );
+
+      return docs;
     }
   });
 
@@ -204,6 +232,14 @@ const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => vo
               onClick={() => setShowDeleteDialog(true)}
             >
               <Trash2 className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowDocumentDialog(true)}
+              className="h-8 w-8"
+            >
+              <FileText className="h-4 w-4" />
             </Button>
             <Button
               variant="ghost"
@@ -297,6 +333,25 @@ const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => vo
                   </div>
                 )}
               </div>
+              {isDetailsVisible && documents && documents.length > 0 && (
+                <div className="mt-4 space-y-2">
+                  <h4 className="text-sm font-medium">Documents</h4>
+                  <div className="grid gap-2">
+                    {documents.map((doc) => (
+                      <a
+                        key={doc.name}
+                        href={doc.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+                      >
+                        <FileText className="h-4 w-4" />
+                        {doc.name}
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
           )}
         </div>
@@ -435,6 +490,27 @@ const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => vo
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      {/* Add this dialog for document upload */}
+      <Dialog open={showDocumentDialog} onOpenChange={setShowDocumentDialog}>
+        <DialogContent className="sm:max-w-[600px]">
+          <DialogHeader>
+            <DialogTitle>Upload Documents - {item.name}</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <DocumentUpload
+              itemId={item.id}
+              onUploadComplete={() => {
+                queryClient.invalidateQueries({ queryKey: ["item-documents", item.id] });
+                setShowDocumentDialog(false);
+                toast({
+                  title: "Success",
+                  description: "Documents uploaded successfully"
+                });
+              }}
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
@@ -871,6 +947,7 @@ export default function RoomPage({ id }: RoomPageProps) {
                                       </FormItem>
                                     )}
                                   />
+
                                 </div>
                                 <div className="grid grid-cols-2 gap-4">
                                   <FormField
@@ -969,7 +1046,8 @@ export default function RoomPage({ id }: RoomPageProps) {
                                         <FormLabel>Cost</FormLabel>
                                         <FormControl>
                                           <Input
-                                            type="number"                                            step="0.01"
+                                            type="number"
+                                            step="0.01"
                                             placeholder="Enter cost"
                                             {...field}
                                           />
