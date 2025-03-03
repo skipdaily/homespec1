@@ -316,7 +316,7 @@ const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => vo
           </p>
           <div className="flex items-center space-x-2">
             <div className="flex items-center">
-              <span className="text-sm text-muted-foreground mr-1">{images.length || 0}</span>
+              <span className="text-sm text-muted-foreground mr-0.5">{images.length || 0}</span>
               <Button
                 variant="ghost"
                 size="icon"
@@ -328,7 +328,7 @@ const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => vo
             </div>
 
             <div className="flex items-center">
-              <span className="text-sm text-muted-foreground mr-1">{itemHistory.length || 0}</span>
+              <span className="text-sm text-muted-foreground mr-0.5">{itemHistory.length || 0}</span>
               <Button
                 variant="ghost"
                 size="icon"
@@ -340,7 +340,7 @@ const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => vo
             </div>
 
             <div className="flex items-center">
-              <span className="text-sm text-muted-foreground mr-1">{documents.length || 0}</span>
+              <span className="text-sm text-muted-foreground mr-0.5">{documents.length || 0}</span>
               <Button
                 variant="ghost"
                 size="icon"
