@@ -199,21 +199,20 @@ const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => vo
   });
 
   // Query to fetch images for this item
-  const { data: images } = useQuery<Image[]>({
+  const { data: images = [] } = useQuery<Image[]>({
     queryKey: ["item-images", item.id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("images")
         .select("*")
-        .eq("item_id", item.id)
-        .order("created_at", { ascending: false });
+        .eq("item_id", item.id);
 
       if (error) throw error;
       return data || [];
     }
   });
 
-  const { data: documents } = useQuery<{ name: string, url: string }[]>({
+  const { data: documents = [] } = useQuery<{ name: string, url: string }[]>({
     queryKey: ["item-documents", item.id],
     queryFn: async () => {
       const { data: files, error } = await supabase.storage
@@ -240,19 +239,17 @@ const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => vo
   });
 
   // Add history query
-  const { data: itemHistory } = useQuery<ItemHistory[]>({
+  const { data: itemHistory = [] } = useQuery<ItemHistory[]>({
     queryKey: ["item-history", item.id],
     queryFn: async () => {
       const { data, error } = await supabase
         .from("item_history")
         .select("*")
-        .eq("item_id", item.id)
-        .order("created_at", { ascending: false });
+        .eq("item_id", item.id);
 
       if (error) throw error;
       return data || [];
-    },
-    enabled: showHistoryDialog // Only fetch when dialog is open
+    }
   });
 
   const updateItem = useMutation({
@@ -318,22 +315,48 @@ const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => vo
             Category: {item.category}
           </p>
           <div className="flex items-center space-x-2">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setShowImageDialog(true)}
-              className="h-8 w-8"
-            >
-              <ImageIcon className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setShowHistoryDialog(true)}
-              className="h-8 w-8"
-            >
-              <History className="h-4 w-4" />
-            </Button>
+            <div className="relative">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowImageDialog(true)}
+                className="h-8 w-8"
+              >
+                <ImageIcon className="h-4 w-4" />
+              </Button>
+              <span className="absolute -top-2 -right-2 bg-primary text-primary-foreground rounded-full w-4 h-4 text-xs flex items-center justify-center">
+                {images.length || 0}
+              </span>
+            </div>
+
+            <div className="relative">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowHistoryDialog(true)}
+                className="h-8 w-8"
+              >
+                <History className="h-4 w-4" />
+              </Button>
+              <span className="absolute -top-2 -right-2 bg-primary text-primary-foreground rounded-full w-4 h-4 text-xs flex items-center justify-center">
+                {itemHistory.length || 0}
+              </span>
+            </div>
+
+            <div className="relative">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowDocumentDialog(true)}
+                className="h-8 w-8"
+              >
+                <FileText className="h-4 w-4" />
+              </Button>
+              <span className="absolute -top-2 -right-2 bg-primary text-primary-foreground rounded-full w-4 h-4 text-xs flex items-center justify-center">
+                {documents.length || 0}
+              </span>
+            </div>
+
             <Button
               variant="ghost"
               size="icon"
@@ -341,6 +364,7 @@ const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => vo
             >
               <Pencil className="h-4 w-4" />
             </Button>
+
             <Button
               variant="ghost"
               size="icon"
@@ -348,14 +372,7 @@ const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => vo
             >
               <Trash2 className="h-4 w-4" />
             </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setShowDocumentDialog(true)}
-              className="h-8 w-8"
-            >
-              <FileText className="h-4 w-4" />
-            </Button>
+
             <Button
               variant="ghost"
               size="icon"
