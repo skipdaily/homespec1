@@ -867,15 +867,15 @@ export default function RoomPage({ id }: RoomPageProps) {
         ]}
       />
       {/* Project Header Section */}
-      <div className="sticky top-0 bg-background z-10 pb-4 border-b space-y-6">
-        <div className="bg-card rounded-lg p-6 shadow-sm">
-          <div className="grid lg:grid-cols-2 gap-8">
+      <div className="sticky top-0 bg-background z-10 pb-2 border-b">
+        <div className="bg-card rounded-lg p-4 shadow-sm">
+          <div className="grid lg:grid-cols-2 gap-4">
             {/* Left Column - Project Details */}
-            <div className="space-y-4">
+            <div className="space-y-2">
               <div>
-                <h1 className="text-4xl font-bold tracking-tight">{room.name}</h1>
-                <div className="mt-2 space-y-1">
-                  <p className="text-lg text-muted-foreground">
+                <h1 className="text-2xl font-bold tracking-tight">{room.name}</h1>
+                <div className="mt-1 space-y-1">
+                  <p className="text-muted-foreground">
                     {room.description}
                   </p>
                   <div className="flex items-center gap-4 text-sm text-muted-foreground">
@@ -898,7 +898,7 @@ export default function RoomPage({ id }: RoomPageProps) {
 
             {/* Right Column - Actions */}
             <div className="flex flex-col justify-between">
-              <div className="flex items-center gap-4 mt-4">
+              <div className="flex items-center gap-4">
                 <div className="relative flex-1">
                   <Input
                     type="text"
@@ -963,7 +963,7 @@ export default function RoomPage({ id }: RoomPageProps) {
                                 <div className="grid grid-cols-2 gap-4">
                                   <FormField
                                     control={form.control}
-                                    name="name"
+                                                                   name="name"
                                     render={({ field }) => (
                                       <FormItem>
                                         <FormLabel>Name*</FormLabel>
