@@ -26,7 +26,7 @@ import { NavBreadcrumb } from "@/components/layout/nav-breadcrumb";
 import { DocumentUpload } from "@/components/ui/document-upload";
 
 
-// Update interface to match database schema
+// Update interface to match database schema without version
 interface Item {
   id: string;
   room_id: string;
@@ -46,7 +46,6 @@ interface Item {
   updated_at?: string;
   link?: string;
   notes?: string;
-  version?: number; // Added version field
 }
 
 // Update interface to match database schema
@@ -218,43 +217,6 @@ const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => vo
 
   const updateItem = useMutation({
     mutationFn: async (values: ItemFormValues) => {
-      // First get the current item state
-      const { data: currentItem, error: fetchError } = await supabase
-        .from("items")
-        .select("*")
-        .eq("id", item.id)
-        .single();
-
-      if (fetchError) throw fetchError;
-
-      // Insert the current state into history
-      const { error: historyError } = await supabase
-        .from("item_history")
-        .insert([{
-          item_id: item.id,
-          room_id: currentItem.room_id,
-          name: currentItem.name,
-          brand: currentItem.brand,
-          supplier: currentItem.supplier,
-          specifications: currentItem.specifications,
-          cost: currentItem.cost,
-          warranty_info: currentItem.warranty_info,
-          installation_date: currentItem.installation_date,
-          maintenance_notes: currentItem.maintenance_notes,
-          category: currentItem.category,
-          status: currentItem.status,
-          image_url: currentItem.image_url,
-          document_urls: currentItem.document_urls,
-          version: currentItem.version, // Assuming version exists
-          link: currentItem.link,
-          notes: currentItem.notes,
-          created_at: currentItem.created_at,
-          updated_at: currentItem.updated_at
-        }]);
-
-      if (historyError) throw historyError;
-
-      // Now update the item
       const { error: updateError } = await supabase
         .from("items")
         .update({
@@ -997,8 +959,7 @@ export default function RoomPage({ id }: RoomPageProps) {
                         <Form {...form}>
                           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
                             <ScrollArea className="h-[65vh] px-4">
-                              <div className="space-y-4 pr-4">
-                                <div className="grid grid-cols-2 gap-4">
+                              <div className="space-y-4 pr-4"><div className="grid grid-cols-2 gap-4">
                                   <FormField
                                     control={form.control}
                                     name="name"
@@ -1248,61 +1209,61 @@ export default function RoomPage({ id }: RoomPageProps) {
             </div>
           </div>
         </div>
-      </div>
 
-      {/* Main content */}
-      <div className="py-6">
-        <div className="grid gap-4">
-          {filteredItems?.map((item) => (
-            <div key={item.id} className="flex items-start gap-4">
-              {isSelectionMode && (
-                <Checkbox
-                  checked={selectedItems.includes(item.id)}
-                  onClick={() => {
-                    setSelectedItems(prev =>
-                      prev.includes(item.id)
-                        ? prev.filter(id => id!== item.id)
-                        : [...prev, item.id]
-                    );
-                  }}
-                />
-              )}
-              <div className="flex-1">
-                <ItemCard
-                  item={item}
-                  onDelete={handleDelete}
-                />
+        {/* Main content */}
+        <div className="py-6">
+          <div className="grid gap-4">
+            {filteredItems?.map((item) => (
+              <div key={item.id} className="flex items-start gap-4">
+                {isSelectionMode && (
+                  <Checkbox
+                    checked={selectedItems.includes(item.id)}
+                    onClick={() => {
+                      setSelectedItems(prev =>
+                        prev.includes(item.id)
+                          ? prev.filter(id => id!== item.id)
+                          : [...prev, item.id]
+                      );
+                    }}
+                  />
+                )}
+                <div className="flex-1">
+                  <ItemCard
+                    item={item}
+                    onDelete={handleDelete}
+                  />
+                </div>
               </div>
-            </div>
-          ))}
-          {filteredItems?.length === 0 && (
-            <div className="text-center py8 text-muted-foreground">
-              No items found matching your search.
-            </div>
-          )}
+            ))}
+            {filteredItems?.length === 0 && (
+              <div className="text-center py8 text-muted-foreground">
+                No items found matching your search.
+              </div>
+            )}
+          </div>
         </div>
-      </div>
 
-      {/* Bulk Delete Dialog */}
-      <AlertDialog open={showBulkDeleteDialog} onOpenChange={setShowBulkDeleteDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-            <AlertDialogDescription>
-              This will permanently delete {selectedItems.length} selected items. This action cannot be undone.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleBulkDelete}
-              disabled={bulkDeleteItems.isPending}
-            >
-              {bulkDeleteItems.isPending ? "Deleting..." : "Delete"}
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+        {/* Bulk Delete Dialog */}
+        <AlertDialog open={showBulkDeleteDialog} onOpenChange={setShowBulkDeleteDialog}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+              <AlertDialogDescription>
+                This will permanently delete {selectedItems.length} selected items. This action cannot be undone.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                onClick={handleBulkDelete}
+                disabled={bulkDeleteItems.isPending}
+              >
+                {bulkDeleteItems.isPending ? "Deleting..." : "Delete"}
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </div>
     </div>
   );
 }
