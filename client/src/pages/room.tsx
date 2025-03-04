@@ -254,6 +254,33 @@ const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => vo
 
   const updateItem = useMutation({
     mutationFn: async (values: ItemFormValues) => {
+      // Insert current state into history first
+      const { error: historyError } = await supabase
+        .from("item_history")
+        .insert([{
+          item_id: item.id,
+          room_id: item.room_id,
+          name: item.name,
+          brand: item.brand,
+          supplier: item.supplier,
+          specifications: item.specifications,
+          cost: item.cost,
+          warranty_info: item.warranty_info,
+          installation_date: item.installation_date,
+          maintenance_notes: item.maintenance_notes,
+          category: item.category,
+          status: item.status,
+          image_url: item.image_url,
+          document_urls: item.document_urls,
+          link: item.link,
+          notes: item.notes,
+          created_at: item.created_at,
+          updated_at: new Date().toISOString()
+        }]);
+
+      if (historyError) throw historyError;
+
+      // Now update the item with new values and current timestamp
       const { error: updateError } = await supabase
         .from("items")
         .update({
@@ -268,9 +295,9 @@ const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => vo
           category: values.category,
           status: values.status || null,
           document_urls: values.document_urls || [],
-          updated_at: new Date().toISOString(),
           link: values.link || null,
           notes: values.notes || null,
+          updated_at: new Date().toISOString() // Explicitly set the current timestamp
         })
         .eq('id', item.id);
 
