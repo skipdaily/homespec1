@@ -254,6 +254,8 @@ const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => vo
 
   const updateItem = useMutation({
     mutationFn: async (values: ItemFormValues) => {
+      const timestamp = new Date().toISOString();
+
       // Insert current state into history first
       const { error: historyError } = await supabase
         .from("item_history")
@@ -274,8 +276,8 @@ const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => vo
           document_urls: item.document_urls,
           link: item.link,
           notes: item.notes,
-          created_at: item.created_at,
-          updated_at: new Date().toISOString()
+          created_at: timestamp,
+          updated_at: timestamp
         }]);
 
       if (historyError) throw historyError;
@@ -297,7 +299,7 @@ const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => vo
           document_urls: values.document_urls || [],
           link: values.link || null,
           notes: values.notes || null,
-          updated_at: new Date().toISOString() // Explicitly set the current timestamp
+          updated_at: timestamp
         })
         .eq('id', item.id);
 
@@ -305,6 +307,7 @@ const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => vo
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["items", item.room_id] });
+      queryClient.invalidateQueries({ queryKey: ["item-history", item.id] });
       setShowEditDialog(false);
       toast({
         title: "Success",
