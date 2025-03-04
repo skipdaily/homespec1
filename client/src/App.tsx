@@ -17,6 +17,10 @@ import Room from "./pages/room";
 import Performance from "./pages/performance";
 import NotFound from "./pages/not-found";
 
+// Tutorial Components
+import { TutorialProvider } from "./components/tutorial/TutorialContext";
+import { TutorialStep } from "./components/tutorial/TutorialStep";
+
 interface PrivateRouteProps {
   component: React.ComponentType<any>;
   params?: { [key: string]: string };
@@ -68,6 +72,7 @@ function Router() {
   return (
     <>
       <Navbar />
+      <TutorialStep />
       <Switch>
         <Route path="/" component={Home} />
         <Route path="/login" component={Login} />
@@ -95,8 +100,10 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <Router />
-      <Toaster />
+      <TutorialProvider>
+        <Router />
+        <Toaster />
+      </TutorialProvider>
     </QueryClientProvider>
   );
 }
