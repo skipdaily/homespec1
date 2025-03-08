@@ -1,6 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
+import { db } from "./db";
 import { insertRoomSchema, insertFinishSchema, insertProjectSchema, insertItemSchema } from "@shared/schema";
 import { ZodError } from "zod";
 import { nanoid } from "nanoid";
