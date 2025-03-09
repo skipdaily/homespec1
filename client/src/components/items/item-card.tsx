@@ -6,9 +6,10 @@ import { Carousel, CarouselContent, CarouselItem, CarouselNext, CarouselPrevious
 import { Button } from "@/components/ui/button";
 import { ImageUpload } from "@/components/ui/image-upload";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Image as ImageIcon, ChevronLeft, ChevronRight, X, Pencil, Trash2 } from "lucide-react";
+import { Image as ImageIcon, ChevronLeft, ChevronRight, X, Pencil, Trash2, History, FileText } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { motion, AnimatePresence } from "framer-motion";
 
 interface ItemCardProps {
   item: Item;
@@ -17,6 +18,7 @@ interface ItemCardProps {
 }
 
 export default function ItemCard({ item, onEdit, onDelete }: ItemCardProps) {
+  const [isExpanded, setIsExpanded] = useState(true); // Show more details by default
   const [showImageDialog, setShowImageDialog] = useState(false);
   const [showFullscreenImage, setShowFullscreenImage] = useState(false);
   const [currentImageIndex, setCurrentImageIndex] = useState(0);
@@ -42,13 +44,13 @@ export default function ItemCard({ item, onEdit, onDelete }: ItemCardProps) {
   };
 
   const handlePrevImage = () => {
-    setCurrentImageIndex((prev) => 
+    setCurrentImageIndex((prev) =>
       prev === 0 ? (images?.length || 1) - 1 : prev - 1
     );
   };
 
   const handleNextImage = () => {
-    setCurrentImageIndex((prev) => 
+    setCurrentImageIndex((prev) =>
       prev === (images?.length || 1) - 1 ? 0 : prev + 1
     );
   };
@@ -68,120 +70,191 @@ export default function ItemCard({ item, onEdit, onDelete }: ItemCardProps) {
   };
 
   return (
-    <Card className="group transition-all duration-200 hover:shadow-lg hover:border-primary/20 bg-gradient-to-br from-background to-muted">
-      <CardHeader>
-        <div className="flex justify-between items-start">
-          <CardTitle className="group-hover:text-primary transition-colors">{item.name}</CardTitle>
-          <div className="flex space-x-2">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setShowImageDialog(true)}
-              className="h-8 w-8 hover:text-primary hover:bg-primary/10"
-            >
-              <ImageIcon className="h-4 w-4" />
-            </Button>
-            {onEdit && (
+    <motion.div
+      layout
+      onClick={() => setIsExpanded(!isExpanded)}
+      className="cursor-pointer"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+    >
+      <Card className={cn(
+        "group transition-all duration-200",
+        "hover:shadow-lg hover:border-primary/20",
+        "bg-gradient-to-br from-background to-muted",
+        isExpanded && "ring-2 ring-primary/20"
+      )}>
+        <CardHeader>
+          <div className="flex justify-between items-start">
+            <CardTitle className="group-hover:text-primary transition-colors">{item.name}</CardTitle>
+            <div className="flex space-x-2" onClick={e => e.stopPropagation()}>
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={onEdit}
+                onClick={() => setShowImageDialog(true)}
                 className="h-8 w-8 hover:text-primary hover:bg-primary/10"
               >
-                <Pencil className="h-4 w-4" />
+                <ImageIcon className="h-4 w-4" />
               </Button>
-            )}
-            {onDelete && (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={onDelete}
-                className="h-8 w-8 text-destructive hover:bg-destructive/10"
-              >
-                <Trash2 className="h-4 w-4" />
-              </Button>
-            )}
+              {onEdit && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={onEdit}
+                  className="h-8 w-8 hover:text-primary hover:bg-primary/10"
+                >
+                  <Pencil className="h-4 w-4" />
+                </Button>
+              )}
+              {onDelete && (
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={onDelete}
+                  className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
           </div>
-        </div>
-      </CardHeader>
-      <CardContent className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="space-y-4">
-          {item.brand && (
-            <div className="p-3 rounded-lg bg-card/50 hover:bg-card transition-colors">
-              <div className="text-sm font-medium text-primary">Brand</div>
-              <div className="text-sm text-muted-foreground">{item.brand}</div>
-            </div>
-          )}
+        </CardHeader>
 
-          {item.supplier && (
-            <div className="p-3 rounded-lg bg-card/50 hover:bg-card transition-colors">
-              <div className="text-sm font-medium text-primary">Supplier</div>
-              <div className="text-sm text-muted-foreground">{item.supplier}</div>
-            </div>
-          )}
-
-          {item.specifications && (
-            <div className="p-3 rounded-lg bg-card/50 hover:bg-card transition-colors">
-              <div className="text-sm font-medium text-primary">Specifications</div>
-              <div className="text-sm text-muted-foreground">{item.specifications}</div>
-            </div>
-          )}
-
-          {item.cost !== null && (
-            <div className="p-3 rounded-lg bg-card/50 hover:bg-card transition-colors">
-              <div className="text-sm font-medium text-primary">Cost</div>
-              <div className="text-sm text-muted-foreground">
-                ${typeof item.cost === 'number' ? item.cost.toFixed(2) : item.cost}
-              </div>
-            </div>
-          )}
-
-          {item.category && (
-            <div className="p-3 rounded-lg bg-card/50 hover:bg-card transition-colors">
-              <div className="text-sm font-medium text-primary">Category</div>
-              <div className={cn("text-sm px-2 py-1 rounded-md inline-block mt-1", getCategoryColor(item.category))}>
+        <CardContent>
+          <AnimatePresence>
+            <motion.div
+              layout
+              className="space-y-4"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.2 }}
+            >
+              <div className={cn("text-sm text-muted-foreground", getCategoryColor(item.category))}>
                 {item.category}
               </div>
-            </div>
-          )}
 
-          {item.warranty_info && (
-            <div className="p-3 rounded-lg bg-card/50 hover:bg-card transition-colors">
-              <div className="text-sm font-medium text-primary">Warranty Information</div>
-              <div className="text-sm text-muted-foreground">{item.warranty_info}</div>
-            </div>
-          )}
-        </div>
+              {item.specifications && (
+                <motion.div layout className="p-3 rounded-lg bg-card/50 hover:bg-card transition-colors">
+                  <div className="text-sm font-medium text-primary">Specifications</div>
+                  <div className="text-sm text-muted-foreground">{item.specifications}</div>
+                </motion.div>
+              )}
 
-        {/* Image Carousel */}
-        {images && images.length > 0 && (
-          <div className="relative">
-            <Carousel className="w-full">
-              <CarouselContent>
-                {images.map((image, index) => (
-                  <CarouselItem key={image.id}>
-                    <div 
-                      className="aspect-square relative rounded-lg overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all"
-                      onClick={() => {
-                        setCurrentImageIndex(index);
-                        setShowFullscreenImage(true);
-                      }}
-                    >
-                      <img
-                        src={getImageUrl(image.storage_path)}
-                        alt={image.description || item.name}
-                        className="object-cover w-full h-full"
-                      />
+              <motion.div layout className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {item.brand && (
+                  <div className="p-3 rounded-lg bg-card/50 hover:bg-card transition-colors">
+                    <div className="text-sm font-medium text-primary">Brand</div>
+                    <div className="text-sm text-muted-foreground">{item.brand}</div>
+                  </div>
+                )}
+
+                {item.supplier && (
+                  <div className="p-3 rounded-lg bg-card/50 hover:bg-card transition-colors">
+                    <div className="text-sm font-medium text-primary">Supplier</div>
+                    <div className="text-sm text-muted-foreground">{item.supplier}</div>
+                  </div>
+                )}
+
+                {item.cost !== null && (
+                  <div className="p-3 rounded-lg bg-card/50 hover:bg-card transition-colors">
+                    <div className="text-sm font-medium text-primary">Cost</div>
+                    <div className="text-sm text-muted-foreground">
+                      ${typeof item.cost === 'number' ? item.cost.toFixed(2) : item.cost}
                     </div>
-                  </CarouselItem>
-                ))}
-              </CarouselContent>
-              <CarouselPrevious className="left-2" />
-              <CarouselNext className="right-2" />
-            </Carousel>
-          </div>
-        )}
-      </CardContent>
+                  </div>
+                )}
+
+                {item.warranty_info && (
+                  <div className="p-3 rounded-lg bg-card/50 hover:bg-card transition-colors">
+                    <div className="text-sm font-medium text-primary">Warranty</div>
+                    <div className="text-sm text-muted-foreground">{item.warranty_info}</div>
+                  </div>
+                )}
+              </motion.div>
+
+              {/* Images section */}
+              {images && images.length > 0 && (
+                <motion.div layout className="w-full">
+                  <Carousel className="w-full">
+                    <CarouselContent>
+                      {images.map((image) => (
+                        <CarouselItem key={image.id}>
+                          <div 
+                            className="aspect-square relative rounded-lg overflow-hidden cursor-pointer hover:ring-2 hover:ring-primary/50 transition-all"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setCurrentImageIndex(images.indexOf(image));
+                              setShowFullscreenImage(true);
+                            }}
+                          >
+                            <img
+                              src={getImageUrl(image.storage_path)}
+                              alt={`${item.name} image`}
+                              className="object-cover w-full h-full"
+                            />
+                          </div>
+                        </CarouselItem>
+                      ))}
+                    </CarouselContent>
+                    <CarouselPrevious />
+                    <CarouselNext />
+                  </Carousel>
+                </motion.div>
+              )}
+
+              {/* Additional details that show when expanded */}
+              <AnimatePresence>
+                {isExpanded && (
+                  <motion.div
+                    initial={{ opacity: 0, height: 0 }}
+                    animate={{ opacity: 1, height: "auto" }}
+                    exit={{ opacity: 0, height: 0 }}
+                    transition={{ duration: 0.2 }}
+                    className="space-y-4 pt-4 border-t"
+                  >
+                    {item.maintenance_notes && (
+                      <div className="p-3 rounded-lg bg-card/50 hover:bg-card transition-colors">
+                        <div className="text-sm font-medium text-primary">Maintenance Notes</div>
+                        <div className="text-sm text-muted-foreground">{item.maintenance_notes}</div>
+                      </div>
+                    )}
+
+                    {item.installation_date && (
+                      <div className="p-3 rounded-lg bg-card/50 hover:bg-card transition-colors">
+                        <div className="text-sm font-medium text-primary">Installation Date</div>
+                        <div className="text-sm text-muted-foreground">{item.installation_date}</div>
+                      </div>
+                    )}
+
+                    {item.link && (
+                      <div className="p-3 rounded-lg bg-card/50 hover:bg-card transition-colors">
+                        <div className="text-sm font-medium text-primary">External Link</div>
+                        <a 
+                          href={item.link} 
+                          target="_blank" 
+                          rel="noopener noreferrer"
+                          className="text-sm text-primary hover:underline"
+                          onClick={(e) => e.stopPropagation()}
+                        >
+                          {item.link}
+                        </a>
+                      </div>
+                    )}
+
+                    {item.notes && (
+                      <div className="p-3 rounded-lg bg-card/50 hover:bg-card transition-colors">
+                        <div className="text-sm font-medium text-primary">Additional Notes</div>
+                        <div className="text-sm text-muted-foreground">{item.notes}</div>
+                      </div>
+                    )}
+                  </motion.div>
+                )}
+              </AnimatePresence>
+            </motion.div>
+          </AnimatePresence>
+        </CardContent>
+      </Card>
 
       {/* Image Upload Dialog */}
       <Dialog open={showImageDialog} onOpenChange={setShowImageDialog}>
@@ -249,6 +322,6 @@ export default function ItemCard({ item, onEdit, onDelete }: ItemCardProps) {
           </DialogContent>
         </Dialog>
       )}
-    </Card>
+    </motion.div>
   );
 }
