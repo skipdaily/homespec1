@@ -24,6 +24,7 @@ import {Popover, PopoverContent, PopoverTrigger} from "@/components/ui/popover";
 import {Command, CommandEmpty, CommandGroup, CommandInput, CommandItem} from "@/components/ui/command";
 import { NavBreadcrumb } from "@/components/layout/nav-breadcrumb";
 import { DocumentUpload } from "@/components/ui/document-upload";
+import { motion, AnimatePresence } from 'framer-motion';
 
 
 // Update interface to match database schema without version
@@ -103,100 +104,13 @@ type ItemFormValues = z.infer<typeof itemFormSchema>;
 
 // ItemCard component to handle individual item state
 const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => void }) => {
-  const [isDetailsVisible, setIsDetailsVisible] = useState(false);
+  const [isExpanded, setIsExpanded] = useState(true); // Show details by default
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const [showEditDialog, setShowEditDialog] = useState(false);
   const [showImageDialog, setShowImageDialog] = useState(false);
   const [showDocumentDialog, setShowDocumentDialog] = useState(false);
   const [showHistoryDialog, setShowHistoryDialog] = useState(false);
   const { toast } = useToast();
-
-  // Delete image mutation
-  const deleteImage = useMutation({
-    mutationFn: async (imageId: string) => {
-      const { data, error } = await supabase
-        .from('images')
-        .select('storage_path')
-        .eq('id', imageId)
-        .single();
-
-      if (error) throw error;
-
-      // Delete from storage
-      const { error: storageError } = await supabase.storage
-        .from('item-images')
-        .remove([data.storage_path]);
-
-      if (storageError) throw storageError;
-
-      // Delete from database
-      const { error: dbError } = await supabase
-        .from('images')
-        .delete()
-        .eq('id', imageId);
-
-      if (dbError) throw dbError;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["item-images", item.id] });
-      toast({
-        title: "Success",
-        description: "Image deleted successfully"
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to delete image",
-        variant: "destructive"
-      });
-    }
-  });
-
-  // Delete document mutation
-  const deleteDocument = useMutation({
-    mutationFn: async (fileName: string) => {
-      const { error } = await supabase.storage
-        .from('item-documents')
-        .remove([`${item.id}/${fileName}`]);
-
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["item-documents", item.id] });
-      toast({
-        title: "Success",
-        description: "Document deleted successfully"
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to delete document",
-        variant: "destructive"
-      });
-    }
-  });
-
-  // Initialize form
-  const form = useForm<ItemFormValues>({
-    resolver: zodResolver(itemFormSchema),
-    defaultValues: {
-      name: item.name,
-      brand: item.brand || "",
-      supplier: item.supplier || "",
-      specifications: item.specifications || "",
-      cost: item.cost || undefined,
-      warranty_info: item.warranty_info || "",
-      maintenance_notes: item.maintenance_notes || "",
-      installation_date: item.installation_date || "",
-      category: item.category,
-      status: item.status || "",
-      document_urls: item.document_urls || [],
-      link: item.link || "",
-      notes: item.notes || "",
-    },
-  });
 
   // Query to fetch images for this item
   const { data: images = [] } = useQuery<Image[]>({
@@ -205,555 +119,218 @@ const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => vo
       const { data, error } = await supabase
         .from("images")
         .select("*")
-        .eq("item_id", item.id);
+        .eq("item_id", item.id)
+        .order("created_at", { ascending: false });
 
       if (error) throw error;
       return data || [];
     }
   });
 
-  const { data: documents = [] } = useQuery<{ name: string, url: string }[]>({
-    queryKey: ["item-documents", item.id],
-    queryFn: async () => {
-      const { data: files, error } = await supabase.storage
-        .from('item-documents')
-        .list(item.id);
-
-      if (error) throw error;
-
-      const docs = await Promise.all(
-        (files || []).map(async (file) => {
-          const { data } = supabase.storage
-            .from('item-documents')
-            .getPublicUrl(`${item.id}/${file.name}`);
-
-          return {
-            name: file.name,
-            url: data.publicUrl
-          };
-        })
-      );
-
-      return docs;
-    }
-  });
-
-  // Add history query
-  const { data: itemHistory = [] } = useQuery<ItemHistory[]>({
-    queryKey: ["item-history", item.id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("item_history")
-        .select("*")
-        .eq("item_id", item.id);
-
-      if (error) throw error;
-      return data || [];
-    }
-  });
-
-  const updateItem = useMutation({
-    mutationFn: async (values: ItemFormValues) => {
-      const timestamp = new Date().toISOString();
-
-      // Insert current state into history first
-      const { error: historyError } = await supabase
-        .from("item_history")
-        .insert([{
-          item_id: item.id,
-          room_id: item.room_id,
-          name: item.name,
-          brand: item.brand,
-          supplier: item.supplier,
-          specifications: item.specifications,
-          cost: item.cost,
-          warranty_info: item.warranty_info,
-          installation_date: item.installation_date,
-          maintenance_notes: item.maintenance_notes,
-          category: item.category,
-          status: item.status,
-          image_url: item.image_url,
-          document_urls: item.document_urls,
-          link: item.link,
-          notes: item.notes,
-          created_at: timestamp,
-          updated_at: timestamp
-        }]);
-
-      if (historyError) throw historyError;
-
-      // Now update the item with new values and current timestamp
-      const { error: updateError } = await supabase
-        .from("items")
-        .update({
-          name: values.name,
-          brand: values.brand || null,
-          supplier: values.supplier || null,
-          specifications: values.specifications || null,
-          cost: values.cost || null,
-          warranty_info: values.warranty_info || null,
-          maintenance_notes: values.maintenance_notes || null,
-          installation_date: values.installation_date || null,
-          category: values.category,
-          status: values.status || null,
-          document_urls: values.document_urls || [],
-          link: values.link || null,
-          notes: values.notes || null,
-          updated_at: timestamp
-        })
-        .eq('id', item.id);
-
-      if (updateError) throw updateError;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["items", item.room_id] });
-      queryClient.invalidateQueries({ queryKey: ["item-history", item.id] });
-      setShowEditDialog(false);
-      toast({
-        title: "Success",
-        description: "Item updated successfully"
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Error",
-        description: error.message || "Failed to update item",
-        variant: "destructive"
-      });
-    }
-  });
-
-  const onSubmit = (values: ItemFormValues) => {
-    updateItem.mutate(values);
+  // Get category color based on type
+  const getCategoryColor = (category: string) => {
+    const colors: Record<string, string> = {
+      'appliance': 'bg-blue-100 text-blue-800',
+      'furniture': 'bg-green-100 text-green-800',
+      'electronics': 'bg-purple-100 text-purple-800',
+      'lighting': 'bg-yellow-100 text-yellow-800',
+      'plumbing': 'bg-cyan-100 text-cyan-800',
+      'flooring': 'bg-orange-100 text-orange-800',
+      'hardware': 'bg-red-100 text-red-800'
+    };
+    return colors[category.toLowerCase()] || 'bg-gray-100 text-gray-800';
   };
 
-  const Label = ({htmlFor, children}: {htmlFor: string, children: React.ReactNode}) => (
-    <label htmlFor={htmlFor} className="block text-sm font-medium text-gray-700">
-      {children}
-    </label>
-  );
-
-
   return (
-    <div className="border rounded-lg p-4">
-      <div className="flex justify-between items-start gap-4">
-        <div className="flex-grow space-y-4">
-          <div className="flex items-center gap-2">
-            <h3 className="font-semibold">{item.name}</h3>
-          </div>
-          <p className="text-sm text-muted-foreground">
-            Category: {item.category}
-          </p>
-          <div className="flex items-center space-x-2">
-            <div className="flex items-center">
-              <span className="text-sm text-muted-foreground mr-0.5">{images.length || 0}</span>
+    <motion.div
+      layout
+      onClick={() => setIsExpanded(!isExpanded)}
+      className="cursor-pointer"
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+    >
+      <div className="border rounded-lg p-4 bg-card hover:shadow-lg transition-all duration-300">
+        <div className="flex justify-between items-start gap-4">
+          <div className="flex-grow space-y-4">
+            {/* Basic Info Section */}
+            <div className="flex items-center gap-2">
+              <h3 className="font-semibold text-lg">{item.name}</h3>
+            </div>
+            <div className={cn("text-sm px-2 py-1 rounded-md inline-block", getCategoryColor(item.category))}>
+              {item.category}
+            </div>
+
+            {/* Control Buttons */}
+            <div className="flex items-center space-x-2">
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => setShowImageDialog(true)}
-                className="h-8 w-8"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowImageDialog(true);
+                }}
+                className="h-8 w-8 hover:text-primary hover:bg-primary/10"
               >
                 <ImageIcon className="h-4 w-4" />
               </Button>
-            </div>
 
-            <div className="flex items-center">
-              <span className="text-sm text-muted-foreground mr-0.5">{itemHistory.length || 0}</span>
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => setShowHistoryDialog(true)}
-                className="h-8 w-8"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowEditDialog(true);
+                }}
+                className="h-8 w-8 hover:text-primary hover:bg-primary/10"
               >
-                <History className="h-4 w-4" />
+                <Pencil className="h-4 w-4" />
               </Button>
-            </div>
 
-            <div className="flex items-center">
-              <span className="text-sm text-muted-foreground mr-0.5">{documents.length || 0}</span>
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => setShowDocumentDialog(true)}
-                className="h-8 w-8"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  setShowDeleteDialog(true);
+                }}
+                className="h-8 w-8 hover:text-destructive hover:bg-destructive/10"
               >
-                <FileText className="h-4 w-4" />
+                <Trash2 className="h-4 w-4" />
               </Button>
             </div>
 
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setShowEditDialog(true)}
-            >
-              <Pencil className="h-4 w-4" />
-            </Button>
+            {/* Expanded Content */}
+            <AnimatePresence>
+              {isExpanded && (
+                <motion.div
+                  initial={{ opacity: 0, height: 0 }}
+                  animate={{ opacity: 1, height: "auto" }}
+                  exit={{ opacity: 0, height: 0 }}
+                  transition={{ duration: 0.2 }}
+                  className="space-y-4"
+                >
+                  {/* Details Grid */}
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {item.brand && (
+                      <div className="p-3 rounded-lg bg-accent">
+                        <p className="text-sm font-medium">Brand</p>
+                        <p className="text-sm text-muted-foreground">{item.brand}</p>
+                      </div>
+                    )}
+                    {item.supplier && (
+                      <div className="p-3 rounded-lg bg-accent">
+                        <p className="text-sm font-medium">Supplier</p>
+                        <p className="text-sm text-muted-foreground">{item.supplier}</p>
+                      </div>
+                    )}
+                    {item.specifications && (
+                      <div className="p-3 rounded-lg bg-accent">
+                        <p className="text-sm font-medium">Specifications</p>
+                        <p className="text-sm text-muted-foreground">{item.specifications}</p>
+                      </div>
+                    )}
+                    {item.cost !== null && item.cost !== undefined && (
+                      <div className="p-3 rounded-lg bg-accent">
+                        <p className="text-sm font-medium">Cost</p>
+                        <p className="text-sm text-muted-foreground">${item.cost.toString()}</p>
+                      </div>
+                    )}
+                    {item.warranty_info && (
+                      <div className="p-3 rounded-lg bg-accent">
+                        <p className="text-sm font-medium">Warranty</p>
+                        <p className="text-sm text-muted-foreground">{item.warranty_info}</p>
+                      </div>
+                    )}
+                    {item.maintenance_notes && (
+                      <div className="p-3 rounded-lg bg-accent">
+                        <p className="text-sm font-medium">Maintenance Notes</p>
+                        <p className="text-sm text-muted-foreground">{item.maintenance_notes}</p>
+                      </div>
+                    )}
+                  </div>
 
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setShowDeleteDialog(true)}
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
+                  {/* Images Carousel */}
+                  {images && images.length > 0 && (
+                    <div className="w-full">
+                      <Carousel>
+                        <CarouselContent>
+                          {images.map((image) => (
+                            <CarouselItem key={image.id}>
+                              <div className="relative aspect-square w-full">
+                                <img
+                                  src={`${supabase.storage.from('item-images').getPublicUrl(image.storage_path).data?.publicUrl}`}
+                                  alt={`${item.name} image`}
+                                  className="object-cover w-full h-full rounded-md"
+                                />
+                              </div>
+                            </CarouselItem>
+                          ))}
+                        </CarouselContent>
+                        <CarouselPrevious onClick={(e) => e.stopPropagation()} />
+                        <CarouselNext onClick={(e) => e.stopPropagation()} />
+                      </Carousel>
+                    </div>
+                  )}
 
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setIsDetailsVisible(!isDetailsVisible)}
-            >
-              {isDetailsVisible ? (
-                <ChevronUp className="h-4 w-4" />
-              ) : (
-                <ChevronDown className="h-4 w-4" />
-              )}
-            </Button>
-          </div>
-
-          {isDetailsVisible && (
-            <div className="space-y-4 pt-4 border-t">
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-2">
-                  {item.brand && (
-                    <p className="text-sm text-muted-foreground">
-                      Brand: {item.brand}
-                    </p>
-                  )}
-                  {item.supplier && (
-                    <p className="text-sm text-muted-foreground">
-                      Supplier: {item.supplier}
-                    </p>
-                  )}
-                  {item.specifications && (
-                    <p className="text-sm text-muted-foreground">
-                      Specifications: {item.specifications}
-                    </p>
-                  )}
-                  {item.status && (
-                    <p className="text-sm text-muted-foreground">
-                      Status: {item.status}
-                    </p>
-                  )}
-                  {item.warranty_info && (
-                    <p className="text-sm text-muted-foreground">
-                      Warranty: {item.warranty_info}
-                    </p>
-                  )}
-                  {item.maintenance_notes && (
-                    <p className="text-sm text-muted-foreground">
-                      Maintenance: {item.maintenance_notes}
-                    </p>
-                  )}
-                  {item.installation_date && (
-                    <p className="text-sm text-muted-foreground">
-                      Installed: {item.installation_date}
-                    </p>
-                  )}
-                  {item.cost !== null && item.cost !== undefined && (
-                    <p className="text-sm text-muted-foreground">
-                      Cost: ${item.cost.toString()}
-                    </p>
-                  )}
+                  {/* Additional Info */}
                   {item.link && (
-                    <p className="text-sm text-muted-foreground">
-                      Link: <a href={item.link} target="_blank" rel="noopener noreferrer">{item.link}</a>
-                    </p>
+                    <div className="p-3 rounded-lg bg-accent">
+                      <p className="text-sm font-medium">External Link</p>
+                      <a 
+                        href={item.link} 
+                        target="_blank" 
+                        rel="noopener noreferrer" 
+                        className="text-sm text-primary hover:underline"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        {item.link}
+                      </a>
+                    </div>
                   )}
                   {item.notes && (
-                    <p className="text-sm text-muted-foreground">
-                      Notes: {item.notes}
-                    </p>
+                    <div className="p-3 rounded-lg bg-accent">
+                      <p className="text-sm font-medium">Notes</p>
+                      <p className="text-sm text-muted-foreground">{item.notes}</p>
+                    </div>
                   )}
-                </div>
-
-                {/* Updated image carousel with delete buttons */}
-                {images && images.length > 0 && (
-                  <div className="w-full">
-                    <Carousel className="w-full">
-                      <CarouselContent>
-                        {images.map((image) => (
-                          <CarouselItem key={image.id}>
-                            <div className="relative aspect-square w-full">
-                              <img
-                                src={`${supabase.storage.from('item-images').getPublicUrl(image.storage_path).data?.publicUrl}`}
-                                alt={`${item.name} image`}
-                                className="object-cover w-full h-full rounded-md"
-                              />
-                              <Button
-                                variant="destructive"
-                                size="icon"
-                                className="absolute top-2 right-2"
-                                onClick={() => {
-                                  if (confirm('Are you sure you want to delete this image?')) {
-                                    deleteImage.mutate(image.id);
-                                  }
-                                }}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </CarouselItem>
-                        ))}
-                      </CarouselContent>
-                      <CarouselPrevious />
-                      <CarouselNext />
-                    </Carousel>
-                  </div>
-                )}
-              </div>
-
-              {/* Updated documents section with delete buttons */}
-              {isDetailsVisible && documents && documents.length > 0 && (
-                <div className="mt-4 space-y-2">
-                  <h4 className="text-sm font-medium">Documents</h4>
-                  <div className="grid gap-2">
-                    {documents.map((doc) => (
-                      <div key={doc.name} className="flex items-center justify-between group hover:bg-muted/50 p-2 rounded-md">
-                        <a
-                          href={doc.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
-                        >
-                          <FileText className="h-4 w-4" />
-                          {doc.name}
-                        </a>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="opacity-0 group-hover:opacity-100 transition-opacity"
-                          onClick={() => {
-                            if (confirm('Are you sure you want to delete this document?')) {
-                              deleteDocument.mutate(doc.name);
-                            }
-                          }}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
-                </div>
+                </motion.div>
               )}
-            </div>
-          )}
+            </AnimatePresence>
+          </div>
         </div>
       </div>
 
-      {/* Image Upload Dialog */}
+      {/* Dialogs */}
       <Dialog open={showImageDialog} onOpenChange={setShowImageDialog}>
-        <DialogContent className="sm:max-w-[600px]">
+        <DialogContent>
           <DialogHeader>
             <DialogTitle>Upload Images - {item.name}</DialogTitle>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <ImageUpload
-              itemId={item.id}
-              onUploadComplete={() => {
-                queryClient.invalidateQueries({ queryKey: ["item-images", item.id] });
-                setShowImageDialog(false);
-                toast({
-                  title: "Success",
-                  description: "Images uploaded successfully"
-                });
-              }}
-            />
-          </div>
+          <ImageUpload 
+            itemId={item.id}
+            onUploadComplete={() => setShowImageDialog(false)}
+          />
         </DialogContent>
       </Dialog>
 
-      {/* Edit Dialog */}
-      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
-        <DialogContent className="max-w-2xl max-h-[90vh]">
-          <DialogHeader>
-            <DialogTitle>Edit Item</DialogTitle>
-          </DialogHeader>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-            <ScrollArea className="h-[65vh] px-4">
-              <div className="space-y-4 pr-4">
-                <div>
-                  <Label htmlFor="name">Name*</Label>
-                  <Input {...form.register("name")} id="name" />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="brand">Brand</Label>
-                    <Input {...form.register("brand")} id="brand" />
-                  </div>
-                  <div>
-                    <Label htmlFor="supplier">Supplier</Label>
-                    <Input {...form.register("supplier")} id="supplier" />
-                  </div>
-                </div>
-
-                <div>
-                  <Label htmlFor="specifications">Specifications</Label>
-                  <Textarea {...form.register("specifications")} id="specifications" />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <Label htmlFor="cost">Cost</Label>
-                    <Input
-                      {...form.register("cost", {
-                        setValueAs: (v) => v === "" ? undefined : parseFloat(v)
-                      })}
-                      type="number"
-                      step="0.01"
-                      id="cost"
-                    />
-                  </div>
-                  <div>
-                    <Label htmlFor="category">Category</Label>
-                    <Input {...form.register("category")} id="category" />
-                  </div>
-                </div>
-
-                <div>
-                  <Label htmlFor="warranty_info">Warranty Information</Label>
-                  <Textarea {...form.register("warranty_info")} id="warranty_info" />
-                </div>
-
-                <div>
-                  <Label htmlFor="maintenance_notes">Maintenance Notes</Label>
-                  <Textarea {...form.register("maintenance_notes")} id="maintenance_notes" />
-                </div>
-
-                <div>
-                  <Label htmlFor="installation_date">Installation Date</Label>
-                  <Input {...form.register("installation_date")} type="date" id="installation_date" />
-                </div>
-
-                <div>
-                  <Label htmlFor="status">Status</Label>
-                  <Input {...form.register("status")} id="status" />
-                </div>
-                <div>
-                  <Label htmlFor="link">External Link</Label>
-                  <Input {...form.register("link")} id="link" />
-                </div>
-                <div>
-                  <Label htmlFor="notes">Additional Notes</Label>
-                  <Textarea {...form.register("notes")} id="notes" />
-                </div>
-              </div>
-            </ScrollArea>
-
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={updateItem.isPending}
-            >
-              {updateItem.isPending ? "Saving..." : "Save Changes"}
-            </Button>
-          </form>
-        </DialogContent>
-      </Dialog>
-
-      {/* Delete Dialog */}
       <AlertDialog open={showDeleteDialog} onOpenChange={setShowDeleteDialog}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
             <AlertDialogDescription>
-              This will permanently delete "{item.name}". This action cannot be undone.
+              This will permanently delete "{item.name}" and all associated data.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={() => {
-                onDelete(item.id);
-                setShowDeleteDialog(false);
-              }}
-            >
+            <AlertDialogAction onClick={() => onDelete(item.id)}>
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      {/* Add this dialog for document upload */}
-      <Dialog open={showDocumentDialog} onOpenChange={setShowDocumentDialog}>
-        <DialogContent className="sm:max-w-[600px]">
-          <DialogHeader>
-            <DialogTitle>Upload Documents - {item.name}</DialogTitle>
-          </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <DocumentUpload
-              itemId={item.id}
-              onUploadComplete={() => {
-                queryClient.invalidateQueries({ queryKey: ["item-documents", item.id] });
-                setShowDocumentDialog(false);
-                toast({
-                  title: "Success",
-                  description: "Documents uploaded successfully"
-                });
-              }}
-            />
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Add History Dialog */}
-      <Dialog open={showHistoryDialog} onOpenChange={setShowHistoryDialog}>
-        <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden">
-          <DialogHeader>
-            <DialogTitle>Item History - {item.name}</DialogTitle>
-          </DialogHeader>
-          <ScrollArea className="h-[60vh]">
-            <div className="space-y-6 p-4">
-              {itemHistory?.map((version, index) => (
-                <div key={version.id} className="border rounded-lg p-4 space-y-4">
-                  <div className="flex justify-between items-center">
-                    <h4 className="font-medium">
-                      Version from {new Date(version.created_at).toLocaleDateString()}
-                    </h4>
-                    <span className="text-sm text-muted-foreground">
-                      {new Date(version.created_at).toLocaleTimeString()}
-                    </span>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                      <p><strong>Name:</strong> {version.name}</p>
-                      {version.brand && <p><strong>Brand:</strong> {version.brand}</p>}
-                      {version.supplier && <p><strong>Supplier:</strong> {version.supplier}</p>}
-                      {version.specifications && (
-                        <p><strong>Specifications:</strong> {version.specifications}</p>
-                      )}
-                      {version.cost && <p><strong>Cost:</strong> ${version.cost}</p>}
-                    </div>
-                    <div>
-                      {version.warranty_info && (
-                        <p><strong>Warranty:</strong> {version.warranty_info}</p>
-                      )}
-                      {version.installation_date && (
-                        <p><strong>Installation Date:</strong> {version.installation_date}</p>
-                      )}
-                      {version.maintenance_notes && (
-                        <p><strong>Maintenance Notes:</strong> {version.maintenance_notes}</p>
-                      )}
-                      <p><strong>Category:</strong> {version.category}</p>
-                      {version.status && <p><strong>Status:</strong> {version.status}</p>}
-                      {version.link && (
-                        <p><strong>Link:</strong> <a href={version.link} target="_blank" rel="noopener noreferrer">{version.link}</a></p>
-                      )}
-                      {version.notes && <p><strong>Notes:</strong> {version.notes}</p>}
-                    </div>
-                  </div>
-                </div>
-              ))}
-              {(!itemHistory || itemHistory.length === 0) && (
-                <div className="text-center py-8 text-muted-foreground">
-                  No history found for this item.
-                </div>
-              )}
-            </div>
-          </ScrollArea>
-        </DialogContent>
-      </Dialog>
-    </div>
+    </motion.div>
   );
 };
 
