@@ -64,71 +64,78 @@ export default function ItemForm({ roomId, onSuccess }: ItemFormProps) {
   return (
     <form onSubmit={handleSubmit} className="space-y-6">
       <div className="space-y-4">
-        <div>
-          <Label htmlFor="name">Item Name*</Label>
+        <div className="p-4 rounded-lg bg-card/50 border border-border/50">
+          <Label htmlFor="name" className="text-primary font-medium">Item Name*</Label>
           <Input 
             id="name"
             name="name"
             placeholder="Enter item name"
             required
+            className="mt-2 bg-background/50 focus:bg-background transition-colors"
           />
         </div>
 
         <div className="grid grid-cols-2 gap-4">
-          <div>
-            <Label htmlFor="brand">Brand</Label>
+          <div className="p-4 rounded-lg bg-card/50 border border-border/50">
+            <Label htmlFor="brand" className="text-primary font-medium">Brand</Label>
             <Input 
               id="brand"
               name="brand"
               placeholder="Enter brand name"
+              className="mt-2 bg-background/50 focus:bg-background transition-colors"
             />
           </div>
-          <div>
-            <Label htmlFor="supplier">Supplier</Label>
+          <div className="p-4 rounded-lg bg-card/50 border border-border/50">
+            <Label htmlFor="supplier" className="text-primary font-medium">Supplier</Label>
             <Input 
               id="supplier"
               name="supplier"
               placeholder="Enter supplier name"
+              className="mt-2 bg-background/50 focus:bg-background transition-colors"
             />
           </div>
         </div>
 
-        <div>
-          <Label htmlFor="specifications">Specifications</Label>
+        <div className="p-4 rounded-lg bg-card/50 border border-border/50">
+          <Label htmlFor="specifications" className="text-primary font-medium">Specifications</Label>
           <Textarea
             id="specifications"
             name="specifications"
             placeholder="Enter item specifications"
+            className="mt-2 bg-background/50 focus:bg-background transition-colors"
           />
         </div>
 
         <div className="grid grid-cols-2 gap-4">
-          <div>
-            <Label htmlFor="cost">Cost</Label>
+          <div className="p-4 rounded-lg bg-card/50 border border-border/50">
+            <Label htmlFor="cost" className="text-primary font-medium">Cost</Label>
             <Input 
               id="cost"
               name="cost"
               type="number"
               step="0.01"
               placeholder="Enter cost"
+              className="mt-2 bg-background/50 focus:bg-background transition-colors"
             />
           </div>
-          <div>
-            <Label htmlFor="category">Category</Label>
+          <div className="p-4 rounded-lg bg-card/50 border border-border/50">
+            <Label htmlFor="category" className="text-primary font-medium">Category</Label>
             <Input 
               id="category"
               name="category"
               placeholder="Enter category"
+              className="mt-2 bg-background/50 focus:bg-background transition-colors"
             />
           </div>
         </div>
 
-        <div>
-          <Label htmlFor="warranty_info">Warranty Information</Label>
+        <div className="p-4 rounded-lg bg-card/50 border border-border/50">
+          <Label htmlFor="warranty_info" className="text-primary font-medium">Warranty Information</Label>
           <Textarea
             id="warranty_info"
             name="warranty_info"
             placeholder="Enter warranty information"
+            className="mt-2 bg-background/50 focus:bg-background transition-colors"
           />
         </div>
       </div>
@@ -137,7 +144,7 @@ export default function ItemForm({ roomId, onSuccess }: ItemFormProps) {
 
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold">Images</h3>
+          <h3 className="text-lg font-semibold text-primary">Images</h3>
           <p className="text-sm text-muted-foreground">Drag & drop images or click to upload</p>
         </div>
         <ImageUpload 
@@ -148,7 +155,7 @@ export default function ItemForm({ roomId, onSuccess }: ItemFormProps) {
         />
       </div>
 
-      <Button type="submit" className="w-full">
+      <Button type="submit" className="w-full bg-primary hover:bg-primary/90">
         Add Item
       </Button>
     </form>
