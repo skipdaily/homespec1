@@ -104,10 +104,18 @@ export default function PrintView({ project, rooms, itemCounts, baseUrl, items =
                           {item.warranty_info && (
                             <p>Warranty: {item.warranty_info}</p>
                           )}
+                          {item.link && (
+                            <p>Link: <a href={item.link} target="_blank" rel="noopener noreferrer" className="text-primary hover:underline">{item.link}</a></p>
+                          )}
                         </div>
                         {item.maintenance_notes && (
                           <p className="text-sm mt-2 text-muted-foreground">
                             Maintenance: {item.maintenance_notes}
+                          </p>
+                        )}
+                        {item.notes && (
+                          <p className="text-sm mt-2 text-muted-foreground">
+                            Notes: {item.notes}
                           </p>
                         )}
                       </div>
