@@ -959,8 +959,8 @@ export default function RoomPage({ id }: RoomPageProps) {
         'Installation Date': item.installation_date || '',
         'Maintenance Notes': item.maintenance_notes || '',
         'Status': item.status || '',
-        'Link': item.link || '', // Add link field
-        'Notes': item.notes || '', // Add notes field
+        'Link': item.link || '',
+        'Notes': item.notes || '',
         'Created At': item.created_at ? new Date(item.created_at).toLocaleDateString() : '',
         'Updated At': item.updated_at ? new Date(item.updated_at).toLocaleDateString() : ''
       }));
@@ -990,642 +990,481 @@ export default function RoomPage({ id }: RoomPageProps) {
     }
   };
 
-  // Export button component
-  const ExportButton = () => (
-    <Button
-      variant="outline"
-      size="sm"
-      onClick={handleExport}
-      disabled={!items || items.length === 0}
-    >
-      <Download className="h-4 w-4 mr-2" />
-      Export Items
-    </Button>
-  );
+  // Bulk delete mutation
+  const bulkDeleteItems = useMutation({
+    mutationFn: async (itemIds: string[]) => {
+      const { error } = await supabase
+        .from("items")
+        .delete()
+        .in("id", itemIds);
 
-  // Add the ExportButton to your JSX where the actions are rendered
-  const itemActionButtons = (
-    <div className="flex items-center gap-2">
-      <ExportButton />
-      {/* ... rest of your action buttons ... */}
-      <Button variant="outline" onClick={() => setIsSelectionMode(true)}>
-                      Select Items
-                    </Button>
-                    <Dialog open={open} onOpenChange={setOpen}>
-                      <DialogTrigger asChild>
-                        <Button>
-                          <Plus className="h-4 w-4 mr-2" />
-                          Add Item
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="max-w-2xl max-h-[90vh]">
-                        <DialogHeader>
-                          <DialogTitle>Add New Item</DialogTitle>
-                          <p className="text-sm text-muted-foreground">
-                            Add details about the item used in this room. Required fields are marked with *.
-                          </p>
-                        </DialogHeader>
-
-                        <Form {...form}>
-                          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                            <ScrollArea className="h-[65vh] px-4">
-                              <div className="space-y-4 pr-4"><div className="grid grid-cols-2 gap-4">
-                                  <FormField
-                                    control={form.control}
-                                    name="name"
-                                    render={({ field }) => (
-                                      <FormItem>
-                                        <FormLabel>Name*</FormLabel>
-                                        <FormControl>
-                                          <Input placeholder="Enter item name" {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                      </FormItem>
-                                    )}
-                                  />
-
-                                  <FormField
-                                    control={form.control}
-                                    name="category"
-                                    render={({ field }) => (
-                                      <FormItem className="flex flex-col">
-                                        <FormLabel>Category*</FormLabel>
-                                        <Popover open={openCombobox} onOpenChange={setOpenCombobox}>
-                                          <PopoverTrigger asChild>
-                                            <FormControl>
-                                              <Button
-                                                variant="outline"
-                                                role="combobox"
-                                                aria-expanded={openCombobox}
-                                                className={cn(
-                                                  "w-full justify-between",
-                                                  !field.value && "text-muted-foreground"
-                                                )}
-                                              >
-                                                {field.value || "Select or enter category..."}
-                                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                              </Button>
-                                            </FormControl>
-                                          </PopoverTrigger>
-                                          <PopoverContent className="w-full p-0">
-                                            <Command>
-                                              <CommandInput
-                                                placeholder="Search or enter new category..."
-                                                onValueChange={(value) => {
-                                                  field.onChange(value);
-                                                  setCategoryValue(value);
-                                                }}
-                                              />
-                                              <CommandEmpty>
-                                                Press enter to use "{categoryValue}" as a new category
-                                              </CommandEmpty>
-                                              {categories?.length > 0 && (
-                                                <ScrollArea className="h-[200px] w-full" type="hover">
-                                                  <CommandGroup>
-                                                    {categories.map((category) => (
-                                                      <CommandItem
-                                                        key={category}
-                                                        value={category}
-                                                        onSelect={(value) => {
-                                                          field.onChange(value);
-                                                          setOpenCombobox(false);
-                                                        }}
-                                                      >
-                                                        <Check
-                                                          className={cn(
-                                                            "mr-2 h-4 w-4",
-                                                            field.value === category ? "opacity-100" : "opacity-0"
-                                                          )}
-                                                        />
-                                                        {category}
-                                                      </CommandItem>
-                                                    ))}
-                                                  </CommandGroup>
-                                                </ScrollArea>
-                                              )}
-                                            </Command>
-                                          </PopoverContent>
-                                        </Popover>
-                                        <FormMessage />
-                                      </FormItem>
-                                    )}
-                                  />
-
-                                </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                  <FormField
-                                    control={form.control}
-                                    name="brand"
-                                    render={({ field }) => (
-                                      <FormItem>
-                                        <FormLabel>Brand</FormLabel>
-                                        <FormControl>
-                                          <Input placeholder="Brand name" {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                      </FormItem>
-                                    )}
-                                  />
-
-                                  <FormField
-                                    control={form.control}
-                                    name="supplier"
-                                    render={({ field }) => (
-                                      <FormItem>
-                                        <FormLabel>Supplier</FormLabel>
-                                        <FormControl>
-                                          <Input placeholder="Supplier name" {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                      </FormItem>
-                                    )}
-                                  />
-                                </div>
-
-                                <FormField
-                                  control={form.control}
-                                  name="specifications"
-                                  render={({ field }) => (
-                                    <FormItem>
-                                      <FormLabel>Specifications</FormLabel>
-                                      <FormControl>
-                                        <Textarea placeholder="Product specifications" {...field} />
-                                      </FormControl>
-                                      <FormMessage />
-                                    </FormItem>
-                                  )}
-                                />
-
-                                <div className="grid grid-cols-2 gap-4">
-                                  <FormField
-                                    control={form.control}
-                                    name="warranty_info"
-                                    render={({ field }) => (
-                                      <FormItem>
-                                        <FormLabel>Warranty Information</FormLabel>
-                                        <FormControl>
-                                          <Textarea placeholder="Warranty details" {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                      </FormItem>
-                                    )}
-                                  />
-                                  <FormField
-                                    control={form.control}
-                                    name="maintenance_notes"
-                                    render={({ field }) => (
-                                      <FormItem>
-                                        <FormLabel>Maintenance Notes</FormLabel>
-                                        <FormControl>
-                                          <Textarea placeholder="Maintenance details" {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                      </FormItem>
-                                    )}
-                                  />
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-4">
-                                  <FormField
-                                    control={form.control}
-                                    name="installation_date"
-                                    render={({ field }) => (
-                                      <FormItem>
-                                        <FormLabel>Installation Date</FormLabel>
-                                        <FormControl>
-                                          <Input type="date" {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                      </FormItem>
-                                    )}
-                                  />
-
-                                  <FormField
-                                    control={form.control}
-                                    name="cost"
-                                    render={({ field }) => (
-                                      <FormItem>
-                                        <FormLabel>Cost</FormLabel>
-                                        <FormControl>
-                                          <Input
-                                            type="number"
-                                            step="0.01"
-                                            placeholder="Enter cost"
-                                            {...field}
-                                          />
-                                        </FormControl>
-                                        <FormMessage />
-                                      </FormItem>
-                                    )}
-                                  />
-                                </div>
-
-                                <FormField
-                                  control={form.control}
-                                  name="status"
-                                  render={({ field }) => (
-                                    <FormItem>
-                                      <FormLabel>Status</FormLabel>
-                                      <FormControl>
-                                        <Input placeholder="Item status" {...field} />
-                                      </FormControl>
-                                      <FormMessage />
-                                    </FormItem>
-                                  )}
-                                />
-                                <FormField
-                                  control={form.control}
-                                  name="link"
-                                  render={({ field }) => (
-                                    <FormItem>
-                                      <FormLabel>External Link</FormLabel>
-                                      <FormControl>
-                                        <Input placeholder="https://..." {...field} />
-                                      </FormControl>
-                                      <FormMessage />
-                                    </FormItem>
-                                  )}
-                                />
-                                <FormField
-                                  control={form.control}
-                                  name="notes"
-                                  render={({ field }) => (
-                                    <FormItem>
-                                      <FormLabel>Additional Notes</FormLabel>
-                                      <FormControl>
-                                        <Textarea placeholder="Any additional notes or comments..." {...field} />
-                                      </FormControl>
-                                      <FormMessage />
-                                    </FormItem>
-                                  )}
-                                />
-                              </div>
-                            </ScrollArea>
-
-                            <Button
-                              type="submit"
-                              className="w-full"
-                              disabled={createItem.isPending}
-                            >
-                              {createItem.isPending ? "Saving..." : "Save Item"}
-                            </Button>
-                          </form>
-                        </Form>
-                      </DialogContent>
-                    </Dialog>
-                    {isSelectionMode ? (
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm text-muted-foreground">
-                      {selectedItems.length} selected
-                    </span>
-                    {selectedItems.length > 0 && (
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => setShowBulkDeleteDialog(true)}
-                        disabled={bulkDeleteItems.isPending}
-                      >
-                        <Trash2 className="h4 w-4 mr-2" />
-                        Delete Selected
-                      </Button>
-                    )}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setIsSelectionMode(false);
-                        setSelectedItems([]);
-                      }}
-                    >
-                      Cancel
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-2">
-                    <Button variant="outline" onClick={() => setIsSelectionMode(true)}>
-                      Select Items
-                    </Button>
-                    <Dialog open={open} onOpenChange={setOpen}>
-                      <DialogTrigger asChild>
-                        <Button>
-                          <Plus className="h-4 w-4 mr-2" />
-                          Add Item
-                        </Button>
-                      </DialogTrigger>
-                      <DialogContent className="max-w-2xl max-h-[90vh]">
-                        <DialogHeader>
-                          <DialogTitle>Add New Item</DialogTitle>
-                          <p className="text-sm text-muted-foreground">
-                            Add details about the item used in this room. Required fields are marked with *.
-                          </p>
-                        </DialogHeader>
-
-                        <Form {...form}>
-                          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                            <ScrollArea className="h-[65vh] px-4">
-                              <div className="space-y-4 pr-4"><div className="grid grid-cols-2 gap-4">
-                                  <FormField
-                                    control={form.control}
-                                    name="name"
-                                    render={({ field }) => (
-                                      <FormItem>
-                                        <FormLabel>Name*</FormLabel>
-                                        <FormControl>
-                                          <Input placeholder="Enter item name" {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                      </FormItem>
-                                    )}
-                                  />
-
-                                  <FormField
-                                    control={form.control}
-                                    name="category"
-                                    render={({ field }) => (
-                                      <FormItem className="flex flex-col">
-                                        <FormLabel>Category*</FormLabel>
-                                        <Popover open={openCombobox} onOpenChange={setOpenCombobox}>
-                                          <PopoverTrigger asChild>
-                                            <FormControl>
-                                              <Button
-                                                variant="outline"
-                                                role="combobox"
-                                                aria-expanded={openCombobox}
-                                                className={cn(
-                                                  "w-full justify-between",
-                                                  !field.value && "text-muted-foreground"
-                                                )}
-                                              >
-                                                {field.value || "Select or enter category..."}
-                                                <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                              </Button>
-                                            </FormControl>
-                                          </PopoverTrigger>
-                                          <PopoverContent className="w-full p-0">
-                                            <Command>
-                                              <CommandInput
-                                                placeholder="Search or enter new category..."
-                                                onValueChange={(value) => {
-                                                  field.onChange(value);
-                                                  setCategoryValue(value);
-                                                }}
-                                              />
-                                              <CommandEmpty>
-                                                Press enter to use "{categoryValue}" as a new category
-                                              </CommandEmpty>
-                                              {categories?.length > 0 && (
-                                                <ScrollArea className="h-[200px] w-full" type="hover">
-                                                  <CommandGroup>
-                                                    {categories.map((category) => (
-                                                      <CommandItem
-                                                        key={category}
-                                                        value={category}
-                                                        onSelect={(value) => {
-                                                          field.onChange(value);
-                                                          setOpenCombobox(false);
-                                                        }}
-                                                      >
-                                                        <Check
-                                                          className={cn(
-                                                            "mr-2 h-4 w-4",
-                                                            field.value === category ? "opacity-100" : "opacity-0"
-                                                          )}
-                                                        />
-                                                        {category}
-                                                      </CommandItem>
-                                                    ))}
-                                                  </CommandGroup>
-                                                </ScrollArea>
-                                              )}
-                                            </Command>
-                                          </PopoverContent>
-                                        </Popover>
-                                        <FormMessage />
-                                      </FormItem>
-                                    )}
-                                  />
-
-                                </div>
-                                <div className="grid grid-cols-2 gap-4">
-                                  <FormField
-                                    control={form.control}
-                                    name="brand"
-                                    render={({ field }) => (
-                                      <FormItem>
-                                        <FormLabel>Brand</FormLabel>
-                                        <FormControl>
-                                          <Input placeholder="Brand name" {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                      </FormItem>
-                                    )}
-                                  />
-
-                                  <FormField
-                                    control={form.control}
-                                    name="supplier"
-                                    render={({ field }) => (
-                                      <FormItem>
-                                        <FormLabel>Supplier</FormLabel>
-                                        <FormControl>
-                                          <Input placeholder="Supplier name" {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                      </FormItem>
-                                    )}
-                                  />
-                                </div>
-
-                                <FormField
-                                  control={form.control}
-                                  name="specifications"
-                                  render={({ field }) => (
-                                    <FormItem>
-                                      <FormLabel>Specifications</FormLabel>
-                                      <FormControl>
-                                        <Textarea placeholder="Product specifications" {...field} />
-                                      </FormControl>
-                                      <FormMessage />
-                                    </FormItem>
-                                  )}
-                                />
-
-                                <div className="grid grid-cols-2 gap-4">
-                                  <FormField
-                                    control={form.control}
-                                    name="warranty_info"
-                                    render={({ field }) => (
-                                      <FormItem>
-                                        <FormLabel>Warranty Information</FormLabel>
-                                        <FormControl>
-                                          <Textarea placeholder="Warranty details" {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                      </FormItem>
-                                    )}
-                                  />
-                                  <FormField
-                                    control={form.control}
-                                    name="maintenance_notes"
-                                    render={({ field }) => (
-                                      <FormItem>
-                                        <FormLabel>Maintenance Notes</FormLabel>
-                                        <FormControl>
-                                          <Textarea placeholder="Maintenance details" {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                      </FormItem>
-                                    )}
-                                  />
-                                </div>
-
-                                <div className="grid grid-cols-2 gap-4">
-                                  <FormField
-                                    control={form.control}
-                                    name="installation_date"
-                                    render={({ field }) => (
-                                      <FormItem>
-                                        <FormLabel>Installation Date</FormLabel>
-                                        <FormControl>
-                                          <Input type="date" {...field} />
-                                        </FormControl>
-                                        <FormMessage />
-                                      </FormItem>
-                                    )}
-                                  />
-
-                                  <FormField
-                                    control={form.control}
-                                    name="cost"
-                                    render={({ field }) => (
-                                      <FormItem>
-                                        <FormLabel>Cost</FormLabel>
-                                        <FormControl>
-                                          <Input
-                                            type="number"
-                                            step="0.01"
-                                            placeholder="Enter cost"
-                                            {...field}
-                                          />
-                                        </FormControl>
-                                        <FormMessage />
-                                      </FormItem>
-                                    )}
-                                  />
-                                </div>
-
-                                <FormField
-                                  control={form.control}
-                                  name="status"
-                                  render={({ field }) => (
-                                    <FormItem>
-                                      <FormLabel>Status</FormLabel>
-                                      <FormControl>
-                                        <Input placeholder="Item status" {...field} />
-                                      </FormControl>
-                                      <FormMessage />
-                                    </FormItem>
-                                  )}
-                                />
-                                <FormField
-                                  control={form.control}
-                                  name="link"
-                                  render={({ field }) => (
-                                    <FormItem>
-                                      <FormLabel>External Link</FormLabel>
-                                      <FormControl>
-                                        <Input placeholder="https://..." {...field} />
-                                      </FormControl>
-                                      <FormMessage />
-                                    </FormItem>
-                                  )}
-                                />
-                                <FormField
-                                  control={form.control}
-                                  name="notes"
-                                  render={({ field }) => (
-                                    <FormItem>
-                                      <FormLabel>Additional Notes</FormLabel>
-                                      <FormControl>
-                                        <Textarea placeholder="Any additional notes or comments..." {...field} />
-                                      </FormControl>
-                                      <FormMessage />
-                                    </FormItem>
-                                  )}
-                                />
-                              </div>
-                            </ScrollArea>
-
-                            <Button
-                              type="submit"
-                              className="w-full"
-                              disabled={createItem.isPending}
-                            >
-                              {createItem.isPending ? "Saving..." : "Save Item"}
-                            </Button>
-                          </form>
-                        </Form>
-                      </DialogContent>
-                    </Dialog>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Main content */}
-            <div className="py-6">
-              <div className="grid gap-4">
-                {filteredItems?.map((item) => (
-                  <div key={item.id} className="flex items-start gap-4">
-                    {isSelectionMode && (
-                      <Checkbox
-                        checked={selectedItems.includes(item.id)}
-                        onClick={() => {
-                          setSelectedItems(prev =>
-                            prev.includes(item.id)
-                              ? prev.filter(id => id!== item.id)
-                              : [...prev, item.id]
-                          );
-                        }}
-                      />
-                    )}
-                    <div className="flex-1">
-                      <ItemCard
-                        item={item}
-                        onDelete={handleDelete}
-                      />
-                    </div>
-                  </div>
-                ))}
-                {filteredItems?.length === 0 && (
-                  <div className="text-center py8 text-muted-foreground">
-                    No items found matching your search.
-                  </div>
-                )}
-              </div>
-            </div>
-
-            {/* Bulk Delete Dialog */}
-            <AlertDialog open={showBulkDeleteDialog} onOpenChange={setShowBulkDeleteDialog}>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This will permanently delete {selectedItems.length} selected items. This action cannot be undone.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={handleBulkDelete}
-                    disabled={bulkDeleteItems.isPending}
-                  >
-                    {bulkDeleteItems.isPending ? "Deleting..." : "Delete"}
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
-          </div>
-        </div>
-      );
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["items", id] });
+      setSelectedItems([]);
+      toast({
+        title: "Success",
+        description: "Selected items deleted successfully"
+      });
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete items",
+        variant: "destructive"
+      });
     }
+  });
+
+  const handleBulkDelete = () => {
+    bulkDeleteItems.mutate(selectedItems);
+    setShowBulkDeleteDialog(false);
+  };
+
+  const handleDelete = (itemId: string) => {
+    deleteItem.mutate(itemId);
+  };
+
+  // Filter items based on search query
+  const filteredItems = items?.filter(item => {
+    if (!searchQuery.trim()) return true;
+
+    const searchLower = searchQuery.toLowerCase();
+    return (
+      item.name.toLowerCase().includes(searchLower) ||
+      item.category.toLowerCase().includes(searchLower) ||
+      (item.brand?.toLowerCase().includes(searchLower)) ||
+      (item.supplier?.toLowerCase().includes(searchLower)) ||
+      (item.specifications?.toLowerCase().includes(searchLower)) ||
+      (item.status?.toLowerCase().includes(searchLower)) ||
+      (item.link?.toLowerCase().includes(searchLower)) ||
+      (item.notes?.toLowerCase().includes(searchLower))
+    );
+  });
+
+  if (!room) {
+    return <div>Loading...</div>;
+  }
+
+  return (
+    <div className="container mx-auto px-4">
+      <NavBreadcrumb
+        items={[
+          { label: "Dashboard", href: "/dashboard" },
+          { label: room.projects.name, href: `/project/${room.project_id}` },
+          { label: room.name },
+        ]}
+      />
+
+      <div className="sticky top-0 bg-background z-10 pb-2 border-b">
+        <div className="bg-card rounded-lg p-4 shadow-sm">
+          <div className="grid lg:grid-cols-2 gap-4">
+            {/* Left Column - Project Details */}
+            <div className="space-y-2">
+              <div>
+                <h1 className="text-2xl font-bold tracking-tight">{room.name}</h1>
+                <div className="mt-1 space-y-1">
+                  <p className="text-muted-foreground">
+                    {room.description}
+                  </p>
+                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                    {room.floor_number !== null && (
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">Floor:</span>
+                        {room.floor_number}
+                      </div>
+                    )}
+                    {room.dimensions && (
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">Size:</span>
+                        {room.dimensions}
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Right Column - Actions */}
+            <div className="flex flex-col justify-between">
+              <div className="flex items-center gap-4">
+                <div className="relative flex-1">
+                  <Input
+                    type="text"
+                    placeholder="Search items..."
+                    value={searchQuery}
+                    onChange={(e) => setSearchQuery(e.target.value)}
+                    className="pl-8"
+                  />
+                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                </div>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleExport}
+                    disabled={!items || items.length === 0}
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Export Items
+                  </Button>
+                  {isSelectionMode ? (
+                    <>
+                      <span className="text-sm text-muted-foreground">
+                        {selectedItems.length} selected
+                      </span>
+                      {selectedItems.length > 0 && (
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => setShowBulkDeleteDialog(true)}
+                          disabled={bulkDeleteItems.isPending}
+                        >
+                          <Trash2 className="h4 w-4 mr-2" />
+                          Delete Selected
+                        </Button>
+                      )}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          setIsSelectionMode(false);
+                          setSelectedItems([]);
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                    </>
+                  ) : (
+                    <>
+                      <Button variant="outline" onClick={() => setIsSelectionMode(true)}>
+                        Select Items
+                      </Button>
+                      <Dialog open={open} onOpenChange={setOpen}>
+                        <DialogTrigger asChild>
+                          <Button>
+                            <Plus className="h-4 w-4 mr-2" />
+                            Add Item
+                          </Button>
+                        </DialogTrigger>
+                        <DialogContent className="max-w-2xl max-h-[90vh]">
+                          <DialogHeader>
+                            <DialogTitle>Add New Item</DialogTitle>
+                            <p className="text-sm text-muted-foreground">
+                              Add details about the item used in this room. Required fields are marked with *.
+                            </p>
+                          </DialogHeader>
+
+                          <Form {...form}>
+                            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                              <ScrollArea className="h-[65vh] px-4">
+                                <div className="space-y-4 pr-4">
+                                  <div className="grid grid-cols-2 gap-4">
+                                    <FormField
+                                      control={form.control}
+                                      name="name"
+                                      render={({ field }) => (
+                                        <FormItem>
+                                          <FormLabel>Name*</FormLabel>
+                                          <FormControl>
+                                            <Input placeholder="Enter item name" {...field} />
+                                          </FormControl>
+                                          <FormMessage />
+                                        </FormItem>
+                                      )}
+                                    />
+
+                                    <FormField
+                                      control={form.control}
+                                      name="category"
+                                      render={({ field }) => (
+                                        <FormItem className="flex flex-col">
+                                          <FormLabel>Category*</FormLabel>
+                                          <Popover open={openCombobox} onOpenChange={setOpenCombobox}>
+                                            <PopoverTrigger asChild>
+                                              <FormControl>
+                                                <Button
+                                                  variant="outline"
+                                                  role="combobox"
+                                                  aria-expanded={openCombobox}
+                                                  className={cn(
+                                                    "w-full justify-between",
+                                                    !field.value && "text-muted-foreground"
+                                                  )}
+                                                >
+                                                  {field.value || "Select or enter category..."}
+                                                  <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                                </Button>
+                                              </FormControl>
+                                            </PopoverTrigger>
+                                            <PopoverContent className="w-full p-0">
+                                              <Command>
+                                                <CommandInput
+                                                  placeholder="Search or enter new category..."
+                                                  onValueChange={(value) => {
+                                                    field.onChange(value);
+                                                    setCategoryValue(value);
+                                                  }}
+                                                />
+                                                <CommandEmpty>
+                                                  Press enter to use "{categoryValue}" as a new category
+                                                </CommandEmpty>
+                                                {categories?.length > 0 && (
+                                                  <ScrollArea className="h-[200px] w-full" type="hover">
+                                                    <CommandGroup>
+                                                      {categories.map((category) => (
+                                                        <CommandItem
+                                                          key={category}
+                                                          value={category}
+                                                          onSelect={(value) => {
+                                                            field.onChange(value);
+                                                            setOpenCombobox(false);
+                                                          }}
+                                                        >
+                                                          <Check
+                                                            className={cn(
+                                                              "mr-2 h-4 w-4",
+                                                              field.value === category ? "opacity-100" : "opacity-0"
+                                                            )}
+                                                          />
+                                                          {category}
+                                                        </CommandItem>
+                                                      ))}
+                                                    </CommandGroup>
+                                                  </ScrollArea>
+                                                )}
+                                              </Command>
+                                            </PopoverContent>
+                                          </Popover>
+                                          <FormMessage />
+                                        </FormItem>
+                                      )}
+                                    />
+
+                                  </div>
+                                  <div className="grid grid-cols-2 gap-4">
+                                    <FormField
+                                      control={form.control}
+                                      name="brand"
+                                      render={({ field }) => (
+                                        <FormItem>
+                                          <FormLabel>Brand</FormLabel>
+                                          <FormControl>
+                                            <Input placeholder="Brand name" {...field} />
+                                          </FormControl>
+                                          <FormMessage />
+                                        </FormItem>
+                                      )}
+                                    />
+
+                                    <FormField
+                                      control={form.control}
+                                      name="supplier"
+                                      render={({ field }) => (
+                                        <FormItem>
+                                          <FormLabel>Supplier</FormLabel>
+                                          <FormControl>
+                                            <Input placeholder="Supplier name" {...field} />
+                                          </FormControl>
+                                          <FormMessage />
+                                        </FormItem>
+                                      )}
+                                    />
+                                  </div>
+
+                                  <FormField
+                                    control={form.control}
+                                    name="specifications"
+                                    render={({ field }) => (
+                                      <FormItem>
+                                        <FormLabel>Specifications</FormLabel>
+                                        <FormControl>
+                                          <Textarea placeholder="Product specifications" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                      </FormItem>
+                                    )}
+                                  />
+
+                                  <div className="grid grid-cols-2 gap-4">
+                                    <FormField
+                                      control={form.control}
+                                      name="warranty_info"
+                                      render={({ field }) => (
+                                        <FormItem>
+                                          <FormLabel>Warranty Information</FormLabel>
+                                          <FormControl>
+                                            <Textarea placeholder="Warranty details" {...field} />
+                                          </FormControl>
+                                          <FormMessage />
+                                        </FormItem>
+                                      )}
+                                    />
+                                    <FormField
+                                      control={form.control}
+                                      name="maintenance_notes"
+                                      render={({ field }) => (
+                                        <FormItem>
+                                          <FormLabel>Maintenance Notes</FormLabel>
+                                          <FormControl>
+                                            <Textarea placeholder="Maintenance details" {...field} />
+                                          </FormControl>
+                                          <FormMessage />
+                                        </FormItem>
+                                      )}
+                                    />
+                                  </div>
+
+                                  <div className="grid grid-cols-2 gap-4">
+                                    <FormField
+                                      control={form.control}
+                                      name="installation_date"
+                                      render={({ field }) => (
+                                        <FormItem>
+                                          <FormLabel>Installation Date</FormLabel>
+                                          <FormControl>
+                                            <Input type="date" {...field} />
+                                          </FormControl>
+                                          <FormMessage />
+                                        </FormItem>
+                                      )}
+                                    />
+
+                                    <FormField
+                                      control={form.control}
+                                      name="cost"
+                                      render={({ field }) => (
+                                        <FormItem>
+                                          <FormLabel>Cost</FormLabel>
+                                          <FormControl>
+                                            <Input
+                                              type="number"
+                                              step="0.01"
+                                              placeholder="Enter cost"
+                                              {...field}
+                                            />
+                                          </FormControl>
+                                          <FormMessage />
+                                        </FormItem>
+                                      )}
+                                    />
+                                  </div>
+
+                                  <FormField
+                                    control={form.control}
+                                    name="status"
+                                    render={({ field }) => (
+                                      <FormItem>
+                                        <FormLabel>Status</FormLabel>
+                                        <FormControl>
+                                          <Input placeholder="Item status" {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                      </FormItem>
+                                    )}
+                                  />
+                                  <FormField
+                                    control={form.control}
+                                    name="link"
+                                    render={({ field }) => (
+                                      <FormItem>
+                                        <FormLabel>External Link</FormLabel>
+                                        <FormControl>
+                                          <Input placeholder="https://..." {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                      </FormItem>
+                                    )}
+                                  />
+                                  <FormField
+                                    control={form.control}
+                                    name="notes"
+                                    render={({ field }) => (
+                                      <FormItem>
+                                        <FormLabel>Additional Notes</FormLabel>
+                                        <FormControl>
+                                          <Textarea placeholder="Any additional notes or comments..." {...field} />
+                                        </FormControl>
+                                        <FormMessage />
+                                      </FormItem>
+                                    )}
+                                  />
+                                </div>
+                              </ScrollArea>
+
+                              <Button
+                                type="submit"
+                                className="w-full"
+                                disabled={createItem.isPending}
+                              >
+                                {createItem.isPending ? "Saving..." : "Save Item"}
+                              </Button>
+                            </form>
+                          </Form>
+                        </DialogContent>
+                      </Dialog>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Main content */}
+          <div className="py-6">
+            <div className="grid gap-4">
+              {filteredItems?.map((item) => (
+                <div key={item.id} className="flex items-start gap-4">
+                  {isSelectionMode && (
+                    <Checkbox
+                      checked={selectedItems.includes(item.id)}
+                      onClick={() => {
+                        setSelectedItems(prev =>
+                          prev.includes(item.id)
+                            ? prev.filter(id => id !== item.id)
+                            : [...prev, item.id]
+                        );
+                      }}
+                    />
+                  )}
+                  <div className="flex-1">
+                    <ItemCard
+                      item={item}
+                      onDelete={handleDelete}
+                    />
+                  </div>
+                </div>
+              ))}
+              {filteredItems?.length === 0 && (
+                <div className="text-center py-8 text-muted-foreground">
+                  No items found matching your search.
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Bulk Delete Dialog */}
+          <AlertDialog open={showBulkDeleteDialog} onOpenChange={setShowBulkDeleteDialog}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  This will permanently delete {selectedItems.length} selected items. This action cannot be undone.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction
+                  onClick={handleBulkDelete}
+                  disabled={bulkDeleteItems.isPending}
+                >
+                  {bulkDeleteItems.isPending ? "Deleting..." : "Delete"}
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </div>
+      </div>
+    );
+  }
