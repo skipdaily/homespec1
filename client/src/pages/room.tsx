@@ -780,6 +780,8 @@ export default function RoomPage({ id }: RoomPageProps) {
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [openCombobox, setOpenCombobox] = useState(false);
   const [categoryValue, setCategoryValue] = useState("");
+  const [showExportDialog, setShowExportDialog] = useState(false);
+
 
   // Add categories query
   const { data: categories } = useQuery({
@@ -946,8 +948,7 @@ export default function RoomPage({ id }: RoomPageProps) {
         title: "Export Failed",
         description: "No items available to export",
         variant: "destructive"
-      });
-      return;
+      });      return;
     }
 
     try {
@@ -1104,6 +1105,38 @@ export default function RoomPage({ id }: RoomPageProps) {
                   <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
                 </div>
                 <div className="flex items-center gap-2">
+                  <Dialog open={showExportDialog} onOpenChange={setShowExportDialog}>
+                    <DialogContent className="sm:max-w-[600px]">
+                      <DialogHeader>
+                        <DialogTitle>Export Items</DialogTitle>
+                      </DialogHeader>
+                      <div className="space-y-4">
+                        <div className="space-y-2">
+                          <h3 className="font-medium">Choose Format</h3>
+                          <div className="flex gap-4">
+                            <Button
+                              variant="outline"
+                              onClick={() => exportToExcel(filteredItems)}
+                              className="flex items-center gap-2"
+                            >
+                              <Download className="h-4 w-4" />
+                              Excel
+                            </Button>
+                            <Button
+                              variant="outline"
+                              onClick={() => {
+                                setLocation(`/print/${id}`);
+                              }}
+                              className="flex items-center gap-2"
+                            >
+                              <Printer className="h-4 w-4" />
+                              Print View
+                            </Button>
+                          </div>
+                        </div>
+                      </div>
+                    </DialogContent>
+                  </Dialog>
                   <Button
                     variant="outline"
                     size="sm"
@@ -1131,105 +1164,76 @@ export default function RoomPage({ id }: RoomPageProps) {
 
                       <Form {...form}>
                         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                          <ScrollArea className="h-[65vh] px-4">
-                            <div className="space-y-4 pr-4">
-                              <div className="grid grid-cols-2 gap-4">
-                                <FormField
-                                  control={form.control}
-                                  name="name"
-                                  render={({ field }) => (
-                                    <FormItem>
-                                      <FormLabel>Name*</FormLabel>
-                                      <FormControl>
-                                        <Input placeholder="Enter item name" {...field} />
-                                      </FormControl>
-                                      <FormMessage />
-                                    </FormItem>
-                                  )}
-                                />
+                          <ScrollArea className="h-[65vh] w-full">
+                            <div className="space-y-4 px-4">
+                              <FormField
+                                control={form.control}
+                                name="name"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Name*</FormLabel>
+                                    <FormControl>
+                                      <Input placeholder="Item name" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
 
-                                <FormField
-                                  control={form.control}
-                                  name="category"
-                                  render={({ field }) => (
-                                    <FormItem className="flex flex-col">
-                                      <FormLabel>Category*</FormLabel>
+                              <FormField
+                                control={form.control}
+                                name="category"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Category*</FormLabel>
+                                    <FormControl>
                                       <Popover open={openCombobox} onOpenChange={setOpenCombobox}>
                                         <PopoverTrigger asChild>
-                                          <FormControl>
-                                            <Button
-                                              variant="outline"
-                                              role="combobox"
-                                              aria-expanded={openCombobox}
-                                              className={cn(
-                                                "w-full justify-between",
-                                                !field.value && "text-muted-foreground"
-                                              )}
-                                            >
-                                              {field.value || "Select or enter category..."}
-                                              <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                            </Button>
-                                          </FormControl>
+                                          <Button
+                                            variant="outline"
+                                            role="combobox"
+                                            aria-expanded={openCombobox}
+                                            className="w-full justify-between"
+                                          >
+                                            {field.value
+                                              ? categories?.find((category) => category === field.value)
+                                              : "Select category..."}
+                                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                          </Button>
                                         </PopoverTrigger>
                                         <PopoverContent className="w-full p-0">
                                           <Command>
-                                            <CommandInput
-                                              placeholder="Search or enter new category..."
-                                              onValueChange={(search) => {
-                                                setFieldValue(search);
-                                              }}
-                                            />
-                                            <CommandEmpty>
-                                              Press enter to use "{fieldValue}" as a new category
-                                            </CommandEmpty>
-                                            {categoryTemplates?.length > 0 && (
-                                              <ScrollArea className="h-[300px] w-full overflow-y-auto" type="hover">
-                                        <PopoverContent className="w-full p-0">
-                                          <Command>
-                                            <CommandInput
-                                              placeholder="Search or enter new category..."
-                                              onValueChange={(value) => {
-                                                field.onChange(value);
-                                                setCategoryValue(value);
-                                              }}
-                                            />
-                                            <CommandEmpty>
-                                              Press enter to use "{categoryValue}" as a new category
-                                            </CommandEmpty>
-                                            {categories?.length > 0 && (
-                                              <ScrollArea className="h-[200px] w-full" type="hover">
-                                                <CommandGroup>
-                                                  {categories.map((category) => (
-                                                    <CommandItem
-                                                      key={category}
-                                                      value={category}
-                                                      onSelect={(value) => {
-                                                        field.onChange(value);
-                                                        setOpenCombobox(false);
-                                                      }}
-                                                    >
-                                                      <Check
-                                                        className={cn(
-                                                          "mr-2 h-4 w-4",
-                                                          field.value === category ? "opacity-100" : "opacity-0"
-                                                        )}
-                                                      />
-                                                      {category}
-                                                    </CommandItem>
-                                                  ))}
-                                                </CommandGroup>
-                                              </ScrollArea>
-                                            )}
+                                            <CommandInput placeholder="Search category..." />
+                                            <CommandEmpty>No category found.</CommandEmpty>
+                                            <CommandGroup>
+                                              {categories?.map((category) => (
+                                                <CommandItem
+                                                  key={category}
+                                                  value={category}
+                                                  onSelect={() => {
+                                                    form.setValue("category", category);
+                                                    setOpenCombobox(false);
+                                                  }}
+                                                >
+                                                  <Check
+                                                    className={cn(
+                                                      "mr-2 h-4 w-4",
+                                                      field.value === category ? "opacity-100" : "opacity-0"
+                                                    )}
+                                                  />
+                                                  {category}
+                                                </CommandItem>
+                                              ))}
+                                            </CommandGroup>
                                           </Command>
                                         </PopoverContent>
                                       </Popover>
-                                      <FormMessage />
-                                    </FormItem>
-                                  )}
-                                </ScrollArea>
-                                />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
 
-                              </div>
                               <div className="grid grid-cols-2 gap-4">
                                 <FormField
                                   control={form.control}
@@ -1238,7 +1242,7 @@ export default function RoomPage({ id }: RoomPageProps) {
                                     <FormItem>
                                       <FormLabel>Brand</FormLabel>
                                       <FormControl>
-                                        <Input placeholder="Brand name" {...field} />
+                                        <Input placeholder="Brand" {...field} />
                                       </FormControl>
                                       <FormMessage />
                                     </FormItem>
@@ -1252,7 +1256,7 @@ export default function RoomPage({ id }: RoomPageProps) {
                                     <FormItem>
                                       <FormLabel>Supplier</FormLabel>
                                       <FormControl>
-                                        <Input placeholder="Supplier name" {...field} />
+                                        <Input placeholder="Supplier" {...field} />
                                       </FormControl>
                                       <FormMessage />
                                     </FormItem>
@@ -1267,7 +1271,7 @@ export default function RoomPage({ id }: RoomPageProps) {
                                   <FormItem>
                                     <FormLabel>Specifications</FormLabel>
                                     <FormControl>
-                                      <Textarea placeholder="Product specifications" {...field} />
+                                      <Textarea placeholder="Item specifications" {...field} />
                                     </FormControl>
                                     <FormMessage />
                                   </FormItem>
@@ -1277,33 +1281,27 @@ export default function RoomPage({ id }: RoomPageProps) {
                               <div className="grid grid-cols-2 gap-4">
                                 <FormField
                                   control={form.control}
-                                  name="warranty_info"
+                                  name="cost"
                                   render={({ field }) => (
                                     <FormItem>
-                                      <FormLabel>Warranty Information</FormLabel>
+                                      <FormLabel>Cost</FormLabel>
                                       <FormControl>
-                                        <Textarea placeholder="Warranty details" {...field} />
+                                        <Input
+                                          type="number"
+                                          step="0.01"
+                                          placeholder="Cost"
+                                          {...field}
+                                          onChange={(e) => {
+                                            const value = e.target.value;
+                                            field.onChange(value === "" ? undefined : parseFloat(value));
+                                          }}
+                                        />
                                       </FormControl>
                                       <FormMessage />
                                     </FormItem>
                                   )}
                                 />
-                                <FormField
-                                  control={form.control}
-                                  name="maintenance_notes"
-                                  render={({ field }) => (
-                                    <FormItem>
-                                      <FormLabel>Maintenance Notes</FormLabel>
-                                      <FormControl>
-                                        <Textarea placeholder="Maintenance details" {...field} />
-                                      </FormControl>
-                                      <FormMessage />
-                                    </FormItem>
-                                  )}
-                                />
-                              </div>
 
-                              <div className="grid grid-cols-2 gap-4">
                                 <FormField
                                   control={form.control}
                                   name="installation_date"
@@ -1317,26 +1315,35 @@ export default function RoomPage({ id }: RoomPageProps) {
                                     </FormItem>
                                   )}
                                 />
-
-                                <FormField
-                                  control={form.control}
-                                  name="cost"
-                                  render={({ field }) => (
-                                    <FormItem>
-                                      <FormLabel>Cost</FormLabel>
-                                      <FormControl>
-                                        <Input
-                                          type="number"
-                                          step="0.01"
-                                          placeholder="Enter cost"
-                                          {...field}
-                                        />
-                                      </FormControl>
-                                      <FormMessage />
-                                    </FormItem>
-                                  )}
-                                />
                               </div>
+
+                              <FormField
+                                control={form.control}
+                                name="warranty_info"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Warranty Information</FormLabel>
+                                    <FormControl>
+                                      <Textarea placeholder="Warranty details" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+
+                              <FormField
+                                control={form.control}
+                                name="maintenance_notes"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Maintenance Notes</FormLabel>
+                                    <FormControl>
+                                      <Textarea placeholder="Maintenance information" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
 
                               <FormField
                                 control={form.control}
@@ -1345,12 +1352,13 @@ export default function RoomPage({ id }: RoomPageProps) {
                                   <FormItem>
                                     <FormLabel>Status</FormLabel>
                                     <FormControl>
-                                      <Input placeholder="Item status" {...field} />
+                                      <Input placeholder="Current status" {...field} />
                                     </FormControl>
                                     <FormMessage />
                                   </FormItem>
                                 )}
                               />
+
                               <FormField
                                 control={form.control}
                                 name="link"
@@ -1364,6 +1372,7 @@ export default function RoomPage({ id }: RoomPageProps) {
                                   </FormItem>
                                 )}
                               />
+
                               <FormField
                                 control={form.control}
                                 name="notes"
@@ -1371,7 +1380,7 @@ export default function RoomPage({ id }: RoomPageProps) {
                                   <FormItem>
                                     <FormLabel>Additional Notes</FormLabel>
                                     <FormControl>
-                                      <Textarea placeholder="Any additional notes or comments..." {...field} />
+                                      <Textarea placeholder="Any additional notes" {...field} />
                                     </FormControl>
                                     <FormMessage />
                                   </FormItem>
@@ -1380,13 +1389,14 @@ export default function RoomPage({ id }: RoomPageProps) {
                             </div>
                           </ScrollArea>
 
-                          <Button
-                            type="submit"
-                            className="w-full"
-                            disabled={createItem.isPending}
-                          >
-                            {createItem.isPending ? "Saving..." : "Save Item"}
-                          </Button>
+                          <div className="flex justify-end gap-4">
+                            <Button
+                              type="submit"
+                              disabled={createItem.isPending}
+                            >
+                              {createItem.isPending ? "Adding..." : "Add Item"}
+                            </Button>
+                          </div>
                         </form>
                       </Form>
                     </DialogContent>
