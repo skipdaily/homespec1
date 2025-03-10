@@ -1137,11 +1137,11 @@ export default function RoomPage({ id }: RoomPageProps) {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={handleExport}
+                    onClick={() => exportToExcel(filteredItems || [])}
                     disabled={!items || items.length === 0}
                   >
                     <Download className="h-4 w-4 mr-2" />
-                    Export Items
+                    Export
                   </Button>
 
                   <Dialog open={open} onOpenChange={setOpen}>
