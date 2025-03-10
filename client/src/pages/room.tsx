@@ -943,7 +943,7 @@ export default function RoomPage({ id }: RoomPageProps) {
 
   // Add export function after the deleteItem mutation
   const handleExport = () => {
-    if (!items || items.length === 0) {
+    if (!items || items.length ===0) {
       toast({
         title: "Export Failed",
         description: "No items available to export",
@@ -1164,8 +1164,8 @@ export default function RoomPage({ id }: RoomPageProps) {
 
                       <Form {...form}>
                         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                          <ScrollArea className="h-[65vh] w-full">
-                            <div className="space-y-4 px-4">
+                          <ScrollArea className="h-[65vh]">
+                            <div className="space-y-4 px-4 pr-8">
                               <FormField
                                 control={form.control}
                                 name="name"
@@ -1201,30 +1201,32 @@ export default function RoomPage({ id }: RoomPageProps) {
                                             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                           </Button>
                                         </PopoverTrigger>
-                                        <PopoverContent className="w-full p-0">
+                                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
                                           <Command>
                                             <CommandInput placeholder="Search category..." />
                                             <CommandEmpty>No category found.</CommandEmpty>
-                                            <CommandGroup>
-                                              {categories?.map((category) => (
-                                                <CommandItem
-                                                  key={category}
-                                                  value={category}
-                                                  onSelect={() => {
-                                                    form.setValue("category", category);
-                                                    setOpenCombobox(false);
-                                                  }}
-                                                >
-                                                  <Check
-                                                    className={cn(
-                                                      "mr-2 h-4 w-4",
-                                                      field.value === category ? "opacity-100" : "opacity-0"
-                                                    )}
-                                                  />
-                                                  {category}
-                                                </CommandItem>
-                                              ))}
-                                            </CommandGroup>
+                                            <div className="max-h-[200px] overflow-y-auto">
+                                              <CommandGroup>
+                                                {categories?.map((category) => (
+                                                  <CommandItem
+                                                    key={category}
+                                                    value={category}
+                                                    onSelect={() => {
+                                                      form.setValue("category", category);
+                                                      setOpenCombobox(false);
+                                                    }}
+                                                  >
+                                                    <Check
+                                                      className={cn(
+                                                        "mr-2 h-4 w-4",
+                                                        field.value === category ? "opacity-100" : "opacity-0"
+                                                      )}
+                                                    />
+                                                    {category}
+                                                  </CommandItem>
+                                                ))}
+                                              </CommandGroup>
+                                            </div>
                                           </Command>
                                         </PopoverContent>
                                       </Popover>
@@ -1389,7 +1391,7 @@ export default function RoomPage({ id }: RoomPageProps) {
                             </div>
                           </ScrollArea>
 
-                          <div className="flex justify-end gap-4">
+                          <div className="flex justify-end gap-4 pt-4">
                             <Button
                               type="submit"
                               disabled={createItem.isPending}
