@@ -73,6 +73,8 @@ interface Item {
   installation_date: string | null;
   maintenance_notes: string | null;
   status: string | null;
+  notes: string | null;
+  link: string | null;
   room_id: string;
   rooms: {
     name: string;
@@ -160,6 +162,8 @@ export default function ProjectPage({ id }: ProjectPageProps) {
           installation_date,
           maintenance_notes,
           status,
+          notes,
+          link,
           room_id,
           rooms!inner (
             name
@@ -331,6 +335,8 @@ export default function ProjectPage({ id }: ProjectPageProps) {
             installation_date: processExcelDate(item.installation_date),
             maintenance_notes: item.maintenance_notes || null,
             status: item.status || null,
+            notes: item.notes || null,             // Add notes field
+            link: item.links || null,              // Add links field
             created_at: new Date().toISOString(),
           }));
 
@@ -397,6 +403,8 @@ export default function ProjectPage({ id }: ProjectPageProps) {
         installation_date: item.installation_date || "",
         maintenance_notes: item.maintenance_notes || "",
         status: item.status || "",
+        notes: item.notes || "",           // Add notes field
+        links: item.link || "",            // Add links field
       }));
 
       // Create workbook and add items sheet
