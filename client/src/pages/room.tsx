@@ -942,44 +942,41 @@ export default function RoomPage({ id }: RoomPageProps) {
   };
 
   // Add export function after the deleteItem mutation
-  const handleExport = () => {
-    if (!items || items.length ===0) {
+  const exportToExcel = (items: Item[]) => {
+    if (!items || items.length === 0) {
       toast({
         title: "Export Failed",
         description: "No items available to export",
         variant: "destructive"
-      });      return;
+      });
+      return;
     }
 
     try {
-      const wb = XLSX.utils.book_new();
-      const wsData = items.map(item => ({
-        'Name': item.name || '',
-        'Category': item.category || '',
+      const exportData = items.map(item => ({
+        'Name': item.name,
+        'Category': item.category,
         'Brand': item.brand || '',
         'Supplier': item.supplier || '',
         'Specifications': item.specifications || '',
-        'Cost': item.cost?.toString() || '',
+        'Cost': item.cost || '',
         'Warranty Info': item.warranty_info || '',
         'Installation Date': item.installation_date || '',
         'Maintenance Notes': item.maintenance_notes || '',
         'Status': item.status || '',
         'Link': item.link || '',
         'Notes': item.notes || '',
-        'Created At': item.created_at ? new Date(item.created_at).toLocaleDateString() : '',
-        'Updated At': item.updated_at ? new Date(item.updated_at).toLocaleDateString() : ''
+        'Created At': new Date(item.created_at || '').toLocaleDateString(),
+        'Updated At': new Date(item.updated_at || '').toLocaleDateString()
       }));
 
-      const ws = XLSX.utils.json_to_sheet(wsData);
-
-      // Auto-size columns
-      const colWidths = Object.keys(wsData[0]).map(key => ({
-        wch: Math.max(key.length, ...wsData.map(row => String(row[key]).length))
-      }));
-      ws['!cols'] = colWidths;
-
+      const ws = XLSX.utils.json_to_sheet(exportData);
+      const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Items");
-      XLSX.writeFile(wb, `${room?.name || 'room'}-items-${new Date().toISOString().split('T')[0]}.xlsx`);
+
+      // Generate file name based on room name if available
+      const fileName = `${room?.name || 'room'}_items_${new Date().toISOString().split('T')[0]}.xlsx`;
+      XLSX.writeFile(wb, fileName);
 
       toast({
         title: "Success",
@@ -989,7 +986,7 @@ export default function RoomPage({ id }: RoomPageProps) {
       console.error('Export error:', error);
       toast({
         title: "Export Failed",
-        description: "Failed to export items. Please try again.",
+        description: "Failed to export items",
         variant: "destructive"
       });
     }
@@ -1440,61 +1437,61 @@ export default function RoomPage({ id }: RoomPageProps) {
                 </div>
               </div>
             </div>
-          </div>
 
-          {/* Item list */}
-          <div className="py-6">
-            <div className="grid gap-4">
-              {filteredItems?.map((item) => (
-                <div key={item.id} className="flex items-start gap-4">
-                  {isSelectionMode && (
-                    <Checkbox
-                      checked={selectedItems.includes(item.id)}
-                      onClick={() => {
-                        setSelectedItems(prev =>
-                          prev.includes(item.id)
-                            ? prev.filter(id => id !== item.id)
-                            : [...prev, item.id]
-                        );
-                      }}
-                    />
-                  )}
-                  <div className="flex-1">
-                    <ItemCard
-                      item={item}
-                      onDelete={handleDelete}
-                    />
+            {/* Item list */}
+            <div className="py-6">
+              <div className="grid gap-4">
+                {filteredItems?.map((item) => (
+                  <div key={item.id} className="flex items-start gap-4">
+                    {isSelectionMode && (
+                      <Checkbox
+                        checked={selectedItems.includes(item.id)}
+                        onClick={() => {
+                          setSelectedItems(prev =>
+                            prev.includes(item.id)
+                              ? prev.filter(id => id !== item.id)
+                              : [...prev, item.id]
+                          );
+                        }}
+                      />
+                    )}
+                    <div className="flex-1">
+                      <ItemCard
+                        item={item}
+                        onDelete={handleDelete}
+                      />
+                    </div>
                   </div>
-                </div>
-              ))}
-              {filteredItems?.length === 0 && (
-                <div className="text-center py-8 text-muted-foreground">
-                  No items found matching your search.
-                </div>
-              )}
+                ))}
+                {filteredItems?.length === 0 && (
+                  <div className="text-center py-8 text-muted-foreground">
+                    No items found matching your search.
+                  </div>
+                )}
+              </div>
             </div>
-          </div>
 
-          {/* Bulk Delete Dialog */}
-          <AlertDialog open={showBulkDeleteDialog} onOpenChange={setShowBulkDeleteDialog}>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  This will permanently delete {selectedItems.length} selected items. This action cannot be undone.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={handleBulkDelete}
-                  disabled={bulkDeleteItems.isPending}
-                >
-                  {bulkDeleteItems.isPending ? "Deleting..." : "Delete"}
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
+            {/* Bulk Delete Dialog */}
+            <AlertDialog open={showBulkDeleteDialog} onOpenChange={setShowBulkDeleteDialog}>
+              <AlertDialogContent>
+                <AlertDialogHeader>
+                  <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                  <AlertDialogDescription>
+                    This will permanently delete {selectedItems.length} selected items. This action cannot be undone.
+                  </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                  <AlertDialogCancel>Cancel</AlertDialogCancel>
+                  <AlertDialogAction
+                    onClick={handleBulkDelete}
+                    disabled={bulkDeleteItems.isPending}
+                  >
+                    {bulkDeleteItems.isPending ? "Deleting..." : "Delete"}
+                  </AlertDialogAction>
+                </AlertDialogFooter>
+              </AlertDialogContent>
+            </AlertDialog>
+          </div>
         </div>
       </div>
     </div>
