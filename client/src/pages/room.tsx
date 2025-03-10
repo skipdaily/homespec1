@@ -1175,6 +1175,19 @@ export default function RoomPage({ id }: RoomPageProps) {
                                           <Command>
                                             <CommandInput
                                               placeholder="Search or enter new category..."
+                                              onValueChange={(search) => {
+                                                setFieldValue(search);
+                                              }}
+                                            />
+                                            <CommandEmpty>
+                                              Press enter to use "{fieldValue}" as a new category
+                                            </CommandEmpty>
+                                            {categoryTemplates?.length > 0 && (
+                                              <ScrollArea className="h-[300px] w-full overflow-y-auto" type="hover">
+                                        <PopoverContent className="w-full p-0">
+                                          <Command>
+                                            <CommandInput
+                                              placeholder="Search or enter new category..."
                                               onValueChange={(value) => {
                                                 field.onChange(value);
                                                 setCategoryValue(value);
