@@ -691,7 +691,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
                         Press enter to use "{areaValue}" as a new area
                       </CommandEmpty>
                       {areaTemplates?.length > 0 && (
-                        <ScrollArea className="h-[300px] w-full overflow-y-auto">
+                        <ScrollArea className="h-[300px] w-full overflow-y-auto" type="hover">
                           {/* Height increased */}
                           <CommandGroup>
                             {areaTemplates.map((area) => (
@@ -943,7 +943,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
                           Press enter to use "{areaValue}" as a new area
                         </CommandEmpty>
                         {areaTemplates?.length > 0 && (
-                          <ScrollArea className="h-[300px] w-full overflow-y-auto">
+                          <ScrollArea className="h-[300px] w-full overflow-y-auto" type="hover">
                             <CommandGroup>
                               {areaTemplates.map((area) => (
                                 <CommandItem
