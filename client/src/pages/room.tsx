@@ -932,18 +932,14 @@ export default function RoomPage({ id }: RoomPageProps) {
       toast({
         title: "Error",
         description: error.message || "Failed to delete item",
-        variant: "destructive"
+variant: "destructive"
       });
     }
   });
 
-  const onSubmit = (values: ItemFormValues) => {
-    createItem.mutate(values);
-  };
-
   // Add export function after the deleteItem mutation
   const handleExport = () => {
-    if (!items || items.length ===0) {
+    if (!items || items.length===0) {
       toast({
         title: "Export Failed",
         description: "No items available to export",
@@ -1164,8 +1160,8 @@ export default function RoomPage({ id }: RoomPageProps) {
 
                       <Form {...form}>
                         <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                          <ScrollArea className="h-[65vh]">
-                            <div className="space-y-4 px-4 pr-8">
+                          <div className="relative h-[65vh] overflow-y-auto touch-pan-y">
+                            <div className="space-y-4 px-4">
                               <FormField
                                 control={form.control}
                                 name="name"
@@ -1184,7 +1180,7 @@ export default function RoomPage({ id }: RoomPageProps) {
                                 control={form.control}
                                 name="category"
                                 render={({ field }) => (
-                                  <FormItem>
+                                  <FormItem className="relative">
                                     <FormLabel>Category*</FormLabel>
                                     <FormControl>
                                       <Popover open={openCombobox} onOpenChange={setOpenCombobox}>
@@ -1201,32 +1197,33 @@ export default function RoomPage({ id }: RoomPageProps) {
                                             <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                           </Button>
                                         </PopoverTrigger>
-                                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                                        <PopoverContent 
+                                          className="w-[--radix-popover-trigger-width] p-0" 
+                                          style={{ maxHeight: '300px', overflowY: 'auto' }}
+                                        >
                                           <Command>
                                             <CommandInput placeholder="Search category..." />
                                             <CommandEmpty>No category found.</CommandEmpty>
-                                            <div className="max-h-[200px] overflow-y-auto">
-                                              <CommandGroup>
-                                                {categories?.map((category) => (
-                                                  <CommandItem
-                                                    key={category}
-                                                    value={category}
-                                                    onSelect={() => {
-                                                      form.setValue("category", category);
-                                                      setOpenCombobox(false);
-                                                    }}
-                                                  >
-                                                    <Check
-                                                      className={cn(
-                                                        "mr-2 h-4 w-4",
-                                                        field.value === category ? "opacity-100" : "opacity-0"
-                                                      )}
-                                                    />
-                                                    {category}
-                                                  </CommandItem>
-                                                ))}
-                                              </CommandGroup>
-                                            </div>
+                                            <CommandGroup>
+                                              {categories?.map((category) => (
+                                                <CommandItem
+                                                  key={category}
+                                                  value={category}
+                                                  onSelect={() => {
+                                                    form.setValue("category", category);
+                                                    setOpenCombobox(false);
+                                                  }}
+                                                >
+                                                  <Check
+                                                    className={cn(
+                                                      "mr-2 h-4 w-4",
+                                                      field.value === category ? "opacity-100" : "opacity-0"
+                                                    )}
+                                                  />
+                                                  {category}
+                                                </CommandItem>
+                                              ))}
+                                            </CommandGroup>
                                           </Command>
                                         </PopoverContent>
                                       </Popover>
@@ -1389,112 +1386,76 @@ export default function RoomPage({ id }: RoomPageProps) {
                                 )}
                               />
                             </div>
-                          </ScrollArea>
+                          </div>
 
                           <div className="flex justify-end gap-4 pt-4">
-                            <Button
-                              type="submit"
-                              disabled={createItem.isPending}
-                            >
+                            <Button type="submit" disabled={createItem.isPending}>
                               {createItem.isPending ? "Adding..." : "Add Item"}
                             </Button>
                           </div>
                         </form>
                       </Form>
+
                     </DialogContent>
                   </Dialog>
-                  {isSelectionMode ? (
-                    <>
-                      <span className="text-sm text-muted-foreground">
-                        {selectedItems.length} selected
-                      </span>
-                      {selectedItems.length > 0 && (
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => setShowBulkDeleteDialog(true)}
-                          disabled={bulkDeleteItems.isPending}
-                        >
-                          <Trash2 className="h4 w-4 mr-2" />
-                          Delete Selected
-                        </Button>
-                      )}
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          setIsSelectionMode(false);
-                          setSelectedItems([]);
-                        }}
-                      >
-                        Cancel
-                      </Button>
-                    </>
-                  ) : (
-                    <>
-                      <Button variant="outline" onClick={() => setIsSelectionMode(true)}>
-                        Select Items
-                      </Button>
-                    </>
-                  )}
                 </div>
+
+                {/* Item list */}
+                <div className="py-6">
+                  <div className="grid gap-4">
+                    {filteredItems?.map((item) => (
+                      <div key={item.id} className="flex items-start gap-4">
+                        {isSelectionMode && (
+                          <Checkbox
+                            checked={selectedItems.includes(item.id)}
+                            onClick={() => {
+                              setSelectedItems(prev =>
+                                prev.includes(item.id)
+                                  ? prev.filter(id => id !== item.id)
+                                  : [...prev, item.id]
+                              );
+                            }}
+                          />
+                        )}
+                        <div className="flex-1">
+                          <ItemCard
+                            item={item}
+                            onDelete={handleDelete}
+                          />
+                        </div>
+                      </div>
+                    ))}
+                    {filteredItems?.length === 0 && (
+                      <div className="text-center py-8 text-muted-foreground">
+                        No items found matching your search.
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Bulk Delete Dialog */}
+                <AlertDialog open={showBulkDeleteDialog} onOpenChange={setShowBulkDeleteDialog}>
+                  <AlertDialogContent>
+                    <AlertDialogHeader>
+                      <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                      <AlertDialogDescription>
+                        This will permanently delete {selectedItems.length} selected items. This action cannot be undone.
+                      </AlertDialogDescription>
+                    </AlertDialogHeader>
+                    <AlertDialogFooter>
+                      <AlertDialogCancel>Cancel</AlertDialogCancel>
+                      <AlertDialogAction
+                        onClick={handleBulkDelete}
+                        disabled={bulkDeleteItems.isPending}
+                      >
+                        {bulkDeleteItems.isPending ? "Deleting..." : "Delete"}
+                      </AlertDialogAction>
+                    </AlertDialogFooter>
+                  </AlertDialogContent>
+                </AlertDialog>
               </div>
             </div>
           </div>
-
-          {/* Item list */}
-          <div className="py-6">
-            <div className="grid gap-4">
-              {filteredItems?.map((item) => (
-                <div key={item.id} className="flex items-start gap-4">
-                  {isSelectionMode && (
-                    <Checkbox
-                      checked={selectedItems.includes(item.id)}
-                      onClick={() => {
-                        setSelectedItems(prev =>
-                          prev.includes(item.id)
-                            ? prev.filter(id => id !== item.id)
-                            : [...prev, item.id]
-                        );
-                      }}
-                    />
-                  )}
-                  <div className="flex-1">
-                    <ItemCard
-                      item={item}
-                      onDelete={handleDelete}
-                    />
-                  </div>
-                </div>
-              ))}
-              {filteredItems?.length === 0 && (
-                <div className="text-center py-8 text-muted-foreground">
-                  No items found matching your search.
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Bulk Delete Dialog */}
-          <AlertDialog open={showBulkDeleteDialog} onOpenChange={setShowBulkDeleteDialog}>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  This will permanently delete {selectedItems.length} selected items. This action cannot be undone.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancel</AlertDialogCancel>
-                <AlertDialogAction
-                  onClick={handleBulkDelete}
-                  disabled={bulkDeleteItems.isPending}
-                >
-                  {bulkDeleteItems.isPending ? "Deleting..." : "Delete"}
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
         </div>
       </div>
     </div>
