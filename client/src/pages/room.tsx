@@ -1226,6 +1226,7 @@ export default function RoomPage({ id }: RoomPageProps) {
                                       <FormMessage />
                                     </FormItem>
                                   )}
+                                </ScrollArea>
                                 />
 
                               </div>
