@@ -892,16 +892,32 @@ export default function RoomPage({ id }: RoomPageProps) {
     enabled: !!id
   });
 
-  // Update the items query to only get items from current room
+  // Update the items query to get items from current project context
   const { data: items } = useQuery({
     queryKey: ["items", id],
     queryFn: async () => {
       if (!id) throw new Error("No room ID provided");
 
+      // First get the current room and its project_id
+      const { data: currentRoom } = await supabase
+        .from("rooms")
+        .select("project_id")
+        .eq("id", id)
+        .single();
+
+      if (!currentRoom) throw new Error("Room not found");
+
+      // Then get all items from rooms in the same project
       const { data, error } = await supabase
         .from("items")
-        .select("*")
-        .eq("room_id", id)  // Only get items from the current room
+        .select(`
+          *,
+          rooms!inner (
+            id,
+            project_id
+          )
+        `)
+        .eq("rooms.project_id", currentRoom.project_id)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -910,19 +926,23 @@ export default function RoomPage({ id }: RoomPageProps) {
     enabled: !!id
   });
 
-  // Simplify the filtered items logic to only work with current room's items
+  // Filter items based on search query
   const filteredItems = items?.filter(item => {
-    if (!searchQuery.trim()) return true;
+    if (!searchQuery.trim()) {
+      // If no search query, only show items from current room
+      return item.room_id === id;
+    }
 
     const searchLower = searchQuery.toLowerCase();
+    //    // For search results, show items from any room in the same project that match the search
     return (
-      item.name?.toLowerCase().includes(searchLower) ||
+      (item.name?.toLowerCase().includes(searchLower) ||
       item.category?.toLowerCase().includes(searchLower) ||
       item.brand?.toLowerCase().includes(searchLower) ||
       item.supplier?.toLowerCase().includes(searchLower) ||
       item.specifications?.toLowerCase().includes(searchLower) ||
       item.status?.toLowerCase().includes(searchLower) ||
-      item.notes?.toLowerCase().includes(searchLower)
+      item.notes?.toLowerCase().includes(searchLower))
     );
   });
 
@@ -1107,21 +1127,7 @@ export default function RoomPage({ id }: RoomPageProps) {
     deleteItem.mutate(itemId);
   };
 
-  // Update the filtered items logic
-  const filteredItems2 = items?.filter(item => {
-    if (!searchQuery.trim()) return true;
-
-    const searchLower = searchQuery.toLowerCase();
-    return (
-      item.name?.toLowerCase().includes(searchLower) ||
-      item.category?.toLowerCase().includes(searchLower) ||
-      item.brand?.toLowerCase().includes(searchLower) ||
-      item.supplier?.toLowerCase().includes(searchLower) ||
-      item.specifications?.toLowerCase().includes(searchLower) ||
-      item.status?.toLowerCase().includes(searchLower) ||
-      item.notes?.toLowerCase().includes(searchLower)
-    );
-  });
+  // Removed redundant filteredItems2
 
   if (!room) {
     return <div>Loading...</div>;
@@ -1191,7 +1197,7 @@ export default function RoomPage({ id }: RoomPageProps) {
                           <div className="flex gap-4">
                             <Button
                               variant="outline"
-                              onClick={() => exportToExcel(filteredItems2)}
+                              onClick={() => exportToExcel(filteredItems)}
                               className="flex items-center gap-2"
                             >
                               <Download className="h-4 w-4" />
@@ -1215,7 +1221,7 @@ export default function RoomPage({ id }: RoomPageProps) {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => exportToExcel(filteredItems2 || [])}
+                    onClick={() => exportToExcel(filteredItems || [])}
                     disabled={!items || items.length === 0}
                   >
                     <Download className="h-4 w-4 mr-2" />
@@ -1519,7 +1525,7 @@ export default function RoomPage({ id }: RoomPageProps) {
             {/* Item list */}
             <div className="py-6">
               <div className="grid gap-4">
-                {filteredItems2?.map((item) => (
+                {filteredItems?.map((item) => (
                   <div key={item.id} className="flex items-start gap-4">
                     {isSelectionMode && (
                       <Checkbox
@@ -1541,7 +1547,7 @@ export default function RoomPage({ id }: RoomPageProps) {
                     </div>
                   </div>
                 ))}
-                {filteredItems2?.length === 0 && (
+                {filteredItems?.length === 0 && (
                   <div className="text-center py-8 text-muted-foreground">
                     No items found matching your search.
                   </div>
