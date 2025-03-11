@@ -1028,22 +1028,22 @@ export default function RoomPage({ id }: RoomPageProps) {
     deleteItem.mutate(itemId);
   };
 
-  // Filter items based on search query
-  const filteredItems = items?.filter(item => {
-    if (!searchQuery.trim()) return true;
-
-    const searchLower = searchQuery.toLowerCase();
-    return (
-      item.name.toLowerCase().includes(searchLower) ||
-      item.category.toLowerCase().includes(searchLower) ||
-      (item.brand?.toLowerCase().includes(searchLower)) ||
-      (item.supplier?.toLowerCase().includes(searchLower)) ||
-      (item.specifications?.toLowerCase().includes(searchLower)) ||
-      (item.status?.toLowerCase().includes(searchLower)) ||
-      (item.link?.toLowerCase().includes(searchLower)) ||
-      (item.notes?.toLowerCase().includes(searchLower))
-    );
-  });
+  // Update the filtered items logic
+  const filteredItems = items
+    ?.filter(item => item.room_id === id) // First ensure we only have items from this room
+    ?.filter(item => {
+      if (!searchQuery) return true;
+      const searchLower = searchQuery.toLowerCase();
+      return (
+        item.name?.toLowerCase().includes(searchLower) ||
+        item.category?.toLowerCase().includes(searchLower) ||
+        item.brand?.toLowerCase().includes(searchLower) ||
+        item.supplier?.toLowerCase().includes(searchLower) ||
+        item.specifications?.toLowerCase().includes(searchLower) ||
+        item.status?.toLowerCase().includes(searchLower) ||
+        item.notes?.toLowerCase().includes(searchLower)
+      );
+    });
 
   if (!room) {
     return <div>Loading...</div>;
