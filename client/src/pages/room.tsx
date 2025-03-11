@@ -892,32 +892,16 @@ export default function RoomPage({ id }: RoomPageProps) {
     enabled: !!id
   });
 
-  // Update the items query with proper context
+  // Update the items query to only get items from current room
   const { data: items } = useQuery({
     queryKey: ["items", id],
     queryFn: async () => {
       if (!id) throw new Error("No room ID provided");
 
-      // First get the current room's project_id
-      const { data: currentRoom, error: roomError } = await supabase
-        .from("rooms")
-        .select("project_id")
-        .eq("id", id)
-        .single();
-
-      if (roomError) throw roomError;
-
       const { data, error } = await supabase
         .from("items")
-        .select(`
-          *,
-          rooms!inner (
-            id,
-            project_id
-          )
-        `)
-        .eq("rooms.project_id", currentRoom.project_id) // Filter by project_id
-        .eq("room_id", id) // And by room_id
+        .select("*")
+        .eq("room_id", id)  // Only get items from the current room
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -926,18 +910,19 @@ export default function RoomPage({ id }: RoomPageProps) {
     enabled: !!id
   });
 
-  // Filter items based on search query - only searches within current room's items
+  // Simplify the filtered items logic to only work with current room's items
   const filteredItems = items?.filter(item => {
     if (!searchQuery.trim()) return true;
 
-    const searchLower = searchQuery.toLowerCase();    return (
-      (item.name?.toLowerCase().includes(searchLower)) ||
-      (item.category?.toLowerCase().includes(searchLower)) ||
-      (item.brand?.toLowerCase().includes(searchLower)) ||
-      (item.supplier?.toLowerCase().includes(searchLower)) ||
-      (item.specifications?.toLowerCase().includes(searchLower)) ||
-      (item.status?.toLowerCase().includes(searchLower)) ||
-      (item.notes?.toLowerCase().includes(searchLower))
+    const searchLower = searchQuery.toLowerCase();
+    return (
+      item.name?.toLowerCase().includes(searchLower) ||
+      item.category?.toLowerCase().includes(searchLower) ||
+      item.brand?.toLowerCase().includes(searchLower) ||
+      item.supplier?.toLowerCase().includes(searchLower) ||
+      item.specifications?.toLowerCase().includes(searchLower) ||
+      item.status?.toLowerCase().includes(searchLower) ||
+      item.notes?.toLowerCase().includes(searchLower)
     );
   });
 
@@ -945,7 +930,7 @@ export default function RoomPage({ id }: RoomPageProps) {
     mutationFn: async (values: ItemFormValues) => {
       if (!id || !room) throw new Error("No room ID provided");
 
-      try {
+            try {
         const { data: session } = await supabase.auth.getSession();
         if (!session?.session?.access_token) {
           throw new Error("No authenticated session found");
