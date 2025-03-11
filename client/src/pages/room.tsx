@@ -333,6 +333,64 @@ const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => vo
   );
 
 
+  const exportToExcel = async (items: Item[]) => {
+    if (!items || items.length === 0) {
+      toast({
+        title: "Export Failed",
+        description: "No items available to export",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      // Get the current room data to include in export
+      const { data: currentRoom } = await supabase
+        .from("rooms")
+        .select("*, projects(name)")
+        .eq("id", item.room_id)
+        .single();
+
+      const exportData = items.map(item => ({
+        'Room': currentRoom?.name || '',
+        'Project': currentRoom?.projects?.name || '',
+        'Name': item.name,
+        'Category': item.category,
+        'Brand': item.brand || '',
+        'Supplier': item.supplier || '',
+        'Specifications': item.specifications || '',
+        'Cost': item.cost || '',
+        'Warranty Info': item.warranty_info || '',
+        'Installation Date': item.installation_date || '',
+        'Maintenance Notes': item.maintenance_notes || '',
+        'Status': item.status || '',
+        'Link': item.link || '',
+        'Notes': item.notes || '',
+        'Created At': new Date(item.created_at || '').toLocaleDateString(),
+        'Updated At': new Date(item.updated_at || '').toLocaleDateString()
+      }));
+
+      const ws = XLSX.utils.json_to_sheet(exportData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Items");
+
+      const fileName = `${currentRoom?.name || 'room'}_items_${new Date().toISOString().split('T')[0]}.xlsx`;
+      XLSX.writeFile(wb, fileName);
+
+      toast({
+        title: "Success",
+        description: "Items exported successfully"
+      });
+    } catch (error) {
+      console.error('Export error:', error);
+      toast({
+        title: "Export Failed",
+        description: "Failed to export items",
+        variant: "destructive"
+      });
+    }
+  };
+
   return (
     <div className="border rounded-lg p-4">
       <div className="flex justify-between items-start gap-4">
@@ -834,21 +892,53 @@ export default function RoomPage({ id }: RoomPageProps) {
     enabled: !!id
   });
 
+  // Update the items query with proper context
   const { data: items } = useQuery({
     queryKey: ["items", id],
     queryFn: async () => {
       if (!id) throw new Error("No room ID provided");
 
+      // First get the current room's project_id
+      const { data: currentRoom, error: roomError } = await supabase
+        .from("rooms")
+        .select("project_id")
+        .eq("id", id)
+        .single();
+
+      if (roomError) throw roomError;
+
       const { data, error } = await supabase
         .from("items")
-        .select("*")
-        .eq("room_id", id)
+        .select(`
+          *,
+          rooms!inner (
+            id,
+            project_id
+          )
+        `)
+        .eq("rooms.project_id", currentRoom.project_id) // Filter by project_id
+        .eq("room_id", id) // And by room_id
         .order("created_at", { ascending: false });
 
       if (error) throw error;
       return data;
     },
     enabled: !!id
+  });
+
+  // Filter items based on search query - only searches within current room's items
+  const filteredItems = items?.filter(item => {
+    if (!searchQuery.trim()) return true;
+
+    const searchLower = searchQuery.toLowerCase();    return (
+      (item.name?.toLowerCase().includes(searchLower)) ||
+      (item.category?.toLowerCase().includes(searchLower)) ||
+      (item.brand?.toLowerCase().includes(searchLower)) ||
+      (item.supplier?.toLowerCase().includes(searchLower)) ||
+      (item.specifications?.toLowerCase().includes(searchLower)) ||
+      (item.status?.toLowerCase().includes(searchLower)) ||
+      (item.notes?.toLowerCase().includes(searchLower))
+    );
   });
 
   const createItem = useMutation({
@@ -917,7 +1007,7 @@ export default function RoomPage({ id }: RoomPageProps) {
       const { error } = await supabase
         .from("items")
         .delete()
-        .eq("id", itemId);
+        .eq("id",itemId);
 
       if (error) throw error;
     },
@@ -937,12 +1027,8 @@ export default function RoomPage({ id }: RoomPageProps) {
     }
   });
 
-  const onSubmit = (values: ItemFormValues) => {
-    createItem.mutate(values);
-  };
-
   // Add export function after the deleteItem mutation
-  const exportToExcel = (items: Item[]) => {
+  const exportToExcel = async (items: Item[]) => {
     if (!items || items.length === 0) {
       toast({
         title: "Export Failed",
@@ -953,7 +1039,16 @@ export default function RoomPage({ id }: RoomPageProps) {
     }
 
     try {
+      // Get the current room data to include in export
+      const { data: currentRoom } = await supabase
+        .from("rooms")
+        .select("*, projects(name)")
+        .eq("id", items[0].room_id)
+        .single();
+
       const exportData = items.map(item => ({
+        'Room': currentRoom?.name || '',
+        'Project': currentRoom?.projects?.name || '',
         'Name': item.name,
         'Category': item.category,
         'Brand': item.brand || '',
@@ -974,8 +1069,7 @@ export default function RoomPage({ id }: RoomPageProps) {
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Items");
 
-      // Generate file name based on room name if available
-      const fileName = `${room?.name || 'room'}_items_${new Date().toISOString().split('T')[0]}.xlsx`;
+      const fileName = `${currentRoom?.name || 'room'}_items_${new Date().toISOString().split('T')[0]}.xlsx`;
       XLSX.writeFile(wb, fileName);
 
       toast({
@@ -1029,21 +1123,20 @@ export default function RoomPage({ id }: RoomPageProps) {
   };
 
   // Update the filtered items logic
-  const filteredItems = items
-    ?.filter(item => item.room_id === id) // First ensure we only have items from this room
-    ?.filter(item => {
-      if (!searchQuery) return true;
-      const searchLower = searchQuery.toLowerCase();
-      return (
-        item.name?.toLowerCase().includes(searchLower) ||
-        item.category?.toLowerCase().includes(searchLower) ||
-        item.brand?.toLowerCase().includes(searchLower) ||
-        item.supplier?.toLowerCase().includes(searchLower) ||
-        item.specifications?.toLowerCase().includes(searchLower) ||
-        item.status?.toLowerCase().includes(searchLower) ||
-        item.notes?.toLowerCase().includes(searchLower)
-      );
-    });
+  const filteredItems2 = items?.filter(item => {
+    if (!searchQuery.trim()) return true;
+
+    const searchLower = searchQuery.toLowerCase();
+    return (
+      item.name?.toLowerCase().includes(searchLower) ||
+      item.category?.toLowerCase().includes(searchLower) ||
+      item.brand?.toLowerCase().includes(searchLower) ||
+      item.supplier?.toLowerCase().includes(searchLower) ||
+      item.specifications?.toLowerCase().includes(searchLower) ||
+      item.status?.toLowerCase().includes(searchLower) ||
+      item.notes?.toLowerCase().includes(searchLower)
+    );
+  });
 
   if (!room) {
     return <div>Loading...</div>;
@@ -1113,7 +1206,7 @@ export default function RoomPage({ id }: RoomPageProps) {
                           <div className="flex gap-4">
                             <Button
                               variant="outline"
-                              onClick={() => exportToExcel(filteredItems)}
+                              onClick={() => exportToExcel(filteredItems2)}
                               className="flex items-center gap-2"
                             >
                               <Download className="h-4 w-4" />
@@ -1137,7 +1230,7 @@ export default function RoomPage({ id }: RoomPageProps) {
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => exportToExcel(filteredItems || [])}
+                    onClick={() => exportToExcel(filteredItems2 || [])}
                     disabled={!items || items.length === 0}
                   >
                     <Download className="h-4 w-4 mr-2" />
@@ -1160,7 +1253,7 @@ export default function RoomPage({ id }: RoomPageProps) {
                       </DialogHeader>
 
                       <Form {...form}>
-                        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
+                        <form onSubmit={form.handleSubmit(createItem.mutate)} className="space-y-4">
                           <ScrollArea className="h-[65vh]">
                             <div className="space-y-4 px-4 pr-8">
                               <FormField
@@ -1441,7 +1534,7 @@ export default function RoomPage({ id }: RoomPageProps) {
             {/* Item list */}
             <div className="py-6">
               <div className="grid gap-4">
-                {filteredItems?.map((item) => (
+                {filteredItems2?.map((item) => (
                   <div key={item.id} className="flex items-start gap-4">
                     {isSelectionMode && (
                       <Checkbox
@@ -1463,7 +1556,7 @@ export default function RoomPage({ id }: RoomPageProps) {
                     </div>
                   </div>
                 ))}
-                {filteredItems?.length === 0 && (
+                {filteredItems2?.length === 0 && (
                   <div className="text-center py-8 text-muted-foreground">
                     No items found matching your search.
                   </div>
