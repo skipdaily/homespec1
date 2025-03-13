@@ -344,16 +344,40 @@ const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => vo
     }
 
     try {
-      // Get the current room data to include in export
+      // Get the current room data and ensure we have project context
       const { data: currentRoom } = await supabase
         .from("rooms")
-        .select("*, projects(name)")
+        .select(`
+          *,
+          projects (
+            id,
+            name,
+            user_id
+          )
+        `)
         .eq("id", item.room_id)
         .single();
 
-      const exportData = items.map(item => ({
-        'Room': currentRoom?.name || '',
-        'Project': currentRoom?.projects?.name || '',
+      if (!currentRoom) throw new Error("Room not found");
+
+      // Get items specifically for this project and user
+      const { data: projectItems, error } = await supabase
+        .from("items")
+        .select(`
+          *,
+          rooms!inner (
+            name,
+            project_id
+          )
+        `)
+        .eq("rooms.project_id", currentRoom.project_id)
+        .eq("rooms.projects.user_id", currentRoom.projects.user_id);
+
+      if (error) throw error;
+
+      const exportData = (projectItems || []).map(item => ({
+        'Room': item.rooms.name || '',
+        'Project': currentRoom.projects.name || '',
         'Name': item.name,
         'Category': item.category,
         'Brand': item.brand || '',
@@ -374,7 +398,7 @@ const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => vo
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Items");
 
-      const fileName = `${currentRoom?.name || 'room'}_items_${new Date().toISOString().split('T')[0]}.xlsx`;
+      const fileName = `${currentRoom.projects.name || 'project'}_items_${new Date().toISOString().split('T')[0]}.xlsx`;
       XLSX.writeFile(wb, fileName);
 
       toast({
@@ -892,32 +916,42 @@ export default function RoomPage({ id }: RoomPageProps) {
     enabled: !!id
   });
 
-  // Update the items query to get items from current project context
+  // Update the items query to include proper project and user context
   const { data: items } = useQuery({
     queryKey: ["items", id],
     queryFn: async () => {
       if (!id) throw new Error("No room ID provided");
 
-      // First get the current room and its project_id
+      // First get the current room and project context
       const { data: currentRoom } = await supabase
         .from("rooms")
-        .select("project_id")
+        .select(`
+          *,
+          projects (
+            id,
+            user_id
+          )
+        `)
         .eq("id", id)
         .single();
 
       if (!currentRoom) throw new Error("Room not found");
 
-      // Then get all items from rooms in the same project
+      // Then get all items from rooms in the same project for this user
       const { data, error } = await supabase
         .from("items")
         .select(`
           *,
           rooms!inner (
             id,
-            project_id
+            project_id,
+            projects!inner (
+              user_id
+            )
           )
         `)
         .eq("rooms.project_id", currentRoom.project_id)
+        .eq("rooms.projects.user_id", currentRoom.projects.user_id)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -1044,16 +1078,40 @@ export default function RoomPage({ id }: RoomPageProps) {
     }
 
     try {
-      // Get the current room data to include in export
+      // Get the current room data and ensure we have project context
       const { data: currentRoom } = await supabase
         .from("rooms")
-        .select("*, projects(name)")
-        .eq("id", items[0].room_id)
+        .select(`
+          *,
+          projects (
+            id,
+            name,
+            user_id
+          )
+        `)
+        .eq("id", id)
         .single();
 
-      const exportData = items.map(item => ({
-        'Room': currentRoom?.name || '',
-        'Project': currentRoom?.projects?.name || '',
+      if (!currentRoom) throw new Error("Room not found");
+
+      // Get items specifically for this project and user
+      const { data: projectItems, error } = await supabase
+        .from("items")
+        .select(`
+          *,
+          rooms!inner (
+            name,
+            project_id
+          )
+        `)
+        .eq("rooms.project_id", currentRoom.project_id)
+        .eq("rooms.projects.user_id", currentRoom.projects.user_id);
+
+      if (error) throw error;
+
+      const exportData = (projectItems || []).map(item => ({
+        'Room': item.rooms.name || '',
+        'Project': currentRoom.projects.name || '',
         'Name': item.name,
         'Category': item.category,
         'Brand': item.brand || '',
@@ -1074,7 +1132,7 @@ export default function RoomPage({ id }: RoomPageProps) {
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Items");
 
-      const fileName = `${currentRoom?.name || 'room'}_items_${new Date().toISOString().split('T')[0]}.xlsx`;
+      const fileName = `${currentRoom.projects.name || 'project'}_items_${new Date().toISOString().split('T')[0]}.xlsx`;
       XLSX.writeFile(wb, fileName);
 
       toast({
