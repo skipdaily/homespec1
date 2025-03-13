@@ -344,40 +344,25 @@ const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => vo
     }
 
     try {
-      // Get the current room data and ensure we have project context
-      const { data: currentRoom } = await supabase
-        .from("rooms")
-        .select(`
-          *,
-          projects (
-            id,
-            name,
-            user_id
-          )
-        `)
-        .eq("id", item.room_id)
-        .single();
-
-      if (!currentRoom) throw new Error("Room not found");
-
-      // Get items specifically for this project and user
+      // First get items with room and project context
       const { data: projectItems, error } = await supabase
         .from("items")
         .select(`
           *,
-          rooms!inner (
+          rooms (
             name,
-            project_id
+            projects (
+              name
+            )
           )
         `)
-        .eq("rooms.project_id", currentRoom.project_id)
-        .eq("rooms.projects.user_id", currentRoom.projects.user_id);
+        .eq("room_id", item.room_id);
 
       if (error) throw error;
 
       const exportData = (projectItems || []).map(item => ({
-        'Room': item.rooms.name || '',
-        'Project': currentRoom.projects.name || '',
+        'Room': item.rooms?.name || '',
+        'Project': item.rooms?.projects?.name || '',
         'Name': item.name,
         'Category': item.category,
         'Brand': item.brand || '',
@@ -398,7 +383,7 @@ const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => vo
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Items");
 
-      const fileName = `${currentRoom.projects.name || 'project'}_items_${new Date().toISOString().split('T')[0]}.xlsx`;
+      const fileName = `${room?.name || 'room'}_items_${new Date().toISOString().split('T')[0]}.xlsx`;
       XLSX.writeFile(wb, fileName);
 
       toast({
@@ -916,42 +901,26 @@ export default function RoomPage({ id }: RoomPageProps) {
     enabled: !!id
   });
 
-  // Update the items query to include proper project and user context
+  // Update the items query to properly include project context
   const { data: items } = useQuery({
     queryKey: ["items", id],
     queryFn: async () => {
       if (!id) throw new Error("No room ID provided");
 
-      // First get the current room and project context
-      const { data: currentRoom } = await supabase
-        .from("rooms")
-        .select(`
-          *,
-          projects (
-            id,
-            user_id
-          )
-        `)
-        .eq("id", id)
-        .single();
-
-      if (!currentRoom) throw new Error("Room not found");
-
-      // Then get all items from rooms in the same project for this user
+      // Get items with room and project context
       const { data, error } = await supabase
         .from("items")
         .select(`
           *,
-          rooms!inner (
-            id,
-            project_id,
-            projects!inner (
+          rooms (
+            name,
+            projects (
+              name,
               user_id
             )
           )
         `)
-        .eq("rooms.project_id", currentRoom.project_id)
-        .eq("rooms.projects.user_id", currentRoom.projects.user_id)
+        .eq("room_id", id)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
@@ -1041,12 +1010,13 @@ export default function RoomPage({ id }: RoomPageProps) {
     }
   });
 
+  // Update delete mutation
   const deleteItem = useMutation({
     mutationFn: async (itemId: string) => {
       const { error } = await supabase
         .from("items")
         .delete()
-        .eq("id",itemId);
+        .eq("id", itemId);
 
       if (error) throw error;
     },
@@ -1066,7 +1036,7 @@ export default function RoomPage({ id }: RoomPageProps) {
     }
   });
 
-  // Add export function after the deleteItem mutation
+  // Update the export function
   const exportToExcel = async (items: Item[]) => {
     if (!items || items.length === 0) {
       toast({
@@ -1078,40 +1048,25 @@ export default function RoomPage({ id }: RoomPageProps) {
     }
 
     try {
-      // Get the current room data and ensure we have project context
-      const { data: currentRoom } = await supabase
-        .from("rooms")
-        .select(`
-          *,
-          projects (
-            id,
-            name,
-            user_id
-          )
-        `)
-        .eq("id", id)
-        .single();
-
-      if (!currentRoom) throw new Error("Room not found");
-
-      // Get items specifically for this project and user
+      // First get items with room and project context
       const { data: projectItems, error } = await supabase
         .from("items")
         .select(`
           *,
-          rooms!inner (
+          rooms (
             name,
-            project_id
+            projects (
+              name
+            )
           )
         `)
-        .eq("rooms.project_id", currentRoom.project_id)
-        .eq("rooms.projects.user_id", currentRoom.projects.user_id);
+        .eq("room_id", id);
 
       if (error) throw error;
 
       const exportData = (projectItems || []).map(item => ({
-        'Room': item.rooms.name || '',
-        'Project': currentRoom.projects.name || '',
+        'Room': item.rooms?.name || '',
+        'Project': item.rooms?.projects?.name || '',
         'Name': item.name,
         'Category': item.category,
         'Brand': item.brand || '',
@@ -1132,7 +1087,7 @@ export default function RoomPage({ id }: RoomPageProps) {
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Items");
 
-      const fileName = `${currentRoom.projects.name || 'project'}_items_${new Date().toISOString().split('T')[0]}.xlsx`;
+      const fileName = `${room?.name || 'room'}_items_${new Date().toISOString().split('T')[0]}.xlsx`;
       XLSX.writeFile(wb, fileName);
 
       toast({
@@ -1578,61 +1533,61 @@ export default function RoomPage({ id }: RoomPageProps) {
                   )}
                 </div>
               </div>
-            </div>
 
-            {/* Item list */}
-            <div className="py-6">
-              <div className="grid gap-4">
-                {filteredItems?.map((item) => (
-                  <div key={item.id} className="flex items-start gap-4">
-                    {isSelectionMode && (
-                      <Checkbox
-                        checked={selectedItems.includes(item.id)}
-                        onClick={() => {
-                          setSelectedItems(prev =>
-                            prev.includes(item.id)
-                              ? prev.filter(id => id !== item.id)
-                              : [...prev, item.id]
-                          );
-                        }}
-                      />
-                    )}
-                    <div className="flex-1">
-                      <ItemCard
-                        item={item}
-                        onDelete={handleDelete}
-                      />
+              {/* Item list */}
+              <div className="py-6">
+                <div className="grid gap-4">
+                  {filteredItems?.map((item) => (
+                    <div key={item.id} className="flex items-start gap-4">
+                      {isSelectionMode && (
+                        <Checkbox
+                          checked={selectedItems.includes(item.id)}
+                          onClick={() => {
+                            setSelectedItems(prev =>
+                              prev.includes(item.id)
+                                ? prev.filter(id => id !== item.id)
+                                : [...prev, item.id]
+                            );
+                          }}
+                        />
+                      )}
+                      <div className="flex-1">
+                        <ItemCard
+                          item={item}
+                          onDelete={handleDelete}
+                        />
+                      </div>
                     </div>
-                  </div>
-                ))}
-                {filteredItems?.length === 0 && (
-                  <div className="text-center py-8 text-muted-foreground">
-                    No items found matching your search.
-                  </div>
-                )}
+                  ))}
+                  {filteredItems?.length === 0 && (
+                    <div className="text-center py-8 text-muted-foreground">
+                      No items found matching your search.
+                    </div>
+                  )}
+                </div>
               </div>
-            </div>
 
-            {/* Bulk Delete Dialog */}
-            <AlertDialog open={showBulkDeleteDialog} onOpenChange={setShowBulkDeleteDialog}>
-              <AlertDialogContent>
-                <AlertDialogHeader>
-                  <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                  <AlertDialogDescription>
-                    This will permanently delete {selectedItems.length} selected items. This action cannot be undone.
-                  </AlertDialogDescription>
-                </AlertDialogHeader>
-                <AlertDialogFooter>
-                  <AlertDialogCancel>Cancel</AlertDialogCancel>
-                  <AlertDialogAction
-                    onClick={handleBulkDelete}
-                    disabled={bulkDeleteItems.isPending}
-                  >
-                    {bulkDeleteItems.isPending ? "Deleting..." : "Delete"}
-                  </AlertDialogAction>
-                </AlertDialogFooter>
-              </AlertDialogContent>
-            </AlertDialog>
+              {/* Bulk Delete Dialog */}
+              <AlertDialog open={showBulkDeleteDialog} onOpenChange={setShowBulkDeleteDialog}>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      This will permanently delete {selectedItems.length} selected items. This action cannot be undone.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Cancel</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={handleBulkDelete}
+                      disabled={bulkDeleteItems.isPending}
+                    >
+                      {bulkDeleteItems.isPending ? "Deleting..." : "Delete"}
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </div>
           </div>
         </div>
       </div>
