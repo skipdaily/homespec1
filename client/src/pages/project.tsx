@@ -527,8 +527,10 @@ export default function ProjectPage({ id }: ProjectPageProps) {
 
     const deleteRoom = useMutation({
       mutationFn: async () => {
+        if (!room || !room.id) throw new Error("No room ID provided");
+
         try {
-          // Delete the room - cascade will handle related records
+          // Delete the room - the database constraints will handle cascading deletes
           const { error } = await supabase
             .from("rooms")
             .delete()
@@ -536,20 +538,20 @@ export default function ProjectPage({ id }: ProjectPageProps) {
 
           if (error) {
             console.error("Delete room error:", error);
-            throw new Error(error.message);
+            throw error;
           }
-        } catch (error) {
+        } catch (error: any) {
           console.error("Delete operation failed:", error);
-          throw error;
+          throw new Error(error.message || "Failed to delete area");
         }
       },
       onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ["rooms", room.project_id] });
-        setShowDeleteDialog(false);
+        queryClient.invalidateQueries({ queryKey: ["rooms", project?.id] });
         toast({
           title: "Success",
           description: "Area and all related items deleted successfully"
         });
+        setShowDeleteDialog(false);
       },
       onError: (error: Error) => {
         console.error('Delete error:', error);
@@ -765,7 +767,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
             <AlertDialogHeader>
               <AlertDialogTitle>Are you sure?</AlertDialogTitle>
               <AlertDialogDescription>
-                This will permanently delete "{room.name}" and all its items.
+                This will permanently delete the area "{room.name}" and all its related items.
                 This action cannot be undone.
               </AlertDialogDescription>
             </AlertDialogHeader>
