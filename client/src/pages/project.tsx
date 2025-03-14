@@ -525,12 +525,13 @@ export default function ProjectPage({ id }: ProjectPageProps) {
       },
     });
 
+    // Update the deleteRoom mutation to handle deletion properly
     const deleteRoom = useMutation({
       mutationFn: async () => {
         if (!room || !room.id) throw new Error("No room ID provided");
 
         try {
-          // Delete the room - the database constraints will handle cascading deletes
+          // Since we have cascade delete set up, we just need to delete the room
           const { error } = await supabase
             .from("rooms")
             .delete()
@@ -547,6 +548,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
       },
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: ["rooms", project?.id] });
+        queryClient.invalidateQueries({ queryKey: ["project-items", project?.id] });
         toast({
           title: "Success",
           description: "Area and all related items deleted successfully"
