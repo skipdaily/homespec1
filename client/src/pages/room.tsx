@@ -383,7 +383,7 @@ const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => vo
       const wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, "Items");
 
-      const fileName = `${room?.name || 'room'}_items_${new Date().toISOString().split('T')[0]}.xlsx`;
+      const fileName = `${item.name || 'room'}_items_${new Date().toISOString().split('T')[0]}.xlsx`;
       XLSX.writeFile(wb, fileName);
 
       toast({
@@ -891,7 +891,7 @@ export default function RoomPage({ id }: RoomPageProps) {
 
       const { data, error } = await supabase
         .from("rooms")
-        .select("*, projects(name)")
+        .select("*")
         .eq("id", id)
         .single();
 
