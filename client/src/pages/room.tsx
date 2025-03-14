@@ -937,15 +937,14 @@ export default function RoomPage({ id }: RoomPageProps) {
     }
 
     const searchLower = searchQuery.toLowerCase();
-    //    // For search results, show items from any room in the same project that match the search
     return (
-      (item.name?.toLowerCase().includes(searchLower) ||
+      item.name?.toLowerCase().includes(searchLower) ||
       item.category?.toLowerCase().includes(searchLower) ||
       item.brand?.toLowerCase().includes(searchLower) ||
       item.supplier?.toLowerCase().includes(searchLower) ||
       item.specifications?.toLowerCase().includes(searchLower) ||
       item.status?.toLowerCase().includes(searchLower) ||
-      item.notes?.toLowerCase().includes(searchLower))
+      item.notes?.toLowerCase().includes(searchLower)
     );
   });
 
@@ -1010,15 +1009,29 @@ export default function RoomPage({ id }: RoomPageProps) {
     }
   });
 
-  // Update delete mutation
+  // Update delete mutation with proper error handling
   const deleteItem = useMutation({
     mutationFn: async (itemId: string) => {
-      const { error } = await supabase
-        .from("items")
-        .delete()
-        .eq("id", itemId);
+      try {
+        // First delete the item history records
+        const { error: historyError } = await supabase
+          .from("item_history")
+          .delete()
+          .eq("item_id", itemId);
 
-      if (error) throw error;
+        if (historyError) throw historyError;
+
+        // Then delete the item itself
+        const { error: itemError } = await supabase
+          .from("items")
+          .delete()
+          .eq("id", itemId);
+
+        if (itemError) throw itemError;
+      } catch (error) {
+        console.error('Delete error:', error);
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["items", id] });
@@ -1036,90 +1049,37 @@ export default function RoomPage({ id }: RoomPageProps) {
     }
   });
 
-  // Update the export function
-  const exportToExcel = async (items: Item[]) => {
-    if (!items || items.length === 0) {
-      toast({
-        title: "Export Failed",
-        description: "No items available to export",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    try {
-      // First get items with room and project context
-      const { data: projectItems, error } = await supabase
-        .from("items")
-        .select(`
-          *,
-          rooms (
-            name,
-            projects (
-              name
-            )
-          )
-        `)
-        .eq("room_id", id);
-
-      if (error) throw error;
-
-      const exportData = (projectItems || []).map(item => ({
-        'Room': item.rooms?.name || '',
-        'Project': item.rooms?.projects?.name || '',
-        'Name': item.name,
-        'Category': item.category,
-        'Brand': item.brand || '',
-        'Supplier': item.supplier || '',
-        'Specifications': item.specifications || '',
-        'Cost': item.cost || '',
-        'Warranty Info': item.warranty_info || '',
-        'Installation Date': item.installation_date || '',
-        'Maintenance Notes': item.maintenance_notes || '',
-        'Status': item.status || '',
-        'Link': item.link || '',
-        'Notes': item.notes || '',
-        'Created At': new Date(item.created_at || '').toLocaleDateString(),
-        'Updated At': new Date(item.updated_at || '').toLocaleDateString()
-      }));
-
-      const ws = XLSX.utils.json_to_sheet(exportData);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Items");
-
-      const fileName = `${room?.name || 'room'}_items_${new Date().toISOString().split('T')[0]}.xlsx`;
-      XLSX.writeFile(wb, fileName);
-
-      toast({
-        title: "Success",
-        description: "Items exported successfully"
-      });
-    } catch (error) {
-      console.error('Export error:', error);
-      toast({
-        title: "Export Failed",
-        description: "Failed to export items",
-        variant: "destructive"
-      });
-    }
-  };
-
-  // Bulk delete mutation
+  // Update bulk delete mutation with proper error handling
   const bulkDeleteItems = useMutation({
     mutationFn: async (itemIds: string[]) => {
-      const { error } = await supabase
-        .from("items")
-        .delete()
-        .in("id", itemIds);
+      try {
+        // First delete all history records for these items
+        const { error: historyError } = await supabase
+          .from("item_history")
+          .delete()
+          .in("item_id", itemIds);
 
-      if (error) throw error;
+        if (historyError) throw historyError;
+
+        // Then delete the items
+        const { error: itemsError } = await supabase
+          .from("items")
+          .delete()
+          .in("id", itemIds);
+
+        if (itemsError) throw itemsError;
+      } catch (error) {
+        console.error('Bulk delete error:', error);
+        throw error;
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["items", id] });
       setSelectedItems([]);
+      setShowBulkDeleteDialog(false);
       toast({
         title: "Success",
-        description: "Selected items deleted successfully"
+        description: "Items deleted successfully"
       });
     },
     onError: (error: Error) => {
