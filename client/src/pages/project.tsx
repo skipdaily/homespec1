@@ -527,28 +527,38 @@ export default function ProjectPage({ id }: ProjectPageProps) {
 
     const deleteRoom = useMutation({
       mutationFn: async () => {
-        const { error } = await supabase
-          .from("rooms")
-          .delete()
-          .eq("id", room.id);
+        try {
+          // Delete the room - cascade will handle related records
+          const { error } = await supabase
+            .from("rooms")
+            .delete()
+            .eq("id", room.id);
 
-        if (error) throw error;
+          if (error) {
+            console.error("Delete room error:", error);
+            throw new Error(error.message);
+          }
+        } catch (error) {
+          console.error("Delete operation failed:", error);
+          throw error;
+        }
       },
       onSuccess: () => {
         queryClient.invalidateQueries({ queryKey: ["rooms", room.project_id] });
         setShowDeleteDialog(false);
         toast({
           title: "Success",
-          description: "Area deleted successfully",
+          description: "Area and all related items deleted successfully"
         });
       },
       onError: (error: Error) => {
+        console.error('Delete error:', error);
         toast({
           title: "Error",
           description: error.message || "Failed to delete area",
-          variant: "destructive",
+          variant: "destructive"
         });
-      },
+      }
     });
 
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -763,9 +773,10 @@ export default function ProjectPage({ id }: ProjectPageProps) {
               <AlertDialogCancel>Cancel</AlertDialogCancel>
               <AlertDialogAction
                 onClick={() => deleteRoom.mutate()}
+                disabled={deleteRoom.isPending}
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               >
-                Delete
+                {deleteRoom.isPending ? "Deleting..." : "Delete"}
               </AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>

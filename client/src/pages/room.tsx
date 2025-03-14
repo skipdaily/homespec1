@@ -1102,6 +1102,42 @@ export default function RoomPage({ id }: RoomPageProps) {
 
   // Removed redundant filteredItems2
 
+  // Update the deleteRoom mutation in the component to handle the deletion
+  const deleteRoom = useMutation({
+    mutationFn: async (roomId: string) => {
+      // The deletion will cascade through items and item_history
+      const { error } = await supabase
+        .from("rooms")
+        .delete()
+        .eq("id", roomId);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["rooms"] });
+      toast({
+        title: "Success",
+        description: "Area and all related items deleted successfully"
+      });
+      // Navigate back to the project page
+      setLocation("/project");
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Error",
+        description: error.message || "Failed to delete area",
+        variant: "destructive"
+      });
+    }
+  });
+
+  // Add the delete handler
+  const handleRoomDelete = (roomId: string) => {
+    if (confirm("Are you sure you want to delete this area and all its items? This action cannot be undone.")) {
+      deleteRoom.mutate(roomId);
+    }
+  };
+
   if (!room) {
     return <div>Loading...</div>;
   }
