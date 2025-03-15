@@ -884,14 +884,20 @@ export default function RoomPage({ id }: RoomPageProps) {
     },
   });
 
-  const { data: room } = useQuery<Room>({
+  const { data: room } = useQuery<Room & { projects: { name: string; id: string } }>({
     queryKey: ["room", id],
     queryFn: async () => {
       if (!id) throw new Error("No room ID provided");
 
       const { data, error } = await supabase
         .from("rooms")
-        .select("*")
+        .select(`
+          *,
+          projects (
+            id,
+            name
+          )
+        `)
         .eq("id", id)
         .single();
 
@@ -1147,8 +1153,8 @@ export default function RoomPage({ id }: RoomPageProps) {
       <NavBreadcrumb
         items={[
           { label: "Dashboard", href: "/dashboard" },
-          { label: room?.projects?.name, href: `/project/${room?.project_id}` },
-          { label: room?.name || "" },
+          { label: room?.projects?.name || "Project", href: `/project/${room?.projects?.id}` },
+          { label: room?.name || "Area" }
         ]}
       />
 
