@@ -22,17 +22,18 @@ export default function Login() {
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === "SIGNED_IN" && session) {
-        setTimeout(() => navigate("/dashboard"), 0);
+        // Force a page refresh and then navigate
+        window.location.href = "/dashboard";
       }
     });
 
     return () => subscription.unsubscribe();
-  }, [navigate]);
+  }, []);
 
   // Handle initial session redirect
   useEffect(() => {
     if (session && !isLoading) {
-      setTimeout(() => navigate("/dashboard"), 0);
+      navigate("/dashboard");
     }
   }, [session, isLoading, navigate]);
 
