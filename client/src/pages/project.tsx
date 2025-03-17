@@ -12,10 +12,9 @@ import {
   ChevronsUpDown,
   Check,
   Printer,
-  HomeIcon,
-  Calendar,
-  User,
-  ChevronRight
+  HomeIcon, // Import HomeIcon
+  Calendar, // Import Calendar
+  User //Import User
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -29,6 +28,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Link } from "wouter";
 import type { Project, Room } from "@shared/schema";
 import * as XLSX from "xlsx";
 import {
@@ -172,7 +172,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
           )
         `,
         )
-        .eq('rooms.project_id', id)
+        .eq('rooms.project_id', id)  // Add filter to only get items from rooms in this project
         .order("created_at", { ascending: false });
 
       if (error) {
@@ -227,7 +227,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
             const { error } = await supabase.from("rooms").insert([
               {
                 project_id: id,
-                name: area.charAt(0).toUpperCase() + area.slice(1),
+                name: area.charAt(0).toUpperCase() + area.slice(1), // Capitalize first letter
                 created_at: new Date().toISOString(),
               },
             ]);
@@ -277,7 +277,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
 
           // Excel dates start from 1900-01-01
           const date = new Date(1900, 0, 1);
-          date.setDate(date.getDate() + numericDate - 2);
+          date.setDate(date.getDate() + numericDate - 2); // Subtract 2 to account for Excel's date system quirks
 
           return date.toISOString().split("T")[0];
         };
@@ -338,8 +338,8 @@ export default function ProjectPage({ id }: ProjectPageProps) {
             installation_date: processExcelDate(item.installation_date),
             maintenance_notes: item.maintenance_notes || null,
             status: item.status || null,
-            notes: item.notes || null,
-            link: item.links || null,
+            notes: item.notes || null,             // Add notes field
+            link: item.links || null,              // Add links field
             created_at: new Date().toISOString(),
           }));
 
@@ -406,8 +406,8 @@ export default function ProjectPage({ id }: ProjectPageProps) {
         installation_date: item.installation_date || "",
         maintenance_notes: item.maintenance_notes || "",
         status: item.status || "",
-        notes: item.notes || "",
-        links: item.link || "",
+        notes: item.notes || "",           // Add notes field
+        links: item.link || "",            // Add links field
       }));
 
       // Create workbook and add items sheet
@@ -451,7 +451,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["rooms", id] });
       setOpen(false);
-      setAreaValue("");
+      setAreaValue(""); // Reset area value after successful creation
       toast({
         title: "Success",
         description: "Area added successfully",
@@ -477,7 +477,6 @@ export default function ProjectPage({ id }: ProjectPageProps) {
   }
 
   const AreaCard = ({ room, itemCount }: { room: Room; itemCount: number }) => {
-    const [isExpanded, setIsExpanded] = useState(false);
     const [showEditDialog, setShowEditDialog] = useState(false);
     const [showDeleteDialog, setShowDeleteDialog] = useState(false);
     const [openAreaCombobox, setOpenAreaCombobox] = useState(false);
@@ -584,93 +583,92 @@ export default function ProjectPage({ id }: ProjectPageProps) {
 
     return (
       <div className="relative">
-        <Card className="group hover:shadow-lg transition-all duration-200 border-2 hover:border-primary/20">
-          <CardHeader className="cursor-pointer" onClick={() => setIsExpanded(!isExpanded)}>
-            <div className="flex justify-between items-start">
-              <div className="space-y-1">
-                <CardTitle className="group-hover:text-primary transition-colors flex items-center gap-2">
-                  {room.name}
-                  <ChevronRight
-                    className={cn(
-                      "h-4 w-4 transition-transform duration-200",
-                      isExpanded ? "rotate-90" : ""
-                    )}
-                  />
-                </CardTitle>
-                <div className="flex items-center space-x-2">
-                  <Badge variant="secondary" className="rounded-md">
-                    {itemCount} {itemCount === 1 ? "item" : "items"}
-                  </Badge>
-                  {room.floor_number !== null && (
-                    <Badge variant="outline" className="rounded-md">
-                      Floor {room.floor_number}
+        <Link href={`/room/${room.id}`}>
+          <Card className="group cursor-pointer hover:shadow-lg transition-all duration-200 border-2 hover:border-primary/20">
+            <CardHeader>
+              <div className="flex justify-between items-start">
+                <div className="space-y-1">
+                  <CardTitle className="group-hover:text-primary transition-colors">
+                    {room.name}
+                  </CardTitle>
+                  <div className="flex items-center space-x-2">
+                    <Badge variant="secondary" className="rounded-md">
+                      {itemCount} {itemCount === 1 ? "item" : "items"}
                     </Badge>
-                  )}
+                    {room.floor_number !== null && (
+                      <Badge variant="outline" className="rounded-md">
+                        Floor {room.floor_number}
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+                <div className="flex space-x-2">
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="opacity-0 group-hover:opacity-100 transition-opacity"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setShowEditDialog(true);
+                    }}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="opacity-0 group-hover:opacity-100 transition-opacity text-destructive"
+                    onClick={(e) => {
+                      e.preventDefault();
+                      setShowDeleteDialog(true);
+                    }}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
                 </div>
               </div>
-              <div className="flex space-x-2">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="opacity-0 group-hover:opacity-100 transition-opacity"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setShowEditDialog(true);
-                  }}
-                >
-                  <Pencil className="h-4 w-4" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  className="opacity-0 group-hover:opacity-100 transition-opacity text-destructive"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setShowDeleteDialog(true);
-                  }}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </div>
-            </div>
-          </CardHeader>
-          <CardContent>
-            {room.description && (
-              <p className="text-muted-foreground line-clamp-2">
-                {room.description}
-              </p>
-            )}
-            {room.dimensions && (
-              <p className="text-sm text-muted-foreground mt-2">
-                Size: {room.dimensions}
-              </p>
-            )}
-            {isExpanded && (
-              <div className="mt-4 space-y-4 border-t pt-4">
-                <div className="grid gap-4">
-                  {items?.filter(item => item.room_id === room.id).map((item) => (
-                    <div
-                      key={item.id}
-                      className="flex items-center justify-between p-2 rounded-lg bg-muted/50"
-                    >
-                      <div>
-                        <p className="font-medium">{item.name}</p>
-                        <p className="text-sm text-muted-foreground">
-                          {item.category}
-                        </p>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Button variant="ghost" size="sm">
-                          <ChevronRight className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+            </CardHeader>
+            <CardContent>
+              {room.description && (
+                <p className="text-muted-foreground line-clamp-2">
+                  {room.description}
+                </p>
+              )}
+              {room.dimensions && (
+                <p className="text-sm text-muted-foreground mt-2">
+                  Size: {room.dimensions}
+                </p>
+              )}
+            </CardContent>
+          </Card>
+        </Link>
+
+        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex space-x-2">
+          <Button
+            variant="ghost"
+            size="icon"
+            className="bg-background/80 backdrop-blur hover:bg-background/90"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setShowEditDialog(true);
+            }}
+          >
+            <Pencil className="h-4 w-4" />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="bg-background/80 backdrop-blur hover:bg-background/90 text-destructive"
+            onClick={(e) => {
+              e.preventDefault();
+              e.stopPropagation();
+              setShowDeleteDialog(true);
+            }}
+          >
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        </div>
 
         <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
           <DialogContent>
@@ -711,6 +709,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
                       </CommandEmpty>
                       {areaTemplates?.length > 0 && (
                         <ScrollArea className="h-[300px] w-full overflow-y-auto" type="hover">
+                          {/* Height increased */}
                           <CommandGroup>
                             {areaTemplates.map((area) => (
                               <CommandItem
@@ -1039,9 +1038,9 @@ export default function ProjectPage({ id }: ProjectPageProps) {
                         )}
                       </div>
                       <div className="flex items-center space-x-2">
-                        <Button variant="ghost" size="sm">
-                          <ChevronRight className="h-4 w-4"/>
-                        </Button>
+                        <Link href={`/room/${item.room_id}`}>
+                          <Button variant="ghost" size="sm">View Details</Button>
+                        </Link>
                       </div>
                     </div>
                   </Card>
