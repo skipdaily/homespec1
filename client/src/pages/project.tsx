@@ -12,9 +12,10 @@ import {
   ChevronsUpDown,
   Check,
   Printer,
-  HomeIcon, // Import HomeIcon
-  Calendar, // Import Calendar
-  User //Import User
+  HomeIcon,
+  Calendar,
+  User,
+  ChevronRight
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -172,7 +173,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
           )
         `,
         )
-        .eq('rooms.project_id', id)  // Add filter to only get items from rooms in this project
+        .eq('rooms.project_id', id)
         .order("created_at", { ascending: false });
 
       if (error) {
@@ -227,7 +228,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
             const { error } = await supabase.from("rooms").insert([
               {
                 project_id: id,
-                name: area.charAt(0).toUpperCase() + area.slice(1), // Capitalize first letter
+                name: area.charAt(0).toUpperCase() + area.slice(1),
                 created_at: new Date().toISOString(),
               },
             ]);
@@ -277,7 +278,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
 
           // Excel dates start from 1900-01-01
           const date = new Date(1900, 0, 1);
-          date.setDate(date.getDate() + numericDate - 2); // Subtract 2 to account for Excel's date system quirks
+          date.setDate(date.getDate() + numericDate - 2);
 
           return date.toISOString().split("T")[0];
         };
@@ -338,8 +339,8 @@ export default function ProjectPage({ id }: ProjectPageProps) {
             installation_date: processExcelDate(item.installation_date),
             maintenance_notes: item.maintenance_notes || null,
             status: item.status || null,
-            notes: item.notes || null,             // Add notes field
-            link: item.links || null,              // Add links field
+            notes: item.notes || null,
+            link: item.links || null,
             created_at: new Date().toISOString(),
           }));
 
@@ -406,8 +407,8 @@ export default function ProjectPage({ id }: ProjectPageProps) {
         installation_date: item.installation_date || "",
         maintenance_notes: item.maintenance_notes || "",
         status: item.status || "",
-        notes: item.notes || "",           // Add notes field
-        links: item.link || "",            // Add links field
+        notes: item.notes || "",
+        links: item.link || "",
       }));
 
       // Create workbook and add items sheet
@@ -451,7 +452,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["rooms", id] });
       setOpen(false);
-      setAreaValue(""); // Reset area value after successful creation
+      setAreaValue("");
       toast({
         title: "Success",
         description: "Area added successfully",
@@ -709,7 +710,6 @@ export default function ProjectPage({ id }: ProjectPageProps) {
                       </CommandEmpty>
                       {areaTemplates?.length > 0 && (
                         <ScrollArea className="h-[300px] w-full overflow-y-auto" type="hover">
-                          {/* Height increased */}
                           <CommandGroup>
                             {areaTemplates.map((area) => (
                               <CommandItem
@@ -1004,7 +1004,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
                 </div>
                 <Button
                   type="submit"
-                  className="w-full"
+                                    className="w-full"
                   disabled={createRoom.isPending}
                 >
                   {createRoom.isPending ? "Adding..." : "Add Area"}
@@ -1039,7 +1039,9 @@ export default function ProjectPage({ id }: ProjectPageProps) {
                       </div>
                       <div className="flex items-center space-x-2">
                         <Link href={`/room/${item.room_id}`}>
-                          <Button variant="ghost" size="sm">View Details</Button>
+                          <Button variant="ghost" size="sm">
+                            <ChevronRight className="h-4 w-4"/>
+                          </Button>
                         </Link>
                       </div>
                     </div>
