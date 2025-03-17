@@ -29,7 +29,6 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Link } from "wouter";
 import type { Project, Room } from "@shared/schema";
 import * as XLSX from "xlsx";
 import {
@@ -478,6 +477,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
   }
 
   const AreaCard = ({ room, itemCount }: { room: Room; itemCount: number }) => {
+    const [isExpanded, setIsExpanded] = useState(false);
     const [showEditDialog, setShowEditDialog] = useState(false);
     const [showDeleteDialog, setShowDeleteDialog] = useState(false);
     const [openAreaCombobox, setOpenAreaCombobox] = useState(false);
@@ -584,92 +584,95 @@ export default function ProjectPage({ id }: ProjectPageProps) {
 
     return (
       <div className="relative">
-        <Link href={`/room/${room.id}`}>
-          <Card className="group cursor-pointer hover:shadow-lg transition-all duration-200 border-2 hover:border-primary/20">
-            <CardHeader>
-              <div className="flex justify-between items-start">
-                <div className="space-y-1">
-                  <CardTitle className="group-hover:text-primary transition-colors">
-                    {room.name}
-                  </CardTitle>
-                  <div className="flex items-center space-x-2">
-                    <Badge variant="secondary" className="rounded-md">
-                      {itemCount} {itemCount === 1 ? "item" : "items"}
-                    </Badge>
-                    {room.floor_number !== null && (
-                      <Badge variant="outline" className="rounded-md">
-                        Floor {room.floor_number}
-                      </Badge>
+        <Card className="group hover:shadow-lg transition-all duration-200 border-2 hover:border-primary/20">
+          <CardHeader className="cursor-pointer" onClick={() => setIsExpanded(!isExpanded)}>
+            <div className="flex justify-between items-start">
+              <div className="space-y-1">
+                <CardTitle className="group-hover:text-primary transition-colors flex items-center gap-2">
+                  {room.name}
+                  <ChevronRight
+                    className={cn(
+                      "h-4 w-4 transition-transform duration-200",
+                      isExpanded ? "rotate-90" : ""
                     )}
-                  </div>
-                </div>
-                <div className="flex space-x-2">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="opacity-0 group-hover:opacity-100 transition-opacity"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      setShowEditDialog(true);
-                    }}
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="opacity-0 group-hover:opacity-100 transition-opacity text-destructive"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      setShowDeleteDialog(true);
-                    }}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
+                  />
+                </CardTitle>
+                <div className="flex items-center space-x-2">
+                  <Badge variant="secondary" className="rounded-md">
+                    {itemCount} {itemCount === 1 ? "item" : "items"}
+                  </Badge>
+                  {room.floor_number !== null && (
+                    <Badge variant="outline" className="rounded-md">
+                      Floor {room.floor_number}
+                    </Badge>
+                  )}
                 </div>
               </div>
-            </CardHeader>
-            <CardContent>
-              {room.description && (
-                <p className="text-muted-foreground line-clamp-2">
-                  {room.description}
-                </p>
-              )}
-              {room.dimensions && (
-                <p className="text-sm text-muted-foreground mt-2">
-                  Size: {room.dimensions}
-                </p>
-              )}
-            </CardContent>
-          </Card>
-        </Link>
-
-        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex space-x-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="bg-background/80 backdrop-blur hover:bg-background/90"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              setShowEditDialog(true);
-            }}
-          >
-            <Pencil className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="bg-background/80 backdrop-blur hover:bg-background/90 text-destructive"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              setShowDeleteDialog(true);
-            }}
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        </div>
+              <div className="flex space-x-2">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="opacity-0 group-hover:opacity-100 transition-opacity"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowEditDialog(true);
+                  }}
+                >
+                  <Pencil className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="opacity-0 group-hover:opacity-100 transition-opacity text-destructive"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowDeleteDialog(true);
+                  }}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {room.description && (
+              <p className="text-muted-foreground line-clamp-2">
+                {room.description}
+              </p>
+            )}
+            {room.dimensions && (
+              <p className="text-sm text-muted-foreground mt-2">
+                Size: {room.dimensions}
+              </p>
+            )}
+            {isExpanded && (
+              <div className="mt-4 space-y-4 border-t pt-4">
+                <div className="grid gap-4">
+                  {items?.filter(item => item.room_id === room.id).map((item) => (
+                    <div
+                      key={item.id}
+                      className="flex items-center justify-between p-2 rounded-lg bg-muted/50"
+                    >
+                      <div>
+                        <p className="font-medium">{item.name}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {item.category}
+                        </p>
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <Link href={`/item/${item.id}`}>
+                          <Button variant="ghost" size="sm">
+                            <ChevronRight className="h-4 w-4" />
+                          </Button>
+                        </Link>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
           <DialogContent>
@@ -1004,7 +1007,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
                 </div>
                 <Button
                   type="submit"
-                                    className="w-full"
+                  className="w-full"
                   disabled={createRoom.isPending}
                 >
                   {createRoom.isPending ? "Adding..." : "Add Area"}
@@ -1038,7 +1041,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
                         )}
                       </div>
                       <div className="flex items-center space-x-2">
-                        <Link href={`/room/${item.room_id}`}>
+                        <Link href={`/item/${item.room_id}`}>
                           <Button variant="ghost" size="sm">
                             <ChevronRight className="h-4 w-4"/>
                           </Button>
