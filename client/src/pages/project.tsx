@@ -660,11 +660,9 @@ export default function ProjectPage({ id }: ProjectPageProps) {
                         </p>
                       </div>
                       <div className="flex items-center space-x-2">
-                        <Link href={`/item/${item.id}`}>
-                          <Button variant="ghost" size="sm">
-                            <ChevronRight className="h-4 w-4" />
-                          </Button>
-                        </Link>
+                        <Button variant="ghost" size="sm">
+                          <ChevronRight className="h-4 w-4" />
+                        </Button>
                       </div>
                     </div>
                   ))}
@@ -1041,11 +1039,9 @@ export default function ProjectPage({ id }: ProjectPageProps) {
                         )}
                       </div>
                       <div className="flex items-center space-x-2">
-                        <Link href={`/item/${item.room_id}`}>
-                          <Button variant="ghost" size="sm">
-                            <ChevronRight className="h-4 w-4"/>
-                          </Button>
-                        </Link>
+                        <Button variant="ghost" size="sm">
+                          <ChevronRight className="h-4 w-4"/>
+                        </Button>
                       </div>
                     </div>
                   </Card>
