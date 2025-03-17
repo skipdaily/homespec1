@@ -78,6 +78,7 @@ interface Item {
   room_id: string;
   rooms: {
     name: string;
+    project_id: string;
   };
 }
 
@@ -166,10 +167,12 @@ export default function ProjectPage({ id }: ProjectPageProps) {
           link,
           room_id,
           rooms!inner (
-            name
+            name,
+            project_id
           )
         `,
         )
+        .eq('rooms.project_id', id)  // Add filter to only get items from rooms in this project
         .order("created_at", { ascending: false });
 
       if (error) {
