@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { supabase } from "@/lib/supabase";
@@ -12,10 +12,9 @@ import {
   ChevronsUpDown,
   Check,
   Printer,
-  HomeIcon,
-  Calendar,
-  User,
-  Lock
+  HomeIcon, // Import HomeIcon
+  Calendar, // Import Calendar
+  User //Import User
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -23,14 +22,12 @@ import {
   DialogContent,
   DialogHeader,
   DialogTitle,
-  DialogDescription,
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { useLocation } from "wouter";
-import { Textarea } from "@/components/ui/textarea";
 import { Link } from "wouter";
 import type { Project, Room } from "@shared/schema";
 import * as XLSX from "xlsx";
@@ -63,65 +60,6 @@ import { cn } from "@/lib/utils";
 import PrintView from "@/components/project/print-view";
 import { NavBreadcrumb } from "@/components/layout/nav-breadcrumb";
 
-// Add AccessDialog component
-const AccessDialog = ({ 
-  isOpen, 
-  onClose, 
-  onSubmit, 
-  requirePin,
-  isPending
-}: { 
-  isOpen: boolean; 
-  onClose: () => void; 
-  onSubmit: (code: string, pin?: string) => void;
-  requirePin: boolean;
-  isPending: boolean;
-}) => {
-  const [accessCode, setAccessCode] = useState("");
-  const [pin, setPin] = useState("");
-
-  return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>Project Access Required</DialogTitle>
-          <DialogDescription>
-            Please enter the access code{requirePin ? " and PIN" : ""} to view this project.
-          </DialogDescription>
-        </DialogHeader>
-        <div className="space-y-4">
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Access Code</label>
-            <Input
-              value={accessCode}
-              onChange={(e) => setAccessCode(e.target.value)}
-              placeholder="Enter access code"
-            />
-          </div>
-          {requirePin && (
-            <div className="space-y-2">
-              <label className="text-sm font-medium">PIN</label>
-              <Input
-                type="password"
-                value={pin}
-                onChange={(e) => setPin(e.target.value)}
-                placeholder="Enter PIN"
-              />
-            </div>
-          )}
-          <Button 
-            className="w-full" 
-            onClick={() => onSubmit(accessCode, requirePin ? pin : undefined)}
-            disabled={isPending || !accessCode || (requirePin && !pin)}
-          >
-            {isPending ? "Verifying..." : "Submit"}
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
-  );
-};
-
 // Define the structure of the items data
 interface Item {
   id: string;
@@ -150,84 +88,12 @@ interface ProjectPageProps {
 }
 
 export default function ProjectPage({ id }: ProjectPageProps) {
-  const [, navigate] = useLocation();
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [openAreaCombobox, setOpenAreaCombobox] = useState(false);
   const [areaValue, setAreaValue] = useState("");
   const [showPrintDialog, setShowPrintDialog] = useState(false);
-  const [showAccessDialog, setShowAccessDialog] = useState(false);
-  const [accessVerified, setAccessVerified] = useState(false);
-
-  // Add session query
-  const { data: session } = useQuery({
-    queryKey: ["session"],
-    queryFn: async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      return session;
-    }
-  });
-
-  // Add project access verification
-  const verifyAccess = useMutation({
-    mutationFn: async ({ accessCode, pin }: { accessCode: string; pin?: string }) => {
-      const { data, error } = await supabase
-        .from("projects")
-        .select("*")
-        .eq("id", id)
-        .eq("access_code", accessCode)
-        .single();
-
-      if (error) throw new Error("Invalid access code");
-      if (data?.require_pin && data.edit_pin !== pin) {
-        throw new Error("Invalid PIN");
-      }
-
-      return data;
-    },
-    onSuccess: () => {
-      setAccessVerified(true);
-      setShowAccessDialog(false);
-      toast({
-        title: "Access Granted",
-        description: "You now have access to view this project"
-      });
-    },
-    onError: (error: Error) => {
-      toast({
-        title: "Access Denied",
-        description: error.message,
-        variant: "destructive"
-      });
-    }
-  });
-
-  // Project query with access control
-  const { data: project, isLoading: isProjectLoading } = useQuery<Project>({
-    queryKey: ["project", id],
-    queryFn: async () => {
-      if (!id) throw new Error("No project ID provided");
-
-      const { data, error } = await supabase
-        .from("projects")
-        .select("*")
-        .eq("id", id)
-        .single();
-
-      if (error) throw error;
-
-      // Show access dialog if user is not the owner
-      if (!session?.user || data.user_id !== session.user.id) {
-        setShowAccessDialog(true);
-        throw new Error("Access verification required");
-      }
-
-      return data;
-    },
-    enabled: !!id && !showAccessDialog,
-    retry: false
-  });
 
   // Add areas query
   const { data: areaTemplates } = useQuery({
@@ -241,6 +107,23 @@ export default function ProjectPage({ id }: ProjectPageProps) {
       if (error) throw error;
       return data.map((area) => area.name);
     },
+  });
+
+  const { data: project } = useQuery<Project>({
+    queryKey: ["project", id],
+    queryFn: async () => {
+      if (!id) throw new Error("No project ID provided");
+
+      const { data, error } = await supabase
+        .from("projects")
+        .select("*")
+        .eq("id", id)
+        .single();
+
+      if (error) throw error;
+      return data;
+    },
+    enabled: !!id,
   });
 
   const { data: rooms } = useQuery<Room[]>({
@@ -257,7 +140,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
       if (error) throw error;
       return data;
     },
-    enabled: !!id && accessVerified,
+    enabled: !!id,
   });
 
   const { data: items } = useQuery<Item[]>({
@@ -289,7 +172,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
           )
         `,
         )
-        .eq('rooms.project_id', id)
+        .eq('rooms.project_id', id)  // Add filter to only get items from rooms in this project
         .order("created_at", { ascending: false });
 
       if (error) {
@@ -298,7 +181,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
       }
       return data || [];
     },
-    enabled: !!id && !!rooms?.length && accessVerified,
+    enabled: !!id && !!rooms?.length,
   });
 
   const handleFileUpload = async (
@@ -588,18 +471,6 @@ export default function ProjectPage({ id }: ProjectPageProps) {
       dimensions: (formData.get("dimensions") as string) || undefined,
     });
   };
-
-  if (!id || (!accessVerified && showAccessDialog) || isProjectLoading) {
-    return (
-      <AccessDialog
-        isOpen={showAccessDialog}
-        onClose={() => navigate("/dashboard")}
-        onSubmit={(code, pin) => verifyAccess.mutate({ accessCode: code, pin })}
-        requirePin={project?.require_pin || false}
-        isPending={verifyAccess.isPending}
-      />
-    );
-  }
 
   if (!project) {
     return <div>Loading...</div>;
