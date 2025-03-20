@@ -1013,7 +1013,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
       </div>
 
       <Dialog open={showPrintDialog} onOpenChange={setShowPrintDialog}>
-        <DialogContent className="max-w-4xl">>
+        <DialogContent className="max-w-4xl">
           <DialogHeader>
             <DialogTitle>Print Project Details</DialogTitle>
           </DialogHeader>
