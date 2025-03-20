@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { supabase } from "@/lib/supabase";
@@ -94,21 +94,18 @@ export default function ProjectPage({ id }: ProjectPageProps) {
   const [openAreaCombobox, setOpenAreaCombobox] = useState(false);
   const [areaValue, setAreaValue] = useState("");
   const [showPrintDialog, setShowPrintDialog] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  // Add areas query
-  const { data: areaTemplates } = useQuery({
-    queryKey: ["areas"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("areas")
-        .select("name")
-        .order("name");
+  // Check authentication status
+  useEffect(() => {
+    const checkAuth = async () => {
+      const { data: { session } } = await supabase.auth.getSession();
+      setIsAuthenticated(!!session);
+    };
+    checkAuth();
+  }, []);
 
-      if (error) throw error;
-      return data.map((area) => area.name);
-    },
-  });
-
+  // Project query - modified to work without authentication
   const { data: project } = useQuery<Project>({
     queryKey: ["project", id],
     queryFn: async () => {
@@ -126,6 +123,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
     enabled: !!id,
   });
 
+  // Rooms query - modified to work without authentication
   const { data: rooms } = useQuery<Room[]>({
     queryKey: ["rooms", id],
     queryFn: async () => {
@@ -143,6 +141,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
     enabled: !!id,
   });
 
+  // Items query - modified to work without authentication
   const { data: items } = useQuery<Item[]>({
     queryKey: ["project-items", id],
     queryFn: async () => {
@@ -150,8 +149,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
 
       const { data, error } = await supabase
         .from("items")
-        .select(
-          `
+        .select(`
           id,
           name,
           category,
@@ -170,9 +168,8 @@ export default function ProjectPage({ id }: ProjectPageProps) {
             name,
             project_id
           )
-        `,
-        )
-        .eq('rooms.project_id', id)  // Add filter to only get items from rooms in this project
+        `)
+        .eq('rooms.project_id', id)
         .order("created_at", { ascending: false });
 
       if (error) {
@@ -832,7 +829,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
     <div className="container mx-auto px-4 py-8">
       <NavBreadcrumb
         items={[
-          { label: "Projects", href: "/dashboard" },
+          ...(isAuthenticated ? [{ label: "Projects", href: "/dashboard" }] : []),
           { label: project?.name || "Project" },
         ]}
       />
@@ -864,155 +861,158 @@ export default function ProjectPage({ id }: ProjectPageProps) {
             </div>
           </div>
 
-          {/* Right Column - Actions */}
-          <div className="flex flex-col gap-4 lg:items-end">
-            <div className="flex flex-wrap gap-3">
-              <Button
-                variant="outline"
-                onClick={() => setShowPrintDialog(true)}
-                className="flex items-center gap-2"
-              >
-                <Printer className="h-4 w-4" />
-                Print Project
-              </Button>
-
-              <div className="flex items-center gap-2">
-                <input
-                  type="file"
-                  accept=".csv,.xlsx,.xls"
-                  onChange={handleFileUpload}
-                  className="hidden"
-                  id="file-upload"
-                />
-                <label htmlFor="file-upload">
-                  <Button variant="outline" asChild>
-                    <span>
-                      <Upload className="mr-2 h-4 w-4" />
-                      Import Items
-                    </span>
-                  </Button>
-                </label>
-
-                <Button variant="outline" onClick={handleExport}>
-                  <Download className="mr-2 h-4 w-4" />
-                  Export Items
+          {/* Right Column - Actions (only show if authenticated) */}
+          {isAuthenticated && (
+            <div className="flex flex-col gap-4 lg:items-end">
+              <div className="flex flex-wrap gap-3">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowPrintDialog(true)}
+                  className="flex items-center gap-2"
+                >
+                  <Printer className="h-4 w-4" />
+                  Print Project
                 </Button>
+
+                <div className="flex items-center gap-2">
+                  <input
+                    type="file"
+                    accept=".csv,.xlsx,.xls"
+                    onChange={handleFileUpload}
+                    className="hidden"
+                    id="file-upload"
+                  />
+                  <label htmlFor="file-upload">
+                    <Button variant="outline" asChild>
+                      <span>
+                        <Upload className="mr-2 h-4 w-4" />
+                        Import Items
+                      </span>
+                    </Button>
+                  </label>
+
+                  <Button variant="outline" onClick={handleExport}>
+                    <Download className="mr-2 h-4 w-4" />
+                    Export Items
+                  </Button>
+                </div>
               </div>
             </div>
-          </div>
+          )}
         </div>
 
-        {/* Search and Add Area Section */}
-        <div className="mt-6 flex flex-wrap items-center gap-4">
-          <div className="flex-1 min-w-[300px]">
-            <div className="relative">
-              <Input
-                type="text"
-                placeholder="Search items..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-8"
-              />
-              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+        {/* Search and Add Area Section (only show if authenticated) */}
+        {isAuthenticated && (
+          <div className="mt-6 flex flex-wrap items-center gap-4">
+            <div className="flex-1 min-w-[300px]">
+              <div className="relative">
+                <Input
+                  type="text"
+                  placeholder="Search items..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-8"
+                />
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+              </div>
             </div>
-          </div>
-          <Dialog open={open} onOpenChange={setOpen}>
-            <DialogTrigger asChild>
-              <Button variant="default">
-                <Plus className="mr-2 h-4 w-4" />
-                Add Area
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Add New Area</DialogTitle>
-              </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="flex flex-col space-y-2">
-                  <Label>Area Name*</Label>
-                  <Popover
-                    open={openAreaCombobox}
-                    onOpenChange={setOpenAreaCombobox}
-                  >
-                    <PopoverTrigger asChild>
-                      <Button
-                        variant="outline"
-                        role="combobox"
-                        aria-expanded={openAreaCombobox}
-                        className={cn(
-                          "w-full justify-between",
-                          !areaValue && "text-muted-foreground",
-                        )}
-                      >
-                        {areaValue || "Select or enter area name..."}
-                        <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-full p-0">
-                      <Command>
-                        <CommandInput
-                          placeholder="Search or enter new area..."
-                          name="name"
-                          onValueChange={(value) => {
-                            setAreaValue(value);
-                          }}
-                        />
-                        <CommandEmpty>
-                          Press enter to use "{areaValue}" as a new area
-                        </CommandEmpty>
-                        {areaTemplates?.length > 0 && (
-                          <ScrollArea className="h-[300px] w-full overflow-y-auto" type="hover">
-                            <CommandGroup>
-                              {areaTemplates.map((area) => (
-                                <CommandItem
-                                  key={area}
-                                  value={area}
-                                  onSelect={(value) => {
-                                    setAreaValue(value);
-                                    setOpenAreaCombobox(false);
-                                  }}
-                                >
-                                  <Check
-                                    className={cn(
-                                      "mr-2 h-4 w-4",
-                                      areaValue === area
-                                        ? "opacity-100"
-                                        : "opacity-0",
-                                    )}
-                                  />
-                                  {area}
-                                </CommandItem>
-                              ))}
-                            </CommandGroup>
-                          </ScrollArea>
-                        )}
-                      </Command>
-                    </PopoverContent>
-                  </Popover>
-                </div>
-                <Textarea name="description" placeholder="Description" />
-                <div className="grid grid-cols-2 gap-4">
-                  <Input
-                    name="floor_number"
-                    type="number"
-                    placeholder="Floor Number"
-                  />
-                  <Input
-                    name="dimensions"
-                    placeholder="Dimensions (e.g., 12' x 15')"
-                  />
-                </div>
-                <Button
-                  type="submit"
-                  className="w-full"
-                  disabled={createRoom.isPending}
-                >
-                  {createRoom.isPending ? "Adding..." : "Add Area"}
+            <Dialog open={open} onOpenChange={setOpen}>
+              <DialogTrigger asChild>
+                <Button variant="default">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add Area
                 </Button>
-              </form>
-            </DialogContent>
-          </Dialog>
-        </div>
+              </DialogTrigger>
+              <DialogContent>
+                <DialogHeader>
+                  <DialogTitle>Add New Area</DialogTitle>
+                </DialogHeader>
+                <form onSubmit={handleSubmit} className="space-y-4">
+                  <div className="flex flex-col space-y-2">
+                    <Label>Area Name*</Label>
+                    <Popover
+                      open={openAreaCombobox}
+                      onOpenChange={setOpenAreaCombobox}
+                    >
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="outline"
+                          role="combobox"
+                          aria-expanded={openAreaCombobox}
+                          className={cn(
+                            "w-full justify-between",
+                            !areaValue && "text-muted-foreground",
+                          )}
+                        >
+                          {areaValue || "Select or enter area name..."}
+                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-full p-0">
+                        <Command>
+                          <CommandInput
+                            placeholder="Search or enter new area..."
+                            name="name"
+                            onValueChange={(value) => {
+                              setAreaValue(value);
+                            }}
+                          />
+                          <CommandEmpty>
+                            Press enter to use "{areaValue}" as a new area
+                          </CommandEmpty>
+                          {areaTemplates?.length > 0 && (
+                            <ScrollArea className="h-[300px] w-full overflow-y-auto" type="hover">
+                              <CommandGroup>
+                                {areaTemplates.map((area) => (
+                                  <CommandItem
+                                    key={area}
+                                    value={area}
+                                    onSelect={(value) => {
+                                      setAreaValue(value);
+                                      setOpenAreaCombobox(false);
+                                    }}
+                                  >
+                                    <Check
+                                      className={cn(
+                                        "mr-2 h-4 w-4",
+                                        areaValue === area
+                                          ? "opacity-100"
+                                          : "opacity-0",
+                                      )}
+                                    />
+                                    {area}
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </ScrollArea>
+                          )}
+                        </Command>
+                      </PopoverContent>
+                    </Popover>
+                  </div>
+                  <Textarea name="description" placeholder="Description" />
+                  <div className="grid grid-cols-2 gap-4">
+                    <Input
+                      name="floor_number"                      type="number"
+                      placeholder="Floor Number"
+                    />
+                    <Input
+                      name="dimensions"
+                      placeholder="Dimensions (e.g., 12' x 15')"
+                    />
+                  </div>
+                  <Button
+                    type="submit"
+                    className="w-full"
+                    disabled={createRoom.isPending}
+                  >
+                    {createRoom.isPending ? "Adding..." : "Add Area"}
+                  </Button>
+                </form>
+              </DialogContent>
+            </Dialog>
+          </div>
+        )}
 
         {/* Display search results if there's a search query */}
         {searchQuery.trim() && (
