@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { supabase } from "@/lib/supabase";
-import { QRCodeSVG } from "qrcode.react";
 import {
   Plus,
   Download,
@@ -15,9 +14,7 @@ import {
   Printer,
   HomeIcon,
   Calendar,
-  User,
-  AlertCircle,
-  Link as LinkIcon
+  User
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -63,6 +60,7 @@ import { cn } from "@/lib/utils";
 import PrintView from "@/components/project/print-view";
 import { NavBreadcrumb } from "@/components/layout/nav-breadcrumb";
 
+// Define the structure of the items data
 interface Item {
   id: string;
   name: string;
@@ -84,12 +82,13 @@ interface Item {
   };
 }
 
+// Update the ProjectPageProps interface
 interface ProjectPageProps {
   id?: string;
 }
 
 export default function ProjectPage({ id }: ProjectPageProps) {
-  // All useState hooks first
+  const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [openAreaCombobox, setOpenAreaCombobox] = useState(false);
@@ -97,10 +96,6 @@ export default function ProjectPage({ id }: ProjectPageProps) {
   const [showPrintDialog, setShowPrintDialog] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  // Hook usage
-  const { toast } = useToast();
-
-  // Authentication effect
   useEffect(() => {
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -109,32 +104,36 @@ export default function ProjectPage({ id }: ProjectPageProps) {
     checkAuth();
   }, []);
 
-  // Data fetching queries
-  const { data: project, isLoading: isProjectLoading, isError: isProjectError } = useQuery({
+  const { data: project } = useQuery<Project>({
     queryKey: ["project", id],
     queryFn: async () => {
       if (!id) throw new Error("No project ID provided");
+
       const { data, error } = await supabase
         .from("projects")
         .select("*")
         .eq("id", id)
         .single();
+
       if (error) throw error;
       return data;
     },
+    enabled: !!id,
   });
 
   const { data: rooms } = useQuery<Room[]>({
     queryKey: ["rooms", id],
     queryFn: async () => {
       if (!id) throw new Error("No project ID provided");
+
       const { data, error } = await supabase
         .from("rooms")
         .select("*")
         .eq("project_id", id)
         .order("created_at", { ascending: false });
+
       if (error) throw error;
-      return data || [];
+      return data;
     },
     enabled: !!id,
   });
@@ -143,6 +142,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
     queryKey: ["project-items", id],
     queryFn: async () => {
       if (!id) throw new Error("No project ID provided");
+
       const { data, error } = await supabase
         .from("items")
         .select(`
@@ -167,121 +167,29 @@ export default function ProjectPage({ id }: ProjectPageProps) {
         `)
         .eq('rooms.project_id', id)
         .order("created_at", { ascending: false });
-      if (error) throw error;
+
+      if (error) {
+        console.error("Error fetching items:", error);
+        throw error;
+      }
       return data || [];
     },
     enabled: !!id,
   });
 
-  // All mutations at top level
-  const createRoom = useMutation({
-    mutationFn: async (data: {
-      name: string;
-      description?: string;
-      floor_number?: number;
-      dimensions?: string;
-    }) => {
-      if (!id) throw new Error("No project ID provided");
-      const { error } = await supabase
-        .from("rooms")
-        .insert([{ ...data, project_id: id }]);
+  const { data: areaTemplates } = useQuery({
+    queryKey: ["areas"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("areas")
+        .select("name")
+        .order("name");
+
       if (error) throw error;
+      return data?.map((area) => area.name) || [];
     },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["rooms", id] });
-      setOpen(false);
-      setAreaValue("");
-      toast({
-        title: "Success",
-        description: "Area added successfully",
-      });
-    },
+    enabled: true, //Always enabled, regardless of authentication
   });
-
-  const updateRoom = useMutation({
-    mutationFn: async (data: {
-      id: string;
-      name: string;
-      description?: string;
-      floor_number?: number;
-      dimensions?: string;
-    }) => {
-      const { error } = await supabase
-        .from("rooms")
-        .update({
-          name: data.name,
-          description: data.description,
-          floor_number: data.floor_number,
-          dimensions: data.dimensions,
-        })
-        .eq("id", data.id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["rooms", id] });
-      toast({
-        title: "Success",
-        description: "Area updated successfully",
-      });
-    },
-  });
-
-  const deleteRoom = useMutation({
-    mutationFn: async (roomId: string) => {
-      const { error } = await supabase
-        .from("rooms")
-        .delete()
-        .eq("id", roomId);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["rooms", id] });
-      queryClient.invalidateQueries({ queryKey: ["project-items", id] });
-      toast({
-        title: "Success",
-        description: "Area and all related items deleted successfully",
-      });
-    },
-  });
-
-  // Loading and error states
-  if (isProjectLoading) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-muted/30">
-        <p>Loading project details...</p>
-      </div>
-    );
-  }
-
-  if (isProjectError || !project) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-muted/30">
-        <Card className="w-full max-w-md mx-4">
-          <CardContent className="pt-6">
-            <div className="flex mb-4 gap-2">
-              <AlertCircle className="h-8 w-8 text-red-500" />
-              <h1 className="text-2xl font-bold text-gray-900">Project Not Found</h1>
-            </div>
-            <p className="mt-4 text-sm text-gray-600">
-              The project you're looking for could not be found or you may not have permission to view it.
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
-  // Event handlers
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-    createRoom.mutate({
-      name: areaValue || (formData.get("name") as string),
-      description: (formData.get("description") as string) || undefined,
-      floor_number: formData.get("floor_number") ? parseInt(formData.get("floor_number") as string) : undefined,
-      dimensions: (formData.get("dimensions") as string) || undefined,
-    });
-  };
 
   const handleFileUpload = async (
     event: React.ChangeEvent<HTMLInputElement>,
@@ -517,6 +425,48 @@ export default function ProjectPage({ id }: ProjectPageProps) {
     }
   };
 
+  const createRoom = useMutation({
+    mutationFn: async (data: {
+      name: string;
+      description?: string;
+      floor_number?: number;
+      dimensions?: string;
+    }) => {
+      if (!id) throw new Error("No project ID provided");
+
+      const { error } = await supabase
+        .from("rooms")
+        .insert([{ ...data, project_id: id }]);
+
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["rooms", id] });
+      setOpen(false);
+      setAreaValue("");
+      toast({
+        title: "Success",
+        description: "Area added successfully",
+      });
+    },
+  });
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+
+    const floorNumber = formData.get("floor_number");
+    createRoom.mutate({
+      name: areaValue || (formData.get("name") as string),
+      description: (formData.get("description") as string) || undefined,
+      floor_number: floorNumber ? parseInt(floorNumber as string) : undefined,
+      dimensions: (formData.get("dimensions") as string) || undefined,
+    });
+  };
+
+  if (!project) {
+    return <div>Loading...</div>;
+  }
 
   const handleEdit = (room:Room) => {
     //Implementation for editing a room.  This would likely involve opening a modal or similar.
@@ -528,6 +478,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
     console.log("Delete room:", room);
   }
 
+
   const AreaCard = ({ room, itemCount }: { room: Room; itemCount: number }) => {
     const [showEditDialog, setShowEditDialog] = useState(false);
     const [showDeleteDialog, setShowDeleteDialog] = useState(false);
@@ -536,12 +487,81 @@ export default function ProjectPage({ id }: ProjectPageProps) {
     const { toast } = useToast();
 
 
+    const updateRoom = useMutation({
+      mutationFn: async (data: {
+        name: string;
+        description?: string;
+        floor_number?: number;
+        dimensions?: string;
+      }) => {
+        const { error } = await supabase
+          .from("rooms")
+          .update(data)
+          .eq("id", room.id);
+
+        if (error) throw error;
+      },
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ["rooms", room.project_id] });
+        setShowEditDialog(false);
+        toast({
+          title: "Success",
+          description: "Area updated successfully",
+        });
+      },
+      onError: (error: Error) => {
+        toast({
+          title: "Error",
+          description: error.message || "Failed to update area",
+          variant: "destructive",
+        });
+      },
+    });
+
+    const deleteRoom = useMutation({
+      mutationFn: async () => {
+        if (!room || !room.id) throw new Error("No room ID provided");
+
+        try {
+          const { error } = await supabase
+            .from("rooms")
+            .delete()
+            .eq("id", room.id);
+
+          if (error) {
+            console.error("Delete room error:", error);
+            throw error;
+          }
+        } catch (error: any) {
+          console.error("Delete operation failed:", error);
+          throw new Error(error.message || "Failed to delete area");
+        }
+      },
+      onSuccess: () => {
+        queryClient.invalidateQueries({ queryKey: ["rooms", project?.id] });
+        queryClient.invalidateQueries({ queryKey: ["project-items", project?.id] });
+        toast({
+          title: "Success",
+          description: "Area and all related items deleted successfully"
+        });
+        setShowDeleteDialog(false);
+      },
+      onError: (error: Error) => {
+        console.error('Delete error:', error);
+        toast({
+          title: "Error",
+          description: error.message || "Failed to delete area",
+          variant: "destructive"
+        });
+      }
+    });
+
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
       e.preventDefault();
       const formData = new FormData(e.currentTarget);
+
       const floorNumber = formData.get("floor_number");
       updateRoom.mutate({
-        id: room.id,
         name: areaValue,
         description: (formData.get("description") as string) || undefined,
         floor_number: floorNumber ? parseInt(floorNumber as string) : undefined,
@@ -650,12 +670,32 @@ export default function ProjectPage({ id }: ProjectPageProps) {
                       <CommandEmpty>
                         Press enter to use "{areaValue}" as a new area
                       </CommandEmpty>
-                      {/* areaTemplates is missing - needs to be defined */}
-                      {false && <ScrollArea className="h-[300px] w-full overflow-y-auto" type="hover">
-                        <CommandGroup>
-                          {/* Area template rendering */}
-                        </CommandGroup>
-                      </ScrollArea>}
+                      {areaTemplates && areaTemplates.length > 0 && (
+                        <ScrollArea className="h-[300px] w-full overflow-y-auto" type="hover">
+                          <CommandGroup>
+                            {areaTemplates.map((area) => (
+                              <CommandItem
+                                key={area}
+                                value={area}
+                                onSelect={(value) => {
+                                  setAreaValue(value);
+                                  setOpenAreaCombobox(false);
+                                }}
+                              >
+                                <Check
+                                  className={cn(
+                                    "mr-2 h-4 w-4",
+                                    areaValue === area
+                                      ? "opacity-100"
+                                      : "opacity-0",
+                                  )}
+                                />
+                                {area}
+                              </CommandItem>
+                            ))}
+                          </CommandGroup>
+                        </ScrollArea>
+                      )}
                     </Command>
                   </PopoverContent>
                 </Popover>
@@ -701,7 +741,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
               <AlertDialogAction
-                onClick={() => deleteRoom.mutate(room.id)}
+                onClick={() => deleteRoom.mutate()}
                 disabled={deleteRoom.isPending}
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               >
@@ -714,11 +754,12 @@ export default function ProjectPage({ id }: ProjectPageProps) {
     );
   };
 
-  // Filter items based on search query
   const filteredItems = items?.filter((item) => {
     if (!searchQuery.trim()) return true;
+
     const searchLower = searchQuery.toLowerCase();
     const roomName = rooms?.find((r) => r.id === item.room_id)?.name.toLowerCase() || '';
+
     return (
       item.name.toLowerCase().includes(searchLower) ||
       item.category.toLowerCase().includes(searchLower) ||
@@ -730,14 +771,12 @@ export default function ProjectPage({ id }: ProjectPageProps) {
     );
   });
 
-  // Calculate item counts for each room
   const itemCounts = rooms?.reduce((acc, room) => {
     acc[room.id] = filteredItems?.filter((item) => item.room_id === room.id).length || 0;
     return acc;
   }, {} as Record<string, number>) || {};
 
   const baseUrl = window.location.origin;
-  const projectUrl = `${baseUrl}/project/${id}`;
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -749,9 +788,8 @@ export default function ProjectPage({ id }: ProjectPageProps) {
       />
 
       <div className="mb-8 bg-card rounded-lg p-6 shadow-sm border">
-        <div className="flex flex-col lg:flex-row gap-8 items-start">
-          {/* Project Info */}
-          <div className="flex-1 space-y-4">
+        <div className="grid lg:grid-cols-2 gap-8">
+          <div className="space-y-4">
             <div className="space-y-2">
               <h1 className="text-4xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/80">
                 {project?.name}
@@ -775,49 +813,41 @@ export default function ProjectPage({ id }: ProjectPageProps) {
             </div>
           </div>
 
-          {/* QR Code Section - Always visible */}
-          <div className="lg:w-[200px] flex flex-col items-center gap-4 p-4 bg-muted/10 rounded-lg">
-            <div className="text-center">
-              <QRCodeSVG value={`${window.location.origin}/project/${id}`} size={150} />
-              <div className="mt-2 flex items-center justify-center gap-2 text-sm text-muted-foreground">
-                <LinkIcon className="h-4 w-4" />
-                <span>Scan to view project</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Action Buttons - Only for authenticated users */}
           {isAuthenticated && (
-            <div className="lg:w-[200px] flex flex-col gap-3">
-              <Button
-                variant="outline"
-                onClick={() => setShowPrintDialog(true)}
-                className="w-full flex items-center justify-center gap-2"
-              >
-                <Printer className="h-4 w-4" />
-                Print Project
-              </Button>
-
-              <input
-                type="file"
-                accept=".csv,.xlsx,.xls"
-                onChange={handleFileUpload}
-                className="hidden"
-                id="file-upload"
-              />
-              <label htmlFor="file-upload" className="w-full">
-                <Button variant="outline" className="w-full" asChild>
-                  <span>
-                    <Upload className="mr-2 h-4 w-4" />
-                    Import Items
-                  </span>
+            <div className="flex flex-col gap-4 lg:items-end">
+              <div className="flex flex-wrap gap-3">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowPrintDialog(true)}
+                  className="flex items-center gap-2"
+                >
+                  <Printer className="h-4 w-4" />
+                  Print Project
                 </Button>
-              </label>
 
-              <Button variant="outline" onClick={handleExport} className="w-full">
-                <Download className="mr-2 h-4 w-4" />
-                Export Items
-              </Button>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="file"
+                    accept=".csv,.xlsx,.xls"
+                    onChange={handleFileUpload}
+                    className="hidden"
+                    id="file-upload"
+                  />
+                  <label htmlFor="file-upload">
+                    <Button variant="outline" asChild>
+                      <span>
+                        <Upload className="mr-2 h-4 w-4" />
+                        Import Items
+                      </span>
+                    </Button>
+                  </label>
+
+                  <Button variant="outline" onClick={handleExport}>
+                    <Download className="mr-2 h-4 w-4" />
+                    Export Items
+                  </Button>
+                </div>
+              </div>
             </div>
           )}
         </div>
@@ -880,12 +910,32 @@ export default function ProjectPage({ id }: ProjectPageProps) {
                           <CommandEmpty>
                             Press enter to use "{areaValue}" as a new area
                           </CommandEmpty>
-                          {/* areaTemplates is missing - needs to be defined */}
-                          {false && <ScrollArea className="h-[300px] w-full overflow-y-auto" type="hover">
-                            <CommandGroup>
-                              {/* Area template rendering */}
-                            </CommandGroup>
-                          </ScrollArea>}
+                          {areaTemplates && areaTemplates.length > 0 && (
+                            <ScrollArea className="h-[300px] w-full overflow-y-auto" type="hover">
+                              <CommandGroup>
+                                {areaTemplates.map((area) => (
+                                  <CommandItem
+                                    key={area}
+                                    value={area}
+                                    onSelect={(value) => {
+                                      setAreaValue(value);
+                                      setOpenAreaCombobox(false);
+                                    }}
+                                  >
+                                    <Check
+                                      className={cn(
+                                        "mr-2 h-4 w-4",
+                                        areaValue === area
+                                          ? "opacity-100"
+                                          : "opacity-0",
+                                      )}
+                                    />
+                                    {area}
+                                  </CommandItem>
+                                ))}
+                              </CommandGroup>
+                            </ScrollArea>
+                          )}
                         </Command>
                       </PopoverContent>
                     </Popover>
@@ -951,7 +1001,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
         )}
 
         {!searchQuery.trim() && (
-          <div className="mt-8 grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="mt-8 grid md:grid-cols-2 lg:grid-cols3 gap-6">
             {rooms?.map((room) => {
               const itemCount = itemCounts[room.id] || 0;
               return <AreaCard key={room.id} room={room} itemCount={itemCount} />;
@@ -965,11 +1015,11 @@ export default function ProjectPage({ id }: ProjectPageProps) {
           <DialogHeader>
             <DialogTitle>Print Project Details</DialogTitle>
           </DialogHeader>
-          <div className="relative">
+          <div className="h-[80vh] overflow-y-auto">
             {project && rooms && (
               <PrintView
-                project={project}
-                rooms={rooms}
+                project={project!}
+                rooms={rooms || []}
                 itemCounts={itemCounts}
                 baseUrl={window.location.origin}
                 items={items}
