@@ -14,7 +14,8 @@ import {
   Printer,
   HomeIcon,
   Calendar,
-  User
+  User,
+  AlertCircle
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -104,45 +105,71 @@ export default function ProjectPage({ id }: ProjectPageProps) {
     checkAuth();
   }, []);
 
-  const { data: project } = useQuery<Project>({
+  // Project query - enabled for public access
+  const { data: project, isLoading: isProjectLoading, isError: isProjectError } = useQuery({
     queryKey: ["project", id],
     queryFn: async () => {
       if (!id) throw new Error("No project ID provided");
-
       const { data, error } = await supabase
         .from("projects")
         .select("*")
         .eq("id", id)
         .single();
-
       if (error) throw error;
       return data;
     },
-    enabled: !!id,
   });
 
+  // Update the loading state check
+  if (isProjectLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-muted/30">
+        <p>Loading project details...</p>
+      </div>
+    );
+  }
+
+  if (isProjectError) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-muted/30">
+        <Card className="w-full max-w-md mx-4">
+          <CardContent className="pt-6">
+            <div className="flex mb-4 gap-2">
+              <AlertCircle className="h-8 w-8 text-red-500" />
+              <h1 className="text-2xl font-bold text-gray-900">Project Not Found</h1>
+            </div>
+            <p className="mt-4 text-sm text-gray-600">
+              The project you're looking for could not be found or you may not have permission to view it.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
+
+
+  // Rooms query - enabled for public access
   const { data: rooms } = useQuery<Room[]>({
     queryKey: ["rooms", id],
     queryFn: async () => {
       if (!id) throw new Error("No project ID provided");
-
       const { data, error } = await supabase
         .from("rooms")
         .select("*")
         .eq("project_id", id)
         .order("created_at", { ascending: false });
-
       if (error) throw error;
-      return data;
+      return data || [];
     },
     enabled: !!id,
+    retry: 3,
   });
 
+  // Items query - enabled for public access
   const { data: items } = useQuery<Item[]>({
     queryKey: ["project-items", id],
     queryFn: async () => {
       if (!id) throw new Error("No project ID provided");
-
       const { data, error } = await supabase
         .from("items")
         .select(`
@@ -167,7 +194,6 @@ export default function ProjectPage({ id }: ProjectPageProps) {
         `)
         .eq('rooms.project_id', id)
         .order("created_at", { ascending: false });
-
       if (error) {
         console.error("Error fetching items:", error);
         throw error;
@@ -175,20 +201,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
       return data || [];
     },
     enabled: !!id,
-  });
-
-  const { data: areaTemplates } = useQuery({
-    queryKey: ["areas"],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("areas")
-        .select("name")
-        .order("name");
-
-      if (error) throw error;
-      return data?.map((area) => area.name) || [];
-    },
-    enabled: true, //Always enabled, regardless of authentication
+    retry: 3,
   });
 
   const handleFileUpload = async (
@@ -464,9 +477,6 @@ export default function ProjectPage({ id }: ProjectPageProps) {
     });
   };
 
-  if (!project) {
-    return <div>Loading...</div>;
-  }
 
   const handleEdit = (room:Room) => {
     //Implementation for editing a room.  This would likely involve opening a modal or similar.
@@ -1001,7 +1011,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
         )}
 
         {!searchQuery.trim() && (
-          <div className="mt-8 grid md:grid-cols-2 lg:grid-cols3 gap-6">
+          <div className="mt-8 grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {rooms?.map((room) => {
               const itemCount = itemCounts[room.id] || 0;
               return <AreaCard key={room.id} room={room} itemCount={itemCount} />;
