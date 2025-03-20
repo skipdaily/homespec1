@@ -12,9 +12,9 @@ import {
   ChevronsUpDown,
   Check,
   Printer,
-  HomeIcon, // Import HomeIcon
-  Calendar, // Import Calendar
-  User //Import User
+  HomeIcon,
+  Calendar,
+  User
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -96,7 +96,6 @@ export default function ProjectPage({ id }: ProjectPageProps) {
   const [showPrintDialog, setShowPrintDialog] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  // Check authentication status
   useEffect(() => {
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -105,7 +104,6 @@ export default function ProjectPage({ id }: ProjectPageProps) {
     checkAuth();
   }, []);
 
-  // Project query - modified to work without authentication
   const { data: project } = useQuery<Project>({
     queryKey: ["project", id],
     queryFn: async () => {
@@ -123,7 +121,6 @@ export default function ProjectPage({ id }: ProjectPageProps) {
     enabled: !!id,
   });
 
-  // Rooms query - modified to work without authentication
   const { data: rooms } = useQuery<Room[]>({
     queryKey: ["rooms", id],
     queryFn: async () => {
@@ -141,7 +138,6 @@ export default function ProjectPage({ id }: ProjectPageProps) {
     enabled: !!id,
   });
 
-  // Items query - modified to work without authentication
   const { data: items } = useQuery<Item[]>({
     queryKey: ["project-items", id],
     queryFn: async () => {
@@ -178,10 +174,9 @@ export default function ProjectPage({ id }: ProjectPageProps) {
       }
       return data || [];
     },
-    enabled: !!id && !!rooms?.length,
+    enabled: !!id,
   });
 
-  // Add areas query - only enabled when authenticated
   const { data: areaTemplates } = useQuery({
     queryKey: ["areas"],
     queryFn: async () => {
@@ -193,7 +188,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
       if (error) throw error;
       return data?.map((area) => area.name) || [];
     },
-    enabled: isAuthenticated, // Only run query when authenticated
+    enabled: true, //Always enabled, regardless of authentication
   });
 
   const handleFileUpload = async (
@@ -225,7 +220,6 @@ export default function ProjectPage({ id }: ProjectPageProps) {
 
         console.log("Imported data:", jsonData);
 
-        // Get unique areas from import data
         const importedAreas = new Set(
           jsonData.map((item) => item.area?.toLowerCase()).filter(Boolean),
         );
@@ -233,13 +227,12 @@ export default function ProjectPage({ id }: ProjectPageProps) {
           rooms.map((room) => room.name.toLowerCase()),
         );
 
-        // Create missing areas first
         for (const area of Array.from(importedAreas)) {
           if (!existingRoomNames.has(area)) {
             const { error } = await supabase.from("rooms").insert([
               {
                 project_id: id,
-                name: area.charAt(0).toUpperCase() + area.slice(1), // Capitalize first letter
+                name: area.charAt(0).toUpperCase() + area.slice(1),
                 created_at: new Date().toISOString(),
               },
             ]);
@@ -255,7 +248,6 @@ export default function ProjectPage({ id }: ProjectPageProps) {
           }
         }
 
-        // Refresh rooms data
         const { data: updatedRooms, error: roomsError } = await supabase
           .from("rooms")
           .select("*")
@@ -266,35 +258,29 @@ export default function ProjectPage({ id }: ProjectPageProps) {
           throw roomsError;
         }
 
-        // Create updated room map with new areas
         const roomMap = new Map(
           updatedRooms.map((room) => [room.name.toLowerCase(), room.id]),
         );
 
-        // Process dates and convert to ISO format
         const processExcelDate = (
           excelDate: string | number | undefined,
         ): string | null => {
           if (!excelDate) return null;
 
-          // If it's already a valid date string, return it
           if (typeof excelDate === "string" && !isNaN(Date.parse(excelDate))) {
             return new Date(excelDate).toISOString().split("T")[0];
           }
 
-          // Convert Excel serial number to date
           const numericDate =
             typeof excelDate === "string" ? parseInt(excelDate) : excelDate;
           if (isNaN(numericDate)) return null;
 
-          // Excel dates start from 1900-01-01
           const date = new Date(1900, 0, 1);
-          date.setDate(date.getDate() + numericDate - 2); // Subtract 2 to account for Excel's date system quirks
+          date.setDate(date.getDate() + numericDate - 2);
 
           return date.toISOString().split("T")[0];
         };
 
-        // Fetch existing items to check for duplicates
         const { data: existingItems, error: existingItemsError } =
           await supabase.from("items").select(`
             id,
@@ -307,7 +293,6 @@ export default function ProjectPage({ id }: ProjectPageProps) {
 
         if (existingItemsError) throw existingItemsError;
 
-        // Create a map of existing items using room_id + name as key
         const existingItemsMap = new Map(
           existingItems?.map((item) => [
             `${item.room_id}-${item.name.toLowerCase()}`,
@@ -315,7 +300,6 @@ export default function ProjectPage({ id }: ProjectPageProps) {
           ]) || [],
         );
 
-        // Process items with duplicate checking
         let skippedCount = 0;
         const validItems = jsonData
           .filter((item) => {
@@ -329,7 +313,6 @@ export default function ProjectPage({ id }: ProjectPageProps) {
               return false;
             }
 
-            // Check for duplicates using room_id + name combination
             const itemKey = `${roomId}-${item.name.toLowerCase()}`;
             if (existingItemsMap.has(itemKey)) {
               skippedCount++;
@@ -350,8 +333,8 @@ export default function ProjectPage({ id }: ProjectPageProps) {
             installation_date: processExcelDate(item.installation_date),
             maintenance_notes: item.maintenance_notes || null,
             status: item.status || null,
-            notes: item.notes || null,             // Add notes field
-            link: item.links || null,              // Add links field
+            notes: item.notes || null,
+            link: item.links || null,
             created_at: new Date().toISOString(),
           }));
 
@@ -405,7 +388,6 @@ export default function ProjectPage({ id }: ProjectPageProps) {
     }
 
     try {
-      // Transform items to include room information
       const exportData = items.map((item) => ({
         area: item.rooms.name,
         name: item.name,
@@ -418,16 +400,14 @@ export default function ProjectPage({ id }: ProjectPageProps) {
         installation_date: item.installation_date || "",
         maintenance_notes: item.maintenance_notes || "",
         status: item.status || "",
-        notes: item.notes || "",           // Add notes field
-        links: item.link || "",            // Add links field
+        notes: item.notes || "",
+        links: item.link || "",
       }));
 
-      // Create workbook and add items sheet
       const wb = XLSX.utils.book_new();
       const ws = XLSX.utils.json_to_sheet(exportData);
       XLSX.utils.book_append_sheet(wb, ws, "Items");
 
-      // Export the file
       const fileName = `${project?.name || "project"}_items.xlsx`;
       XLSX.writeFile(wb, fileName);
 
@@ -463,7 +443,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["rooms", id] });
       setOpen(false);
-      setAreaValue(""); // Reset area value after successful creation
+      setAreaValue("");
       toast({
         title: "Success",
         description: "Area added successfully",
@@ -487,6 +467,17 @@ export default function ProjectPage({ id }: ProjectPageProps) {
   if (!project) {
     return <div>Loading...</div>;
   }
+
+  const handleEdit = (room:Room) => {
+    //Implementation for editing a room.  This would likely involve opening a modal or similar.
+    console.log("Edit room:", room);
+  }
+
+  const handleDelete = (room:Room) => {
+    //Implementation for deleting a room.  This would likely involve opening a confirmation modal.
+    console.log("Delete room:", room);
+  }
+
 
   const AreaCard = ({ room, itemCount }: { room: Room; itemCount: number }) => {
     const [showEditDialog, setShowEditDialog] = useState(false);
@@ -527,13 +518,11 @@ export default function ProjectPage({ id }: ProjectPageProps) {
       },
     });
 
-    // Update the deleteRoom mutation to handle deletion properly
     const deleteRoom = useMutation({
       mutationFn: async () => {
         if (!room || !room.id) throw new Error("No room ID provided");
 
         try {
-          // Since we have cascade delete set up, we just need to delete the room
           const { error } = await supabase
             .from("rooms")
             .delete()
@@ -601,30 +590,32 @@ export default function ProjectPage({ id }: ProjectPageProps) {
                     )}
                   </div>
                 </div>
-                <div className="flex space-x-2">
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="opacity-0 group-hover:opacity-100 transition-opacity"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      setShowEditDialog(true);
-                    }}
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    size="icon"
-                    className="opacity-0 group-hover:opacity-100 transition-opacity text-destructive"
-                    onClick={(e) => {
-                      e.preventDefault();
-                      setShowDeleteDialog(true);
-                    }}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
+                {isAuthenticated && (
+                  <div className="flex space-x-2">
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="opacity-0 group-hover:opacity-100 transition-opacity"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setShowEditDialog(true);
+                      }}
+                    >
+                      <Pencil className="h-4 w-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="opacity-0 group-hover:opacity-100 transition-opacity text-destructive"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        setShowDeleteDialog(true);
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                )}
               </div>
             </CardHeader>
             <CardContent>
@@ -641,33 +632,6 @@ export default function ProjectPage({ id }: ProjectPageProps) {
             </CardContent>
           </Card>
         </Link>
-
-        <div className="absolute top-2 right-2 opacity-0 group-hover:opacity-100 transition-opacity flex space-x-2">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="bg-background/80 backdrop-blur hover:bg-background/90"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              setShowEditDialog(true);
-            }}
-          >
-            <Pencil className="h-4 w-4" />
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="bg-background/80 backdrop-blur hover:bg-background/90 text-destructive"
-            onClick={(e) => {
-              e.preventDefault();
-              e.stopPropagation();
-              setShowDeleteDialog(true);
-            }}
-          >
-            <Trash2 className="h-4 w-4" />
-          </Button>
-        </div>
 
         <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
           <DialogContent>
@@ -708,7 +672,6 @@ export default function ProjectPage({ id }: ProjectPageProps) {
                       </CommandEmpty>
                       {areaTemplates && areaTemplates.length > 0 && (
                         <ScrollArea className="h-[300px] w-full overflow-y-auto" type="hover">
-                          {/* Height increased */}
                           <CommandGroup>
                             {areaTemplates.map((area) => (
                               <CommandItem
@@ -791,7 +754,6 @@ export default function ProjectPage({ id }: ProjectPageProps) {
     );
   };
 
-  // Filter items based on search query
   const filteredItems = items?.filter((item) => {
     if (!searchQuery.trim()) return true;
 
@@ -809,22 +771,11 @@ export default function ProjectPage({ id }: ProjectPageProps) {
     );
   });
 
-  // Calculate item counts for each room
   const itemCounts = rooms?.reduce((acc, room) => {
     acc[room.id] = filteredItems?.filter((item) => item.room_id === room.id).length || 0;
     return acc;
   }, {} as Record<string, number>) || {};
 
-  // Group filtered items by room
-  const itemsByRoom = rooms?.reduce((acc, room) => {
-    acc[room.id] = filteredItems?.filter((item) => item.room_id === room.id) || [];
-    return acc;
-  }, {} as Record<string, Item[]>);
-
-  // Get total count of filtered items
-  const totalFilteredItems = filteredItems?.length || 0;
-
-  // Get base URL for QR code
   const baseUrl = window.location.origin;
 
   return (
@@ -838,7 +789,6 @@ export default function ProjectPage({ id }: ProjectPageProps) {
 
       <div className="mb-8 bg-card rounded-lg p-6 shadow-sm border">
         <div className="grid lg:grid-cols-2 gap-8">
-          {/* Left Column - Project Info */}
           <div className="space-y-4">
             <div className="space-y-2">
               <h1 className="text-4xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/80">
@@ -863,7 +813,6 @@ export default function ProjectPage({ id }: ProjectPageProps) {
             </div>
           </div>
 
-          {/* Right Column - Actions (only show if authenticated) */}
           {isAuthenticated && (
             <div className="flex flex-col gap-4 lg:items-end">
               <div className="flex flex-wrap gap-3">
@@ -903,21 +852,20 @@ export default function ProjectPage({ id }: ProjectPageProps) {
           )}
         </div>
 
-        {/* Search and Add Area Section (only show if authenticated) */}
-        {isAuthenticated && (
-          <div className="mt-6 flex flex-wrap items-center gap-4">
-            <div className="flex-1 min-w-[300px]">
-              <div className="relative">
-                <Input
-                  type="text"
-                  placeholder="Search items..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-8"
-                />
-                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-              </div>
+        <div className="mt-6 flex flex-wrap items-center gap-4">
+          <div className="flex-1 min-w-[300px]">
+            <div className="relative">
+              <Input
+                type="text"
+                placeholder="Search items..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-8"
+              />
+              <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
             </div>
+          </div>
+          {isAuthenticated && (
             <Dialog open={open} onOpenChange={setOpen}>
               <DialogTrigger asChild>
                 <Button variant="default">
@@ -977,7 +925,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
                                     <Check
                                       className={cn(
                                         "mr-2 h-4 w-4",
-                                                                                areaValue === area
+                                        areaValue === area
                                           ? "opacity-100"
                                           : "opacity-0",
                                       )}
@@ -1014,12 +962,11 @@ export default function ProjectPage({ id }: ProjectPageProps) {
                 </form>
               </DialogContent>
             </Dialog>
-          </div>
-        )}
+          )}
+        </div>
 
-        {/* Display search results if there's a search query */}
         {searchQuery.trim() && (
-          <div className="mt-6 space-y-4">
+          <div className="mt-8">
             <h2 className="text-lg font-semibold">Search Results</h2>
             <div className="grid gap-4">
               {filteredItems?.map((item) => {
@@ -1027,40 +974,34 @@ export default function ProjectPage({ id }: ProjectPageProps) {
                 return (
                   <Card key={item.id} className="p-4 hover:shadow-md transition-shadow">
                     <div className="flex justify-between items-start">
-                      <div className="space-y-1">
+                      <div>
                         <h3 className="font-medium">{item.name}</h3>
-                        <p className="text-sm text-muted-foreground">Room: {room?.name}</p>
-                        <p className="text-sm text-muted-foreground">Category: {item.category}</p>
-                        {item.brand && (
-                          <p className="text-sm text-muted-foreground">Brand: {item.brand}</p>
-                        )}
-                        {item.specifications && (
-                          <p className="text-sm text-muted-foreground line-clamp-2">
-                            {item.specifications}
+                        <p className="text-sm text-muted-foreground">
+                          Area: {room?.name}
+                        </p>
+                        {item.category && (
+                          <p className="text-sm text-muted-foreground">
+                            Category: {item.category}
                           </p>
                         )}
                       </div>
                       <div className="flex items-center space-x-2">
                         <Link href={`/room/${item.room_id}`}>
-                          <Button variant="ghost" size="sm">View Details</Button>
+                          <Button variant="outline" size="sm">
+                            View Details
+                          </Button>
                         </Link>
                       </div>
                     </div>
                   </Card>
                 );
               })}
-              {filteredItems?.length === 0 && (
-                <p className="text-center text-muted-foreground py-4">
-                  No items found matching your search.
-                </p>
-              )}
             </div>
           </div>
         )}
 
-        {/* Areas Grid - Only show if no search query */}
         {!searchQuery.trim() && (
-          <div className="mt-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="mt-8 grid md:grid-cols-2 lg:grid-cols3 gap-6">
             {rooms?.map((room) => {
               const itemCount = itemCounts[room.id] || 0;
               return <AreaCard key={room.id} room={room} itemCount={itemCount} />;
@@ -1069,7 +1010,6 @@ export default function ProjectPage({ id }: ProjectPageProps) {
         )}
       </div>
 
-      {/* Print Dialog */}
       <Dialog open={showPrintDialog} onOpenChange={setShowPrintDialog}>
         <DialogContent className="max-w-4xl">
           <DialogHeader>
