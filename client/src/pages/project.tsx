@@ -181,6 +181,21 @@ export default function ProjectPage({ id }: ProjectPageProps) {
     enabled: !!id && !!rooms?.length,
   });
 
+  // Add areas query - only enabled when authenticated
+  const { data: areaTemplates } = useQuery({
+    queryKey: ["areas"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("areas")
+        .select("name")
+        .order("name");
+
+      if (error) throw error;
+      return data?.map((area) => area.name) || [];
+    },
+    enabled: isAuthenticated, // Only run query when authenticated
+  });
+
   const handleFileUpload = async (
     event: React.ChangeEvent<HTMLInputElement>,
   ) => {
@@ -480,19 +495,6 @@ export default function ProjectPage({ id }: ProjectPageProps) {
     const [areaValue, setAreaValue] = useState(room.name || "");
     const { toast } = useToast();
 
-    // Add areas query
-    const { data: areaTemplates } = useQuery({
-      queryKey: ["areas"],
-      queryFn: async () => {
-        const { data, error } = await supabase
-          .from("areas")
-          .select("name")
-          .order("name");
-
-        if (error) throw error;
-        return data.map((area) => area.name);
-      },
-    });
 
     const updateRoom = useMutation({
       mutationFn: async (data: {
@@ -704,7 +706,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
                       <CommandEmpty>
                         Press enter to use "{areaValue}" as a new area
                       </CommandEmpty>
-                      {areaTemplates?.length > 0 && (
+                      {areaTemplates && areaTemplates.length > 0 && (
                         <ScrollArea className="h-[300px] w-full overflow-y-auto" type="hover">
                           {/* Height increased */}
                           <CommandGroup>
@@ -960,7 +962,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
                           <CommandEmpty>
                             Press enter to use "{areaValue}" as a new area
                           </CommandEmpty>
-                          {areaTemplates?.length > 0 && (
+                          {areaTemplates && areaTemplates.length > 0 && (
                             <ScrollArea className="h-[300px] w-full overflow-y-auto" type="hover">
                               <CommandGroup>
                                 {areaTemplates.map((area) => (
@@ -975,7 +977,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
                                     <Check
                                       className={cn(
                                         "mr-2 h-4 w-4",
-                                        areaValue === area
+                                                                                areaValue === area
                                           ? "opacity-100"
                                           : "opacity-0",
                                       )}
@@ -993,7 +995,8 @@ export default function ProjectPage({ id }: ProjectPageProps) {
                   <Textarea name="description" placeholder="Description" />
                   <div className="grid grid-cols-2 gap-4">
                     <Input
-                      name="floor_number"                      type="number"
+                      name="floor_number"
+                      type="number"
                       placeholder="Floor Number"
                     />
                     <Input
@@ -1020,7 +1023,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
             <h2 className="text-lg font-semibold">Search Results</h2>
             <div className="grid gap-4">
               {filteredItems?.map((item) => {
-                const room = rooms?.find(r => r.id === item.room_id);
+                const room = rooms?.find((r) => r.id === item.room_id);
                 return (
                   <Card key={item.id} className="p-4 hover:shadow-md transition-shadow">
                     <div className="flex justify-between items-start">
