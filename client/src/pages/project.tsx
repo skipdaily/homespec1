@@ -171,6 +171,77 @@ export default function ProjectPage({ id }: ProjectPageProps) {
     enabled: !!id,
   });
 
+  // All mutations at top level
+  const createRoom = useMutation({
+    mutationFn: async (data: {
+      name: string;
+      description?: string;
+      floor_number?: number;
+      dimensions?: string;
+    }) => {
+      if (!id) throw new Error("No project ID provided");
+      const { error } = await supabase
+        .from("rooms")
+        .insert([{ ...data, project_id: id }]);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["rooms", id] });
+      setOpen(false);
+      setAreaValue("");
+      toast({
+        title: "Success",
+        description: "Area added successfully",
+      });
+    },
+  });
+
+  const updateRoom = useMutation({
+    mutationFn: async (data: {
+      id: string;
+      name: string;
+      description?: string;
+      floor_number?: number;
+      dimensions?: string;
+    }) => {
+      const { error } = await supabase
+        .from("rooms")
+        .update({
+          name: data.name,
+          description: data.description,
+          floor_number: data.floor_number,
+          dimensions: data.dimensions,
+        })
+        .eq("id", data.id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["rooms", id] });
+      toast({
+        title: "Success",
+        description: "Area updated successfully",
+      });
+    },
+  });
+
+  const deleteRoom = useMutation({
+    mutationFn: async (roomId: string) => {
+      const { error } = await supabase
+        .from("rooms")
+        .delete()
+        .eq("id", roomId);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["rooms", id] });
+      queryClient.invalidateQueries({ queryKey: ["project-items", id] });
+      toast({
+        title: "Success",
+        description: "Area and all related items deleted successfully",
+      });
+    },
+  });
+
   // Loading and error states
   if (isProjectLoading) {
     return (
@@ -197,6 +268,18 @@ export default function ProjectPage({ id }: ProjectPageProps) {
       </div>
     );
   }
+
+  // Event handlers
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const formData = new FormData(e.currentTarget);
+    createRoom.mutate({
+      name: areaValue || (formData.get("name") as string),
+      description: (formData.get("description") as string) || undefined,
+      floor_number: formData.get("floor_number") ? parseInt(formData.get("floor_number") as string) : undefined,
+      dimensions: (formData.get("dimensions") as string) || undefined,
+    });
+  };
 
   const handleFileUpload = async (
     event: React.ChangeEvent<HTMLInputElement>,
@@ -432,45 +515,6 @@ export default function ProjectPage({ id }: ProjectPageProps) {
     }
   };
 
-  const createRoom = useMutation({
-    mutationFn: async (data: {
-      name: string;
-      description?: string;
-      floor_number?: number;
-      dimensions?: string;
-    }) => {
-      if (!id) throw new Error("No project ID provided");
-
-      const { error } = await supabase
-        .from("rooms")
-        .insert([{ ...data, project_id: id }]);
-
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["rooms", id] });
-      setOpen(false);
-      setAreaValue("");
-      toast({
-        title: "Success",
-        description: "Area added successfully",
-      });
-    },
-  });
-
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    const formData = new FormData(e.currentTarget);
-
-    const floorNumber = formData.get("floor_number");
-    createRoom.mutate({
-      name: areaValue || (formData.get("name") as string),
-      description: (formData.get("description") as string) || undefined,
-      floor_number: floorNumber ? parseInt(floorNumber as string) : undefined,
-      dimensions: (formData.get("dimensions") as string) || undefined,
-    });
-  };
-
 
   const handleEdit = (room:Room) => {
     //Implementation for editing a room.  This would likely involve opening a modal or similar.
@@ -490,81 +534,12 @@ export default function ProjectPage({ id }: ProjectPageProps) {
     const { toast } = useToast();
 
 
-    const updateRoom = useMutation({
-      mutationFn: async (data: {
-        name: string;
-        description?: string;
-        floor_number?: number;
-        dimensions?: string;
-      }) => {
-        const { error } = await supabase
-          .from("rooms")
-          .update(data)
-          .eq("id", room.id);
-
-        if (error) throw error;
-      },
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ["rooms", room.project_id] });
-        setShowEditDialog(false);
-        toast({
-          title: "Success",
-          description: "Area updated successfully",
-        });
-      },
-      onError: (error: Error) => {
-        toast({
-          title: "Error",
-          description: error.message || "Failed to update area",
-          variant: "destructive",
-        });
-      },
-    });
-
-    const deleteRoom = useMutation({
-      mutationFn: async () => {
-        if (!room || !room.id) throw new Error("No room ID provided");
-
-        try {
-          const { error } = await supabase
-            .from("rooms")
-            .delete()
-            .eq("id", room.id);
-
-          if (error) {
-            console.error("Delete room error:", error);
-            throw error;
-          }
-        } catch (error: any) {
-          console.error("Delete operation failed:", error);
-          throw new Error(error.message || "Failed to delete area");
-        }
-      },
-      onSuccess: () => {
-        queryClient.invalidateQueries({ queryKey: ["rooms", project?.id] });
-        queryClient.invalidateQueries({ queryKey: ["project-items", project?.id] });
-        toast({
-          title: "Success",
-          description: "Area and all related items deleted successfully"
-        });
-        setShowDeleteDialog(false);
-      },
-      onError: (error: Error) => {
-        console.error('Delete error:', error);
-        toast({
-          title: "Error",
-          description: error.message || "Failed to delete area",
-          variant: "destructive"
-        });
-      }
-    });
-
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
       e.preventDefault();
       const formData = new FormData(e.currentTarget);
-
       const floorNumber = formData.get("floor_number");
       updateRoom.mutate({
+        id: room.id,
         name: areaValue,
         description: (formData.get("description") as string) || undefined,
         floor_number: floorNumber ? parseInt(floorNumber as string) : undefined,
@@ -724,7 +699,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
               <AlertDialogAction
-                onClick={() => deleteRoom.mutate()}
+                onClick={() => deleteRoom.mutate(room.id)}
                 disabled={deleteRoom.isPending}
                 className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               >
