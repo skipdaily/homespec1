@@ -175,6 +175,8 @@ export default function ProjectPage({ id }: ProjectPageProps) {
       return data || [];
     },
     enabled: !!id,
+    staleTime: 0,
+    cacheTime: 0,
   });
 
   const { data: areaTemplates } = useQuery({
@@ -1011,7 +1013,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
       </div>
 
       <Dialog open={showPrintDialog} onOpenChange={setShowPrintDialog}>
-        <DialogContent className="max-w-4xl">
+        <DialogContent className="max-w-4xl">>
           <DialogHeader>
             <DialogTitle>Print Project Details</DialogTitle>
           </DialogHeader>
