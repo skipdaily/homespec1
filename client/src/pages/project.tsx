@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { supabase } from "@/lib/supabase";
+import { QRCodeSVG } from "qrcode.react";
 import {
   Plus,
   Download,
@@ -15,7 +16,8 @@ import {
   HomeIcon,
   Calendar,
   User,
-  AlertCircle
+  AlertCircle,
+  Link as LinkIcon
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -735,6 +737,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
   }, {} as Record<string, number>) || {};
 
   const baseUrl = window.location.origin;
+  const projectUrl = `${baseUrl}/project/${id}`;
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -746,8 +749,9 @@ export default function ProjectPage({ id }: ProjectPageProps) {
       />
 
       <div className="mb-8 bg-card rounded-lg p-6 shadow-sm border">
-        <div className="grid lg:grid-cols-2 gap-8">
-          <div className="space-y-4">
+        <div className="flex flex-col lg:flex-row gap-8 items-start">
+          {/* Project Info */}
+          <div className="flex-1 space-y-4">
             <div className="space-y-2">
               <h1 className="text-4xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/80">
                 {project?.name}
@@ -771,41 +775,49 @@ export default function ProjectPage({ id }: ProjectPageProps) {
             </div>
           </div>
 
-          {isAuthenticated && (
-            <div className="flex flex-col gap-4 lg:items-end">
-              <div className="flex flex-wrap gap-3">
-                <Button
-                  variant="outline"
-                  onClick={() => setShowPrintDialog(true)}
-                  className="flex items-center gap-2"
-                >
-                  <Printer className="h-4 w-4" />
-                  Print Project
-                </Button>
-
-                <div className="flex items-center gap-2">
-                  <input
-                    type="file"
-                    accept=".csv,.xlsx,.xls"
-                    onChange={handleFileUpload}
-                    className="hidden"
-                    id="file-upload"
-                  />
-                  <label htmlFor="file-upload">
-                    <Button variant="outline" asChild>
-                      <span>
-                        <Upload className="mr-2 h-4 w-4" />
-                        Import Items
-                      </span>
-                    </Button>
-                  </label>
-
-                  <Button variant="outline" onClick={handleExport}>
-                    <Download className="mr-2 h-4 w-4" />
-                    Export Items
-                  </Button>
-                </div>
+          {/* QR Code Section - Always visible */}
+          <div className="lg:w-[200px] flex flex-col items-center gap-4 p-4 bg-muted/10 rounded-lg">
+            <div className="text-center">
+              <QRCodeSVG value={`${window.location.origin}/project/${id}`} size={150} />
+              <div className="mt-2 flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                <LinkIcon className="h-4 w-4" />
+                <span>Scan to view project</span>
               </div>
+            </div>
+          </div>
+
+          {/* Action Buttons - Only for authenticated users */}
+          {isAuthenticated && (
+            <div className="lg:w-[200px] flex flex-col gap-3">
+              <Button
+                variant="outline"
+                onClick={() => setShowPrintDialog(true)}
+                className="w-full flex items-center justify-center gap-2"
+              >
+                <Printer className="h-4 w-4" />
+                Print Project
+              </Button>
+
+              <input
+                type="file"
+                accept=".csv,.xlsx,.xls"
+                onChange={handleFileUpload}
+                className="hidden"
+                id="file-upload"
+              />
+              <label htmlFor="file-upload" className="w-full">
+                <Button variant="outline" className="w-full" asChild>
+                  <span>
+                    <Upload className="mr-2 h-4 w-4" />
+                    Import Items
+                  </span>
+                </Button>
+              </label>
+
+              <Button variant="outline" onClick={handleExport} className="w-full">
+                <Download className="mr-2 h-4 w-4" />
+                Export Items
+              </Button>
             </div>
           )}
         </div>
