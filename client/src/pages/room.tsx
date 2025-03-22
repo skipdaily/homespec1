@@ -769,38 +769,16 @@ const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => vo
           </DialogHeader>
           <ScrollArea className="h-[60vh]">
             <div className="space-y-6 p-4">
-              {/* Current Version */}
-              <div className="border-2 border-primary rounded-lg p-4 space-y-4">
-                <div className="flex justify-between items-center">
-                  <h4 className="font-medium">Current Version</h4>
-                  <span className="text-sm text-muted-foreground">
-                    {new Date(item.updated_at || '').toLocaleString()}
-                  </span>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <ItemDetails item={item} isCurrentVersion={true} />
-                </div>
-              </div>
-
-              {/* History Versions */}
-              {itemHistory?.map((version, index) => {
-                const changes = getChangedFields(item, version);
-                return (
-                  <div key={version.id} className="border rounded-lg p-4 space-y-4">
-                    <div className="flex justify-between items-center">
-                      <h4 className="font-medium">
-                        Version from {new Date(version.created_at).toLocaleDateString()}
-                      </h4>
-                      <span className="text-sm text-muted-foreground">
-                        {new Date(version.created_at).toLocaleTimeString()}
-                      </span>
-                    </div>
-                    <div className="grid grid-cols-2 gap-4">
-                      <ItemDetails item={version} changes={changes} />
-                    </div>
+              {itemHistory?.map((version, index) => (
+                <div key={version.id} className="border rounded-lg p-4 space-y-4">
+                  <div className="flex justify-between items-center">
+                    <h4 className="font-medium">
+                      Version from {new Date(version.created_at).toLocaleDateString()}
+                    </h4>
+                    <span className="text-sm text-muted-foreground">
+                      {new Date(version.created_at).toLocaleTimeString()}
+                    </span>
                   </div>
-                );
-              })}
 
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
@@ -1618,53 +1596,3 @@ export default function RoomPage({ id }: RoomPageProps) {
     </div>
   );
 }
-// Helper function to get changed fields
-const getChangedFields = (current: Item, previous: ItemHistory): Set<string> => {
-  const changes = new Set<string>();
-  const fields = ['name', 'brand', 'supplier', 'specifications', 'cost', 
-    'warranty_info', 'installation_date', 'maintenance_notes', 'category', 
-    'status', 'link', 'notes'];
-  
-  fields.forEach(field => {
-    if (current[field as keyof Item] !== previous[field as keyof ItemHistory]) {
-      changes.add(field);
-    }
-  });
-  
-  return changes;
-};
-
-// Component to display item details with change highlighting
-const ItemDetails = ({ 
-  item, 
-  changes, 
-  isCurrentVersion 
-}: { 
-  item: Item | ItemHistory; 
-  changes?: Set<string>;
-  isCurrentVersion?: boolean;
-}) => {
-  const getFieldClass = (field: string) => {
-    if (isCurrentVersion) return "";
-    return changes?.has(field) ? "bg-yellow-100 dark:bg-yellow-900" : "";
-  };
-
-  return (
-    <>
-      <div>
-        <p className={getFieldClass('name')}><strong>Name:</strong> {item.name}</p>
-        <p className={getFieldClass('category')}><strong>Category:</strong> {item.category}</p>
-        <p className={getFieldClass('brand')}><strong>Brand:</strong> {item.brand || '-'}</p>
-        <p className={getFieldClass('supplier')}><strong>Supplier:</strong> {item.supplier || '-'}</p>
-        <p className={getFieldClass('specifications')}><strong>Specifications:</strong> {item.specifications || '-'}</p>
-      </div>
-      <div>
-        <p className={getFieldClass('cost')}><strong>Cost:</strong> {item.cost || '-'}</p>
-        <p className={getFieldClass('warranty_info')}><strong>Warranty:</strong> {item.warranty_info || '-'}</p>
-        <p className={getFieldClass('installation_date')}><strong>Installation Date:</strong> {item.installation_date || '-'}</p>
-        <p className={getFieldClass('maintenance_notes')}><strong>Maintenance:</strong> {item.maintenance_notes || '-'}</p>
-        <p className={getFieldClass('status')}><strong>Status:</strong> {item.status || '-'}</p>
-      </div>
-    </>
-  );
-};
