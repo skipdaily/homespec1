@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { supabase } from "@/lib/supabase";
+import { QRCodeSVG } from "qrcode.react";
 import {
   Plus,
   Download,
@@ -956,14 +957,22 @@ export default function ProjectPage({ id }: ProjectPageProps) {
           <div id="print-content" className="p-8">
             {project && (
               <div className="space-y-6">
-                <div className="border-b pb-4">
-                  <h1 className="text-3xl font-bold">{project.name}</h1>
-                  <div className="mt-2 space-y-1 text-muted-foreground">
-                    <p>Address: {project.address}</p>
-                    <p>Builder: {project.builder_name}</p>
-                    {project.completion_date && (
-                      <p>Expected completion: {new Date(project.completion_date).toLocaleDateString()}</p>
-                    )}
+                <div className="border-b pb-4 flex justify-between items-start">
+                  <div>
+                    <h1 className="text-3xl font-bold">{project.name}</h1>
+                    <div className="mt-2 space-y-1 text-muted-foreground">
+                      <p>Address: {project.address}</p>
+                      <p>Builder: {project.builder_name}</p>
+                      {project.completion_date && (
+                        <p>Expected completion: {new Date(project.completion_date).toLocaleDateString()}</p>
+                      )}
+                    </div>
+                  </div>
+                  <div className="text-center">
+                    <QRCodeSVG value={`${window.location.origin}/project/${id}`} size={120} />
+                    <div className="mt-2 text-sm text-muted-foreground">
+                      <span>Scan to view project</span>
+                    </div>
                   </div>
                 </div>
 
