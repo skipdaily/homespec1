@@ -2,7 +2,6 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { supabase } from "@/lib/supabase";
-import { QRCodeSVG } from "qrcode.react";
 import {
   Plus,
   Download,
@@ -17,7 +16,6 @@ import {
   Calendar,
   User,
   AlertCircle,
-  Link as LinkIcon
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -89,7 +87,6 @@ interface ProjectPageProps {
 }
 
 export default function ProjectPage({ id }: ProjectPageProps) {
-  // All useState hooks first
   const [open, setOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [openAreaCombobox, setOpenAreaCombobox] = useState(false);
@@ -97,10 +94,8 @@ export default function ProjectPage({ id }: ProjectPageProps) {
   const [showPrintDialog, setShowPrintDialog] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
 
-  // Hook usage
   const { toast } = useToast();
 
-  // Authentication effect
   useEffect(() => {
     const checkAuth = async () => {
       const { data: { session } } = await supabase.auth.getSession();
@@ -109,7 +104,6 @@ export default function ProjectPage({ id }: ProjectPageProps) {
     checkAuth();
   }, []);
 
-  // Data fetching queries
   const { data: project, isLoading: isProjectLoading, isError: isProjectError } = useQuery({
     queryKey: ["project", id],
     queryFn: async () => {
@@ -173,7 +167,6 @@ export default function ProjectPage({ id }: ProjectPageProps) {
     enabled: !!id,
   });
 
-  // All mutations at top level
   const createRoom = useMutation({
     mutationFn: async (data: {
       name: string;
@@ -244,7 +237,6 @@ export default function ProjectPage({ id }: ProjectPageProps) {
     },
   });
 
-  // Loading and error states
   if (isProjectLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-muted/30">
@@ -271,7 +263,6 @@ export default function ProjectPage({ id }: ProjectPageProps) {
     );
   }
 
-  // Event handlers
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
@@ -309,8 +300,6 @@ export default function ProjectPage({ id }: ProjectPageProps) {
           maintenance_notes?: string;
           status?: string;
         }>(sheet);
-
-        console.log("Imported data:", jsonData);
 
         const importedAreas = new Set(
           jsonData.map((item) => item.area?.toLowerCase()).filter(Boolean),
@@ -430,7 +419,6 @@ export default function ProjectPage({ id }: ProjectPageProps) {
             created_at: new Date().toISOString(),
           }));
 
-        console.log("Valid items:", validItems);
 
         if (validItems.length === 0) {
           toast({
@@ -519,12 +507,10 @@ export default function ProjectPage({ id }: ProjectPageProps) {
 
 
   const handleEdit = (room:Room) => {
-    //Implementation for editing a room.  This would likely involve opening a modal or similar.
     console.log("Edit room:", room);
   }
 
   const handleDelete = (room:Room) => {
-    //Implementation for deleting a room.  This would likely involve opening a confirmation modal.
     console.log("Delete room:", room);
   }
 
@@ -534,7 +520,6 @@ export default function ProjectPage({ id }: ProjectPageProps) {
     const [openAreaCombobox, setOpenAreaCombobox] = useState(false);
     const [areaValue, setAreaValue] = useState(room.name || "");
     const { toast } = useToast();
-
 
     const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
       e.preventDefault();
@@ -650,7 +635,6 @@ export default function ProjectPage({ id }: ProjectPageProps) {
                       <CommandEmpty>
                         Press enter to use "{areaValue}" as a new area
                       </CommandEmpty>
-                      {/* areaTemplates is missing - needs to be defined */}
                       {false && <ScrollArea className="h-[300px] w-full overflow-y-auto" type="hover">
                         <CommandGroup>
                           {/* Area template rendering */}
@@ -714,7 +698,6 @@ export default function ProjectPage({ id }: ProjectPageProps) {
     );
   };
 
-  // Filter items based on search query
   const filteredItems = items?.filter((item) => {
     if (!searchQuery.trim()) return true;
     const searchLower = searchQuery.toLowerCase();
@@ -730,7 +713,6 @@ export default function ProjectPage({ id }: ProjectPageProps) {
     );
   });
 
-  // Calculate item counts for each room
   const itemCounts = rooms?.reduce((acc, room) => {
     acc[room.id] = filteredItems?.filter((item) => item.room_id === room.id).length || 0;
     return acc;
@@ -738,6 +720,16 @@ export default function ProjectPage({ id }: ProjectPageProps) {
 
   const baseUrl = window.location.origin;
   const projectUrl = `${baseUrl}/project/${id}`;
+
+  const handleDownloadPDF = () => {
+    if (!project) return;
+
+    const element = document.getElementById('print-content');
+    if (!element) return;
+
+    const projectName = project.name.toLowerCase().replace(/\s+/g, '-');
+    window.print();
+  };
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -750,7 +742,6 @@ export default function ProjectPage({ id }: ProjectPageProps) {
 
       <div className="mb-8 bg-card rounded-lg p-6 shadow-sm border">
         <div className="flex flex-col lg:flex-row gap-8 items-start">
-          {/* Project Info */}
           <div className="flex-1 space-y-4">
             <div className="space-y-2">
               <h1 className="text-4xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/80">
@@ -775,18 +766,6 @@ export default function ProjectPage({ id }: ProjectPageProps) {
             </div>
           </div>
 
-          {/* QR Code Section - Always visible */}
-          <div className="lg:w-[200px] flex flex-col items-center gap-4 p-4 bg-muted/10 rounded-lg">
-            <div className="text-center">
-              <QRCodeSVG value={`${window.location.origin}/project/${id}`} size={150} />
-              <div className="mt-2 flex items-center justify-center gap-2 text-sm text-muted-foreground">
-                <LinkIcon className="h-4 w-4" />
-                <span>Scan to view project</span>
-              </div>
-            </div>
-          </div>
-
-          {/* Action Buttons - Only for authenticated users */}
           {isAuthenticated && (
             <div className="lg:w-[200px] flex flex-col gap-3">
               <Button
@@ -880,7 +859,6 @@ export default function ProjectPage({ id }: ProjectPageProps) {
                           <CommandEmpty>
                             Press enter to use "{areaValue}" as a new area
                           </CommandEmpty>
-                          {/* areaTemplates is missing - needs to be defined */}
                           {false && <ScrollArea className="h-[300px] w-full overflow-y-auto" type="hover">
                             <CommandGroup>
                               {/* Area template rendering */}
@@ -963,17 +941,56 @@ export default function ProjectPage({ id }: ProjectPageProps) {
       <Dialog open={showPrintDialog} onOpenChange={setShowPrintDialog}>
         <DialogContent className="max-w-4xl">
           <DialogHeader>
-            <DialogTitle>Print Project Details</DialogTitle>
+            <DialogTitle className="flex justify-between items-center">
+              <span>Print Project Details</span>
+              <Button 
+                variant="outline" 
+                onClick={handleDownloadPDF}
+                className="flex items-center gap-2"
+              >
+                <Download className="h-4 w-4" />
+                Download PDF
+              </Button>
+            </DialogTitle>
           </DialogHeader>
-          <div className="relative">
-            {project && rooms && (
-              <PrintView
-                project={project}
-                rooms={rooms}
-                itemCounts={itemCounts}
-                baseUrl={window.location.origin}
-                items={items}
-              />
+          <div id="print-content" className="p-8">
+            {project && (
+              <div className="space-y-6">
+                <div className="border-b pb-4">
+                  <h1 className="text-3xl font-bold">{project.name}</h1>
+                  <div className="mt-2 space-y-1 text-muted-foreground">
+                    <p>Address: {project.address}</p>
+                    <p>Builder: {project.builder_name}</p>
+                    {project.completion_date && (
+                      <p>Expected completion: {new Date(project.completion_date).toLocaleDateString()}</p>
+                    )}
+                  </div>
+                </div>
+
+                <div className="space-y-4">
+                  <h2 className="text-xl font-semibold">Areas</h2>
+                  <div className="grid gap-4">
+                    {rooms?.map((room) => (
+                      <div key={room.id} className="border rounded-lg p-4">
+                        <h3 className="font-medium">{room.name}</h3>
+                        {room.description && (
+                          <p className="text-muted-foreground mt-1">{room.description}</p>
+                        )}
+                        {room.dimensions && (
+                          <p className="text-sm text-muted-foreground mt-1">
+                            Size: {room.dimensions}
+                          </p>
+                        )}
+                        {room.floor_number !== null && (
+                          <p className="text-sm text-muted-foreground">
+                            Floor: {room.floor_number}
+                          </p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
             )}
           </div>
         </DialogContent>
