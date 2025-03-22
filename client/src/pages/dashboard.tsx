@@ -423,6 +423,7 @@ export default function Dashboard() {
             </motion.div>
           ))}
         </div>
+
         <Dialog open={editDialogOpen} onOpenChange={setEditDialogOpen}>
           <DialogContent>
             <DialogHeader>
