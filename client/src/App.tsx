@@ -16,6 +16,7 @@ import Project from "./pages/project";
 import Room from "./pages/room";
 import Performance from "./pages/performance";
 import NotFound from "./pages/not-found";
+import DebugStorage from "./pages/debug-storage";
 
 // Tutorial Components
 import { TutorialProvider } from "./components/tutorial/TutorialContext";
@@ -117,6 +118,9 @@ function Router() {
         </Route>
         <Route path="/performance">
           {() => <PrivateRoute component={Performance} />}
+        </Route>
+        <Route path="/debug-storage">
+          {() => <PrivateRoute component={DebugStorage} />}
         </Route>
         <Route component={NotFound} />
       </Switch>

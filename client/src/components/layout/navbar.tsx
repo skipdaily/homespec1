@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
 import { useEffect } from "react";
+import { Settings } from "lucide-react";
 
 export default function Navbar() {
   const [location] = useLocation();
@@ -45,6 +46,11 @@ export default function Navbar() {
             <>
               <Button variant="ghost" asChild>
                 <Link href="/dashboard">Dashboard</Link>
+              </Button>
+              <Button variant="ghost" size="icon" asChild title="Debug Storage Issues">
+                <Link href="/debug-storage">
+                  <Settings className="h-4 w-4" />
+                </Link>
               </Button>
               <Button variant="outline" onClick={handleLogout}>
                 Logout

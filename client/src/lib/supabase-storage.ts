@@ -14,6 +14,19 @@ export async function checkStorageAccess() {
 
     if (error) {
       console.error('Error accessing bucket:', error);
+      
+      // Provide more specific error details
+      if (error.message.includes('not found')) {
+        console.error('Bucket "item-images" does not exist. Please create it in Supabase dashboard.');
+      } else if (error.message.includes('permission') || error.message.includes('policy')) {
+        console.error('Storage access denied. Check RLS policies for the bucket.');
+      } else {
+        console.error('Detailed error:', {
+          message: error.message,
+          details: error,
+        });
+      }
+      
       return false;
     }
 
