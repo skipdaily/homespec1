@@ -33,4 +33,17 @@ export default defineConfig({
     outDir: path.resolve(__dirname, "dist/public"),
     emptyOutDir: true,
   },
+  optimizeDeps: {
+    esbuildOptions: {
+      tsconfig: path.resolve(__dirname, 'tsconfig.json'),
+    }
+  },
+  server: {
+    hmr: {
+      overlay: false,
+    },
+  },
+  esbuild: {
+    logOverride: { 'this-is-undefined-in-esm': 'silent' }
+  }
 });

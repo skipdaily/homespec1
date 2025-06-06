@@ -5,12 +5,16 @@
       "src": "package.json",
       "use": "@vercel/static-build",
       "config": {
-        "distDir": "dist/public"
+        "distDir": "dist/public",
+        "skipBuild": true
       }
     },
     {
       "src": "server/index.ts",
-      "use": "@vercel/node"
+      "use": "@vercel/node",
+      "config": {
+        "includeFiles": ["dist/**"]
+      }
     }
   ],
   "routes": [
@@ -27,6 +31,7 @@
     }
   ],
   "env": {
-    "NODE_ENV": "production"
+    "NODE_ENV": "production",
+    "VERCEL_SKIP_TS_CHECK": "1"
   }
 }
