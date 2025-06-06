@@ -28,7 +28,7 @@ export default defineConfig({
     },
   },
   root: path.resolve(__dirname, "client"),
-  envDir: __dirname, // <-- Add this line
+  envDir: path.resolve(__dirname), // Updated: load environment variables from the project root
   build: {
     outDir: path.resolve(__dirname, "dist/public"),
     emptyOutDir: true,

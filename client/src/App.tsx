@@ -1,5 +1,5 @@
-import { Switch, Route } from "wouter";
-import { QueryClientProvider } from "@tanstack/react-query";
+import { Switch, Route, useLocation } from "wouter";
+import { QueryClientProvider, useQueryClient } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { queryClient } from "./lib/queryClient";
 import { useEffect, useState } from "react";
@@ -30,29 +30,56 @@ interface PrivateRouteProps {
 function PrivateRoute({ component: Component, params }: PrivateRouteProps) {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [, navigate] = useLocation();
+  const queryClient = useQueryClient();
 
   useEffect(() => {
+    let isMounted = true;
+
     supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setLoading(false);
+      if (isMounted) {
+        setSession(session);
+        setLoading(false);
+        
+        // Only redirect if not already on login page and no session
+        if (!session) {
+          navigate("/login");
+        }
+      }
     });
 
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setSession(session);
+    } = supabase.auth.onAuthStateChange((event, session) => {
+      if (isMounted) {
+        setSession(session);
+        
+        // Invalidate session query to keep navbar in sync
+        queryClient.invalidateQueries({ queryKey: ["session"] });
+        
+        // Handle sign out
+        if (event === "SIGNED_OUT") {
+          navigate("/login");
+        }
+      }
     });
 
-    return () => subscription.unsubscribe();
-  }, []);
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
+  }, [navigate, queryClient]);
 
   if (loading) {
-    return <div>Loading...</div>;
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-muted/30">
+        <p>Loading...</p>
+      </div>
+    );
   }
 
   if (!session) {
-    window.location.href = "/login";
-    return null;
+    return null; // Let the redirect happen
   }
 
   return <Component {...params} isAuthenticated={true} />;

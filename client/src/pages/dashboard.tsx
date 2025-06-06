@@ -79,12 +79,7 @@ export default function Dashboard() {
     enabled: !!session?.user?.id
   });
 
-  // Effect hooks
-  useEffect(() => {
-    if (!isSessionLoading && !session) {
-      navigate('/login');
-    }
-  }, [session, isSessionLoading, navigate]);
+  // Effect hooks - removed redundant auth check since PrivateRoute handles it
 
   // Mutation hooks
   const createProject = useMutation({

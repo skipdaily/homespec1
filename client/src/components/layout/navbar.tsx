@@ -1,10 +1,13 @@
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/lib/supabase";
+import { useEffect } from "react";
 
 export default function Navbar() {
   const [location] = useLocation();
+  const queryClient = useQueryClient();
+  
   const { data: session } = useQuery({
     queryKey: ["session"],
     queryFn: async () => {
@@ -12,6 +15,16 @@ export default function Navbar() {
       return session;
     }
   });
+
+  // Listen for auth state changes and invalidate session query
+  useEffect(() => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      // Invalidate and refetch session query when auth state changes
+      queryClient.invalidateQueries({ queryKey: ["session"] });
+    });
+
+    return () => subscription.unsubscribe();
+  }, [queryClient]);
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
