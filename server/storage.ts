@@ -1,7 +1,7 @@
 import { db } from "./db";
 import { eq } from "drizzle-orm";
-import { projects, rooms, finishes, finishHistory } from "@shared/schema";
-import type { Project, InsertProject, Room, InsertRoom, Finish, InsertFinish, FinishHistory, InsertFinishHistory } from "@shared/schema";
+import { projects, rooms, finishes, finishHistory, items, itemHistory } from "@shared/schema";
+import type { Project, InsertProject, Room, InsertRoom, Finish, InsertFinish, FinishHistory, InsertFinishHistory, Item, InsertItem } from "@shared/schema";
 
 export interface IStorage {
   // Project operations
@@ -14,6 +14,10 @@ export interface IStorage {
   getRoom(id: string): Promise<Room | undefined>;
   getRoomsByProjectId(projectId: string): Promise<Room[]>;
   createRoom(room: InsertRoom): Promise<Room>;
+
+  // Item operations
+  getItemsByRoomId(roomId: string): Promise<Item[]>;
+  createItem(item: InsertItem): Promise<Item>;
 
   // Finish operations
   getFinish(id: string): Promise<Finish | undefined>;
@@ -57,6 +61,15 @@ export class DatabaseStorage implements IStorage {
 
   async createRoom(room: InsertRoom): Promise<Room> {
     const [created] = await db.insert(rooms).values(room).returning();
+    return created;
+  }
+
+  async getItemsByRoomId(roomId: string): Promise<Item[]> {
+    return await db.select().from(items).where(eq(items.room_id, roomId));
+  }
+
+  async createItem(item: InsertItem): Promise<Item> {
+    const [created] = await db.insert(items).values(item).returning();
     return created;
   }
 

@@ -9,7 +9,7 @@ const app = express();
 // Add CORS configuration before other middleware
 app.use(cors({
   origin: process.env.NODE_ENV === 'production' 
-    ? ['your-production-domain.com'] 
+    ? [process.env.FRONTEND_URL || 'https://homespec-skipdaily.vercel.app'] 
     : ['http://localhost:4000', 'http://localhost:5173'],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
