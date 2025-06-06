@@ -67,7 +67,7 @@ export function DocumentUpload({ itemId, onUploadComplete }: DocumentUploadProps
             <p className="mb-2 text-sm text-muted-foreground">
               <span className="font-semibold">Click to upload</span> or drag and drop
             </p>
-            <p className="text-xs text-muted-foreground">PDF (Max 20MB)</p>
+            <p className="text-xs text-muted-foreground">PDF (Max 25MB)</p>
           </div>
           <input
             type="file"

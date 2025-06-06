@@ -23,9 +23,9 @@ ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
 -- Step 2: Create storage buckets
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 VALUES 
-  ('item-images', 'item-images', true, 5242880, 
+  ('item-images', 'item-images', true, 26214400, 
    '{image/jpeg,image/jpg,image/png,image/gif,image/webp}'),
-  ('item-documents', 'item-documents', true, 20971520, 
+  ('item-documents', 'item-documents', true, 26214400, 
    '{application/pdf,text/plain,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document}')
 ON CONFLICT (id) DO NOTHING;
 
@@ -206,7 +206,7 @@ WITH CHECK (bucket_id = 'item-documents');`;
         .createBucket('item-images', {
           public: true,
           allowedMimeTypes: ['image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp'],
-          fileSizeLimit: 5242880 // 5MB
+          fileSizeLimit: 26214400 // 25MB
         });
       
       if (imageError) {
@@ -224,7 +224,7 @@ WITH CHECK (bucket_id = 'item-documents');`;
         .createBucket('item-documents', {
           public: true,
           allowedMimeTypes: ['application/pdf', 'text/plain', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'],
-          fileSizeLimit: 20971520 // 20MB
+          fileSizeLimit: 26214400 // 25MB
         });
       
       if (docError) {
@@ -367,11 +367,11 @@ WITH CHECK (bucket_id = 'item-documents');`;
                       <p className="text-sm">1. Go to Storage in your Supabase dashboard</p>
                       <p className="text-sm">2. Create bucket: <code className="bg-muted px-1 rounded">item-images</code></p>
                       <p className="text-sm">   - Public bucket: <strong>Yes</strong></p>
-                      <p className="text-sm">   - File size limit: <strong>5MB</strong></p>
+                      <p className="text-sm">   - File size limit: <strong>25MB</strong></p>
                       <p className="text-sm">   - Allowed MIME types: <code className="bg-muted px-1 rounded">image/jpeg, image/png, image/gif</code></p>
                       <p className="text-sm">3. Create bucket: <code className="bg-muted px-1 rounded">item-documents</code></p>
                       <p className="text-sm">   - Public bucket: <strong>Yes</strong></p>
-                      <p className="text-sm">   - File size limit: <strong>20MB</strong></p>
+                      <p className="text-sm">   - File size limit: <strong>25MB</strong></p>
                       <p className="text-sm">   - Allowed MIME types: <code className="bg-muted px-1 rounded">application/pdf, text/plain</code></p>
                     </CardContent>
                   </Card>

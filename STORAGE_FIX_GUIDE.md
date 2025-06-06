@@ -35,8 +35,8 @@ If buckets are missing, either:
 - Use the "Create Buckets" button in the debug tool, OR
 - Manually create in Supabase Dashboard:
   1. Go to Storage in Supabase Dashboard
-  2. Create bucket `item-images` (Public: Yes, Size limit: 5MB)
-  3. Create bucket `item-documents` (Public: Yes, Size limit: 20MB)
+  2. Create bucket `item-images` (Public: Yes, Size limit: 25MB)
+  3. Create bucket `item-documents` (Public: Yes, Size limit: 25MB)
 
 ### Step 3: Set Up RLS Policies
 In Supabase SQL Editor, run:

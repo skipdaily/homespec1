@@ -43,8 +43,8 @@ export function ImageUpload({ itemId, onUploadComplete }: ImageUploadProps) {
           if (!file.type.startsWith('image/')) {
             throw new Error(`${file.name} is not an image file`);
           }
-          if (file.size > 5 * 1024 * 1024) { // 5MB limit
-            throw new Error(`${file.name} exceeds 5MB limit`);
+          if (file.size > 25 * 1024 * 1024) { // 25MB limit
+            throw new Error(`${file.name} exceeds 25MB limit`);
           }
 
           // Upload file to Supabase Storage
@@ -140,10 +140,10 @@ export function ImageUpload({ itemId, onUploadComplete }: ImageUploadProps) {
         });
         return false;
       }
-      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      if (file.size > 25 * 1024 * 1024) { // 25MB limit
         toast({
           title: "File too large",
-          description: `${file.name} exceeds 5MB limit`,
+          description: `${file.name} exceeds 25MB limit`,
           variant: "destructive",
         });
         return false;
@@ -188,7 +188,7 @@ export function ImageUpload({ itemId, onUploadComplete }: ImageUploadProps) {
           <ul className="list-disc list-inside mt-2">
             <li>Bucket name: item-images</li>
             <li>Public bucket: Yes</li>
-            <li>File size limit: 5MB</li>
+            <li>File size limit: 25MB</li>
             <li>Allowed mime types: image/jpeg, image/png, image/gif</li>
           </ul>
         </AlertDescription>
@@ -228,7 +228,7 @@ export function ImageUpload({ itemId, onUploadComplete }: ImageUploadProps) {
             Drag & drop images here or click to select
           </p>
           <p className="text-xs text-muted-foreground">
-            Supports: JPG, PNG, GIF (up to 5MB)
+            Supports: JPG, PNG, GIF (up to 25MB)
           </p>
         </Label>
       </div>

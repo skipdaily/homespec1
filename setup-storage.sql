@@ -8,8 +8,8 @@ ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
 -- This will fail if buckets already exist, which is fine
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 VALUES 
-  ('item-images', 'item-images', true, 5242880, '{image/jpeg,image/jpg,image/png,image/gif,image/webp}'),
-  ('item-documents', 'item-documents', true, 20971520, '{application/pdf,text/plain,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document}')
+  ('item-images', 'item-images', true, 26214400, '{image/jpeg,image/jpg,image/png,image/gif,image/webp}'),
+  ('item-documents', 'item-documents', true, 26214400, '{application/pdf,text/plain,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document}')
 ON CONFLICT (id) DO NOTHING;
 
 -- Step 3: Drop existing policies if they exist (to avoid conflicts)

@@ -44,8 +44,8 @@ The 404 errors are **NOT** server routing issues but Supabase storage configurat
 1. Go to your Supabase dashboard
 2. Navigate to **Storage**
 3. Create two buckets:
-   - `item-images` (Public: Yes, 5MB limit)
-   - `item-documents` (Public: Yes, 20MB limit)
+   - `item-images` (Public: Yes, 25MB limit)
+   - `item-documents` (Public: Yes, 25MB limit)
 4. Go to **Storage → Policies**
 5. Create policies for authenticated users (all operations: SELECT, INSERT, UPDATE, DELETE)
 
