@@ -36,13 +36,13 @@ DROP POLICY IF EXISTS "Enable all operations for authenticated users on item-doc
 -- Step 4: Create storage policies
 CREATE POLICY "Enable all operations for authenticated users on item-images"
 ON storage.objects FOR ALL TO authenticated
-WITH CHECK (bucket_id = 'item-images')
-USING (bucket_id = 'item-images');
+USING (bucket_id = 'item-images')
+WITH CHECK (bucket_id = 'item-images');
 
 CREATE POLICY "Enable all operations for authenticated users on item-documents"
 ON storage.objects FOR ALL TO authenticated 
-WITH CHECK (bucket_id = 'item-documents')
-USING (bucket_id = 'item-documents');`;
+USING (bucket_id = 'item-documents')
+WITH CHECK (bucket_id = 'item-documents');`;
 
     setSqlScript(script);
   };

@@ -21,16 +21,16 @@ CREATE POLICY "Enable all operations for authenticated users on item-images"
 ON storage.objects
 FOR ALL 
 TO authenticated
-WITH CHECK (bucket_id = 'item-images')
-USING (bucket_id = 'item-images');
+USING (bucket_id = 'item-images')
+WITH CHECK (bucket_id = 'item-images');
 
 -- Step 5: Create comprehensive storage policies for item-documents
 CREATE POLICY "Enable all operations for authenticated users on item-documents"
 ON storage.objects
 FOR ALL
 TO authenticated 
-WITH CHECK (bucket_id = 'item-documents')
-USING (bucket_id = 'item-documents');
+USING (bucket_id = 'item-documents')
+WITH CHECK (bucket_id = 'item-documents');
 
 -- Step 6: Ensure images table exists for storing image metadata
 CREATE TABLE IF NOT EXISTS public.images (
