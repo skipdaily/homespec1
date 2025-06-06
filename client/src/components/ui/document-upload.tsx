@@ -29,7 +29,16 @@ export function DocumentUpload({ itemId, onUploadComplete }: DocumentUploadProps
           .upload(filePath, file);
 
         if (uploadError) {
-          throw uploadError;
+          // Provide specific error messages based on error type
+          if (uploadError.message.includes('not found') || uploadError.message.includes('does not exist')) {
+            throw new Error(`Storage bucket 'item-documents' does not exist. Please create it in your Supabase dashboard or use the debug tool to fix this.`);
+          } else if (uploadError.message.includes('policy') || uploadError.message.includes('permission')) {
+            throw new Error(`Permission denied: Please check your storage bucket policies. You may need to set up Row Level Security policies for authenticated users.`);
+          } else if (uploadError.message.includes('size')) {
+            throw new Error(`File too large: ${file.name} exceeds the bucket size limit.`);
+          } else {
+            throw new Error(`Upload failed: ${uploadError.message}`);
+          }
         }
       }
 

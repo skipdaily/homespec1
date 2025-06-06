@@ -55,7 +55,18 @@ export function ImageUpload({ itemId, onUploadComplete }: ImageUploadProps) {
             .from('item-images')
             .upload(filePath, file);
 
-          if (storageError) throw storageError;
+          if (storageError) {
+            // Provide specific error messages based on error type
+            if (storageError.message.includes('not found') || storageError.message.includes('does not exist')) {
+              throw new Error(`Storage bucket 'item-images' does not exist. Please create it in your Supabase dashboard or use the debug tool to fix this.`);
+            } else if (storageError.message.includes('policy') || storageError.message.includes('permission')) {
+              throw new Error(`Permission denied: Please check your storage bucket policies. You may need to set up Row Level Security policies for authenticated users.`);
+            } else if (storageError.message.includes('size')) {
+              throw new Error(`File too large: ${file.name} exceeds the bucket size limit.`);
+            } else {
+              throw new Error(`Upload failed: ${storageError.message}`);
+            }
+          }
 
           // Create image metadata record
           const { data: imageData, error: dbError } = await supabase

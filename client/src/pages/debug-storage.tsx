@@ -4,12 +4,64 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/lib/supabase";
-import { AlertCircle, CheckCircle, Upload, FileText } from "lucide-react";
+import { AlertCircle, CheckCircle, Upload, FileText, Copy, ExternalLink } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export function DebugStorage() {
   const [results, setResults] = useState<string>("");
   const [isLoading, setIsLoading] = useState(false);
+  const [sqlScript, setSqlScript] = useState<string>("");
   const { toast } = useToast();
+
+  const generateSqlScript = () => {
+    const script = `-- Storage Setup Script for HomeSpecTracker
+-- Run this in your Supabase SQL Editor to fix 404 upload errors
+
+-- Step 1: Enable RLS on storage.objects
+ALTER TABLE storage.objects ENABLE ROW LEVEL SECURITY;
+
+-- Step 2: Create storage buckets
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
+VALUES 
+  ('item-images', 'item-images', true, 5242880, 
+   '{image/jpeg,image/jpg,image/png,image/gif,image/webp}'),
+  ('item-documents', 'item-documents', true, 20971520, 
+   '{application/pdf,text/plain,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document}')
+ON CONFLICT (id) DO NOTHING;
+
+-- Step 3: Drop existing policies (to avoid conflicts)
+DROP POLICY IF EXISTS "Enable all operations for authenticated users on item-images" ON storage.objects;
+DROP POLICY IF EXISTS "Enable all operations for authenticated users on item-documents" ON storage.objects;
+
+-- Step 4: Create storage policies
+CREATE POLICY "Enable all operations for authenticated users on item-images"
+ON storage.objects FOR ALL TO authenticated
+WITH CHECK (bucket_id = 'item-images')
+USING (bucket_id = 'item-images');
+
+CREATE POLICY "Enable all operations for authenticated users on item-documents"
+ON storage.objects FOR ALL TO authenticated 
+WITH CHECK (bucket_id = 'item-documents')
+USING (bucket_id = 'item-documents');`;
+
+    setSqlScript(script);
+  };
+
+  const copyToClipboard = async (text: string) => {
+    try {
+      await navigator.clipboard.writeText(text);
+      toast({
+        title: "Copied!",
+        description: "Text copied to clipboard",
+      });
+    } catch (err) {
+      toast({
+        title: "Copy failed",
+        description: "Please copy manually",
+        variant: "destructive",
+      });
+    }
+  };
 
   const runDiagnostics = async () => {
     setIsLoading(true);
@@ -203,7 +255,7 @@ export function DebugStorage() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-8 max-w-4xl">
+    <div className="container mx-auto px-4 py-8 max-w-6xl">
       <Card>
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
@@ -211,32 +263,149 @@ export function DebugStorage() {
             Storage Debug & Fix Tool
           </CardTitle>
         </CardHeader>
-        <CardContent className="space-y-4">
-          <Alert>
+        <CardContent>
+          <Alert className="mb-6">
             <AlertCircle className="h-4 w-4" />
-            <AlertTitle>File Upload Issues</AlertTitle>
+            <AlertTitle>File Upload 404 Errors</AlertTitle>
             <AlertDescription>
-              This tool will diagnose why file uploads are returning 404: NOT_FOUND errors and help fix the configuration.
+              This tool diagnoses why file uploads return 404: NOT_FOUND errors and provides solutions. 
+              The issue is usually missing storage buckets or incorrect policies, not server routing problems.
             </AlertDescription>
           </Alert>
           
-          <div className="flex gap-2">
-            <Button onClick={runDiagnostics} disabled={isLoading}>
-              {isLoading ? "Running..." : "Run Diagnostics"}
-            </Button>
-            <Button onClick={createBuckets} disabled={isLoading} variant="outline">
-              {isLoading ? "Creating..." : "Create Buckets"}
-            </Button>
-          </div>
-          
-          {results && (
-            <div className="mt-4">
-              <h3 className="text-lg font-semibold mb-2">Results:</h3>
-              <pre className="bg-muted p-4 rounded-md text-sm overflow-auto max-h-96 whitespace-pre-wrap">
-                {results}
-              </pre>
-            </div>
-          )}
+          <Tabs defaultValue="diagnostics" className="w-full">
+            <TabsList className="grid w-full grid-cols-3">
+              <TabsTrigger value="diagnostics">Diagnostics</TabsTrigger>
+              <TabsTrigger value="sql-fix">SQL Fix</TabsTrigger>
+              <TabsTrigger value="manual-steps">Manual Steps</TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="diagnostics" className="space-y-4">
+              <div className="flex gap-2">
+                <Button onClick={runDiagnostics} disabled={isLoading}>
+                  {isLoading ? "Running..." : "Run Diagnostics"}
+                </Button>
+                <Button onClick={createBuckets} disabled={isLoading} variant="outline">
+                  {isLoading ? "Creating..." : "Auto-Create Buckets"}
+                </Button>
+              </div>
+              
+              {results && (
+                <div className="mt-4">
+                  <h3 className="text-lg font-semibold mb-2">Diagnostic Results:</h3>
+                  <pre className="bg-muted p-4 rounded-md text-sm overflow-auto max-h-96 whitespace-pre-wrap border">
+                    {results}
+                  </pre>
+                </div>
+              )}
+            </TabsContent>
+            
+            <TabsContent value="sql-fix" className="space-y-4">
+              <div className="space-y-4">
+                <div>
+                  <h3 className="text-lg font-semibold mb-2">Quick SQL Fix</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    Copy and paste this SQL script into your Supabase SQL Editor to fix storage issues:
+                  </p>
+                  <Button onClick={generateSqlScript} className="mb-4">
+                    Generate SQL Script
+                  </Button>
+                </div>
+                
+                {sqlScript && (
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <h4 className="font-medium">SQL Script:</h4>
+                      <div className="flex gap-2">
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          onClick={() => copyToClipboard(sqlScript)}
+                        >
+                          <Copy className="h-4 w-4 mr-2" />
+                          Copy Script
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          asChild
+                        >
+                          <a 
+                            href={`${import.meta.env.VITE_SUPABASE_URL?.replace('/rest/v1', '')}/project/_/sql`}
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                          >
+                            <ExternalLink className="h-4 w-4 mr-2" />
+                            Open SQL Editor
+                          </a>
+                        </Button>
+                      </div>
+                    </div>
+                    <pre className="bg-muted p-4 rounded-md text-sm overflow-auto max-h-96 border font-mono">
+                      {sqlScript}
+                    </pre>
+                  </div>
+                )}
+              </div>
+            </TabsContent>
+            
+            <TabsContent value="manual-steps" className="space-y-4">
+              <div className="space-y-6">
+                <div>
+                  <h3 className="text-lg font-semibold mb-2">Manual Fix Steps</h3>
+                  <p className="text-sm text-muted-foreground mb-4">
+                    If the automatic fixes don't work, follow these manual steps in your Supabase dashboard:
+                  </p>
+                </div>
+                
+                <div className="space-y-4">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-base">Step 1: Create Storage Buckets</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      <p className="text-sm">1. Go to Storage in your Supabase dashboard</p>
+                      <p className="text-sm">2. Create bucket: <code className="bg-muted px-1 rounded">item-images</code></p>
+                      <p className="text-sm">   - Public bucket: <strong>Yes</strong></p>
+                      <p className="text-sm">   - File size limit: <strong>5MB</strong></p>
+                      <p className="text-sm">   - Allowed MIME types: <code className="bg-muted px-1 rounded">image/jpeg, image/png, image/gif</code></p>
+                      <p className="text-sm">3. Create bucket: <code className="bg-muted px-1 rounded">item-documents</code></p>
+                      <p className="text-sm">   - Public bucket: <strong>Yes</strong></p>
+                      <p className="text-sm">   - File size limit: <strong>20MB</strong></p>
+                      <p className="text-sm">   - Allowed MIME types: <code className="bg-muted px-1 rounded">application/pdf, text/plain</code></p>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-base">Step 2: Set Up RLS Policies</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      <p className="text-sm">1. Go to Storage → Policies in Supabase dashboard</p>
+                      <p className="text-sm">2. For each bucket, create these policies:</p>
+                      <ul className="text-sm ml-4 space-y-1">
+                        <li>• <strong>SELECT</strong>: Enable for authenticated users</li>
+                        <li>• <strong>INSERT</strong>: Enable for authenticated users</li>
+                        <li>• <strong>UPDATE</strong>: Enable for authenticated users</li>
+                        <li>• <strong>DELETE</strong>: Enable for authenticated users</li>
+                      </ul>
+                    </CardContent>
+                  </Card>
+                  
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="text-base">Step 3: Verify Setup</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-2">
+                      <p className="text-sm">1. Return to this page and run diagnostics</p>
+                      <p className="text-sm">2. Try uploading a test file</p>
+                      <p className="text-sm">3. Check the Storage dashboard to see if files appear</p>
+                    </CardContent>
+                  </Card>
+                </div>
+              </div>
+            </TabsContent>
+          </Tabs>
         </CardContent>
       </Card>
     </div>
