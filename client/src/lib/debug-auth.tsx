@@ -124,7 +124,7 @@ export function DebugAuth() {
   };
 
   const tryDirectSupabaseConnection = async () => {
-    try {    const opts = [
+    try {    const opts: Array<{ headers: HeadersInit }> = [
       { headers: { apikey: import.meta.env.VITE_SUPABASE_ANON_KEY || '' } },
       { headers: { 
           apikey: import.meta.env.VITE_SUPABASE_ANON_KEY || '', 
