@@ -124,29 +124,29 @@ export function DebugAuth() {
   };
 
   const tryDirectSupabaseConnection = async () => {
-    try {
-      const opts = [
-        { headers: { apikey: import.meta.env.VITE_SUPABASE_ANON_KEY } },
-        { headers: { 
-            apikey: import.meta.env.VITE_SUPABASE_ANON_KEY, 
-            Accept: 'application/json' as string, 
-            'Content-Type': 'application/json' as string
-          }
-        },
-        { headers: { 
-            apikey: import.meta.env.VITE_SUPABASE_ANON_KEY, 
-            'User-Agent': 'Mozilla/5.0' as string
-          }
+    try {    const opts = [
+      { headers: { apikey: import.meta.env.VITE_SUPABASE_ANON_KEY || '' } },
+      { headers: { 
+          apikey: import.meta.env.VITE_SUPABASE_ANON_KEY || '', 
+          'Accept': 'application/json', 
+          'Content-Type': 'application/json'
         }
-      ];
+      },
+      { headers: { 
+          apikey: import.meta.env.VITE_SUPABASE_ANON_KEY || '', 
+          'User-Agent': 'Mozilla/5.0'
+        }
+      }
+    ];
       
       for (const opt of opts) {
         try {
-          const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/`, {
-            ...opt,
-            cache: 'no-store',
-            signal: AbortSignal.timeout(5000) // Add a 5-second timeout
-          });
+          const fetchInit: RequestInit = {
+            cache: 'no-store' as RequestCache,
+            signal: AbortSignal.timeout(5000),
+            headers: opt.headers
+          };
+          const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/rest/v1/`, fetchInit);
           if (res.ok) {
             console.log("Connection successful with options:", opt);
             return true;

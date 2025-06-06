@@ -406,7 +406,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
 
             return true;
           })
-          .map((item) => ({
+          .map((item: any) => ({
             room_id: roomMap.get(item.area.toLowerCase())!,
             name: item.name,
             category: item.category,
@@ -418,8 +418,8 @@ export default function ProjectPage({ id }: ProjectPageProps) {
             installation_date: processExcelDate(item.installation_date),
             maintenance_notes: item.maintenance_notes || null,
             status: item.status || null,
-            notes: item.notes || null,
-            link: item.link || null,
+            notes: (item as any).notes || null,
+            link: (item as any).link || null,
             created_at: new Date().toISOString(),
           }));
 

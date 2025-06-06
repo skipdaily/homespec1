@@ -24,7 +24,6 @@ import {Popover, PopoverContent, PopoverTrigger} from "@/components/ui/popover";
 import {Command, CommandEmpty, CommandGroup, CommandInput, CommandItem} from "@/components/ui/command";
 import { NavBreadcrumb } from "@/components/layout/nav-breadcrumb";
 import { DocumentUpload } from "@/components/ui/document-upload";
-import { exportToExcel } from "@/lib/format";
 import * as XLSX from 'xlsx';
 
 // Update interface to match database schema without version
@@ -332,74 +331,6 @@ const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => vo
       {children}
     </label>
   );
-
-
-  const exportToExcel = async (items: Item[]) => {
-    if (!items || items.length === 0) {
-      toast({
-        title: "Export Failed",
-        description: "No items available to export",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    try {
-      // First get items with room and project context
-      const { data: projectItems, error } = await supabase
-        .from("items")
-        .select(`
-          *,
-          rooms (
-            name,
-            projects (
-              name
-            )
-          )
-        `)
-        .eq("room_id", item.room_id);
-
-      if (error) throw error;
-
-      const exportData = (projectItems || []).map(item => ({
-        'Room': item.rooms?.name || '',
-        'Project': item.rooms?.projects?.name || '',
-        'Name': item.name,
-        'Category': item.category,
-        'Brand': item.brand || '',
-        'Supplier': item.supplier || '',
-        'Specifications': item.specifications || '',
-        'Cost': item.cost || '',
-        'Warranty Info': item.warranty_info || '',
-        'Installation Date': item.installation_date || '',
-        'Maintenance Notes': item.maintenance_notes || '',
-        'Status': item.status || '',
-        'Link': item.link || '',
-        'Notes': item.notes || '',
-        'Created At': new Date(item.created_at || '').toLocaleDateString(),
-        'Updated At': new Date(item.updated_at || '').toLocaleDateString()
-      }));
-
-      const ws = XLSX.utils.json_to_sheet(exportData);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Items");
-
-      const fileName = `${item.name || 'room'}_items_${new Date().toISOString().split('T')[0]}.xlsx`;
-      XLSX.writeFile(wb, fileName);
-
-      toast({
-        title: "Success",
-        description: "Items exported successfully"
-      });
-    } catch (error) {
-      console.error('Export error:', error);
-      toast({
-        title: "Export Failed",
-        description: "Failed to export items",
-        variant: "destructive"
-      });
-    }
-  };
 
   return (
     <div className="border rounded-lg p-4">
@@ -1103,6 +1034,74 @@ export default function RoomPage({ id }: RoomPageProps) {
     setShowBulkDeleteDialog(false);
   };
 
+  // Add exportToExcel function to RoomPage component scope
+  const exportToExcel = async (items: Item[]) => {
+    if (!items || items.length === 0) {
+      toast({
+        title: "Export Failed",
+        description: "No items available to export",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    try {
+      // Get items with room and project context
+      const { data: projectItems, error } = await supabase
+        .from("items")
+        .select(`
+          *,
+          rooms (
+            name,
+            projects (
+              name
+            )
+          )
+        `)
+        .eq("room_id", id);
+
+      if (error) throw error;
+
+      const exportData = (projectItems || []).map(item => ({
+        'Room': item.rooms?.name || '',
+        'Project': item.rooms?.projects?.name || '',
+        'Name': item.name,
+        'Category': item.category,
+        'Brand': item.brand || '',
+        'Supplier': item.supplier || '',
+        'Specifications': item.specifications || '',
+        'Cost': item.cost || '',
+        'Warranty Info': item.warranty_info || '',
+        'Installation Date': item.installation_date || '',
+        'Maintenance Notes': item.maintenance_notes || '',
+        'Status': item.status || '',
+        'Link': item.link || '',
+        'Notes': item.notes || '',
+        'Created At': new Date(item.created_at || '').toLocaleDateString(),
+        'Updated At': new Date(item.updated_at || '').toLocaleDateString()
+      }));
+
+      const ws = XLSX.utils.json_to_sheet(exportData);
+      const wb = XLSX.utils.book_new();
+      XLSX.utils.book_append_sheet(wb, ws, "Items");
+
+      const fileName = `${room?.name || 'room'}_items_${new Date().toISOString().split('T')[0]}.xlsx`;
+      XLSX.writeFile(wb, fileName);
+
+      toast({
+        title: "Success",
+        description: "Items exported successfully"
+      });
+    } catch (error) {
+      console.error('Export error:', error);
+      toast({
+        title: "Export Failed",
+        description: "Failed to export items",
+        variant: "destructive"
+      });
+    }
+  };
+
   const handleDelete = (itemId: string) => {
     deleteItem.mutate(itemId);
   };
@@ -1213,7 +1212,7 @@ export default function RoomPage({ id }: RoomPageProps) {
                           <div className="flex gap-4">
                             <Button
                               variant="outline"
-                              onClick={() => exportToExcel(filteredItems)}
+                              onClick={() => exportToExcel(filteredItems || [])}
                               className="flex items-center gap-2"
                             >
                               <Download className="h-4 w-4" />

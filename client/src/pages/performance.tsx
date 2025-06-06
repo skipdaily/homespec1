@@ -120,12 +120,10 @@ export default function PerformancePage() {
                   <CartesianGrid strokeDasharray="3 3" />
                   <XAxis dataKey="category" />
                   <YAxis />
-                  <Tooltip content={(props) => (
-                    <ChartTooltipContent
-                      {...props}
-                      formatter={(value, name) => [`$${value}`, name]}
-                    />
-                  )} />
+                  <Tooltip 
+                    formatter={(value: any, name: any) => [`$${value}`, name]}
+                    labelFormatter={(label) => `Category: ${label}`}
+                  />
                   <Bar dataKey="cost" fill="var(--color-cost)" />
                 </BarChart>
               </ChartContainer>
