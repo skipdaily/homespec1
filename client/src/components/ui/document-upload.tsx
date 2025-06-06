@@ -19,7 +19,7 @@ export function DocumentUpload({ itemId, onUploadComplete }: DocumentUploadProps
 
     setIsUploading(true);
     try {
-      for (const file of files) {
+      for (const file of Array.from(files)) {
         const fileExt = file.name.split('.').pop();
         const fileName = `${Math.random()}.${fileExt}`;
         const filePath = `${itemId}/${fileName}`;

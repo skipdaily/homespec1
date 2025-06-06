@@ -23,7 +23,7 @@ import { TutorialStep } from "./components/tutorial/TutorialStep";
 
 interface PrivateRouteProps {
   component: React.ComponentType<any>;
-  params?: { [key: string]: string };
+  params?: { [key: string]: string | undefined };
 }
 
 // Protected Route wrapper
@@ -82,12 +82,12 @@ function PrivateRoute({ component: Component, params }: PrivateRouteProps) {
     return null; // Let the redirect happen
   }
 
-  return <Component {...params} isAuthenticated={true} />;
+  return <Component {...params} />;
 }
 
 // Public Project Route
 function PublicProjectRoute({ params }: { params: { id: string } }) {
-  return <Project {...params} isAuthenticated={false} />;
+  return <Project {...params} />;
 }
 
 function Router() {

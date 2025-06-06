@@ -134,7 +134,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
     enabled: !!id,
   });
 
-  const { data: items } = useQuery<Item[]>({
+  const { data: items } = useQuery({
     queryKey: ["project-items", id],
     queryFn: async () => {
       if (!id) throw new Error("No project ID provided");
@@ -163,7 +163,10 @@ export default function ProjectPage({ id }: ProjectPageProps) {
         .eq('rooms.project_id', id)
         .order("created_at", { ascending: false });
       if (error) throw error;
-      return data || [];
+      return (data || []).map(item => ({
+        ...item,
+        rooms: Array.isArray(item.rooms) ? item.rooms[0] : item.rooms
+      })) as Item[];
     },
     enabled: !!id,
   });
@@ -416,7 +419,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
             maintenance_notes: item.maintenance_notes || null,
             status: item.status || null,
             notes: item.notes || null,
-            link: item.links || null,
+            link: item.link || null,
             created_at: new Date().toISOString(),
           }));
 
@@ -469,7 +472,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
     }
 
     try {
-      const exportData = items.map((item) => ({
+      const exportData = (items || []).map((item) => ({
         area: item.rooms.name,
         name: item.name,
         category: item.category,

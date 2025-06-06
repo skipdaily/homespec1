@@ -24,6 +24,7 @@ import {Popover, PopoverContent, PopoverTrigger} from "@/components/ui/popover";
 import {Command, CommandEmpty, CommandGroup, CommandInput, CommandItem} from "@/components/ui/command";
 import { NavBreadcrumb } from "@/components/layout/nav-breadcrumb";
 import { DocumentUpload } from "@/components/ui/document-upload";
+import { exportToExcel } from "@/lib/format";
 import * as XLSX from 'xlsx';
 
 // Update interface to match database schema without version
@@ -1259,7 +1260,7 @@ export default function RoomPage({ id }: RoomPageProps) {
                       </DialogHeader>
 
                       <Form {...form}>
-                        <form onSubmit={form.handleSubmit(createItem.mutate)} className="space-y-4">
+                        <form onSubmit={form.handleSubmit((data) => createItem.mutate(data))} className="space-y-4">
                           <ScrollArea className="h-[65vh]">
                             <div className="space-y-4 px-4 pr-8">
                               <FormField

@@ -49,7 +49,7 @@ export default function ItemForm({ roomId, onSuccess }: ItemFormProps) {
       brand: formData.get("brand") as string || null,
       supplier: formData.get("supplier") as string || null,
       specifications: formData.get("specifications") as string || null,
-      cost: costValue ? parseFloat(costValue) : null,
+      cost: costValue || null,
       warranty_info: formData.get("warranty_info") as string || null,
       category: formData.get("category") as string || "uncategorized",
       maintenance_notes: null,
@@ -149,7 +149,7 @@ export default function ItemForm({ roomId, onSuccess }: ItemFormProps) {
         </div>
         <ImageUpload 
           itemId={roomId} 
-          onUploadComplete={(images: Image[]) => {
+          onUploadComplete={() => {
             queryClient.invalidateQueries({ queryKey: ["item-images", roomId] });
           }} 
         />

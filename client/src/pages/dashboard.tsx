@@ -252,13 +252,12 @@ export default function Dashboard() {
         placeholder="Builder Name"
         required
         defaultValue={isEdit ? selectedProject?.builder_name : ''}
-      />
-      <Input
-        type="date"
-        name="completion_date"
-        placeholder="Expected Completion Date (Optional)"
-        defaultValue={isEdit ? selectedProject?.completion_date : ''}
-      />
+      />        <Input
+          type="date"
+          name="completion_date"
+          placeholder="Expected Completion Date (Optional)"
+          defaultValue={isEdit ? (selectedProject?.completion_date || '') : ''}
+        />
       <Button
         type="submit"
         className="w-full"

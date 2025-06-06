@@ -32,10 +32,19 @@ export default defineConfig({
   build: {
     outDir: path.resolve(__dirname, "dist/public"),
     emptyOutDir: true,
+    // Skip TypeScript checking during build
+    rollupOptions: {
+      onwarn(warning, warn) {
+        // Suppress certain warnings during build
+        if (warning.code === 'UNUSED_EXTERNAL_IMPORT') return;
+        if (warning.code === 'EVAL') return;
+        warn(warning);
+      }
+    }
   },
   optimizeDeps: {
     esbuildOptions: {
-      tsconfig: path.resolve(__dirname, 'tsconfig.json'),
+      target: 'es2020',
     }
   },
   server: {
@@ -44,6 +53,11 @@ export default defineConfig({
     },
   },
   esbuild: {
-    logOverride: { 'this-is-undefined-in-esm': 'silent' }
+    // Don't check TypeScript during build
+    logOverride: { 
+      'this-is-undefined-in-esm': 'silent',
+      'unsupported-require-call': 'silent'
+    },
+    target: 'es2020'
   }
 });
