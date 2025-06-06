@@ -1,42 +1,36 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from '../types/supabase';
 
-// Type definition for window.env
-interface EnvVariables {
-  VITE_SUPABASE_URL?: string;
-  VITE_SUPABASE_ANON_KEY?: string;
-  NODE_ENV?: string;
-  FRONTEND_URL?: string;
-  [key: string]: string | undefined;
-}
-
-declare global {
-  interface Window {
-    env?: EnvVariables;
-  }
-}
-
-// Try to get environment variables from different sources
-const getEnvVar = (key: string): string => {
-  // Check if window.env exists (our generated env.js file)
-  if (typeof window !== 'undefined' && window.env && window.env[key]) {
-    return window.env[key] as string;
-  }
-  // Check Vite's import.meta.env
+// Get environment variables with fallbacks for production deployment
+const getEnvVar = (key: string, fallback?: string): string => {
+  // Check Vite's import.meta.env first
   if (import.meta.env && import.meta.env[key]) {
     return import.meta.env[key] as string;
   }
-  // Fallback for Supabase URL and key for deployed environments
+  
+  // Check if window.env exists (our generated env.js file)
+  if (typeof window !== 'undefined' && (window as any).env && (window as any).env[key]) {
+    return (window as any).env[key] as string;
+  }
+  
+  // Use fallback if provided
+  if (fallback) {
+    return fallback;
+  }
+  
+  // For critical environment variables, provide hardcoded fallbacks for production
   if (key === 'VITE_SUPABASE_URL') {
     return 'https://dxzsvrxwpfqddatmelzb.supabase.co';
   }
   if (key === 'VITE_SUPABASE_ANON_KEY') {
     return 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR4enN2cnh3cGZxZGRhdG1lbHpiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzk3Njc0OTQsImV4cCI6MjA1NTM0MzQ5NH0.sOWDKWEN2DVEgCpdbHy7b8xYW4zTI71C4oirhczgPYM';
   }
-  throw new Error(`Missing environment variable: ${key}`);
+  
+  console.warn(`Missing environment variable: ${key}`);
+  return '';
 };
 
-// Get Supabase credentials from environment
+// Get Supabase credentials
 const supabaseUrl = getEnvVar('VITE_SUPABASE_URL');
 const supabaseAnonKey = getEnvVar('VITE_SUPABASE_ANON_KEY');
 
