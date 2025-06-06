@@ -1,6 +1,6 @@
 // This file ensures that environment variables are correctly loaded in Vercel
 // Place this in the root of your project
-import { writeFileSync } from 'fs';
+import { writeFileSync, mkdirSync } from 'fs';
 import { fileURLToPath } from 'url';
 import { dirname, resolve } from 'path';
 import dotenv from 'dotenv';
@@ -19,9 +19,17 @@ const clientEnv = {
   FRONTEND_URL: process.env.FRONTEND_URL || 'https://homespec-skipdaily.vercel.app'
 };
 
+// Ensure the public directory exists
+const publicDir = resolve(__dirname, './client/public');
+try {
+  mkdirSync(publicDir, { recursive: true });
+} catch (err) {
+  // Directory might already exist, that's okay
+}
+
 // Write the environment variables to a file that will be available to the client
 writeFileSync(
-  resolve(__dirname, './client/env.js'),
+  resolve(publicDir, 'env.js'),
   `window.env = ${JSON.stringify(clientEnv)}`
 );
 

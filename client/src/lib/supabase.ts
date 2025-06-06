@@ -1,6 +1,20 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from '../types/supabase';
-import '../types/env'; // Import the env type definitions
+
+// Type definition for window.env
+interface EnvVariables {
+  VITE_SUPABASE_URL?: string;
+  VITE_SUPABASE_ANON_KEY?: string;
+  NODE_ENV?: string;
+  FRONTEND_URL?: string;
+  [key: string]: string | undefined;
+}
+
+declare global {
+  interface Window {
+    env?: EnvVariables;
+  }
+}
 
 // Try to get environment variables from different sources
 const getEnvVar = (key: string): string => {

@@ -32,8 +32,11 @@ export default defineConfig({
   build: {
     outDir: path.resolve(__dirname, "dist/public"),
     emptyOutDir: true,
-    // Skip TypeScript checking during build
+    // Copy env.js to the output directory
     rollupOptions: {
+      input: {
+        main: path.resolve(__dirname, "client/index.html"),
+      },
       onwarn(warning, warn) {
         // Suppress certain warnings during build
         if (warning.code === 'UNUSED_EXTERNAL_IMPORT') return;
