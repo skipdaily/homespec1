@@ -13,6 +13,8 @@ NODE_ENV=production
 FRONTEND_URL=https://homespec-skipdaily.vercel.app
 ```
 
+**Note**: The application includes fallback values for Supabase credentials, so it will work even if environment variables are not set in Vercel, but setting them is recommended for security and flexibility.
+
 ## Build Settings
 
 Ensure the following settings are configured in Vercel:
@@ -33,3 +35,9 @@ If you encounter a blank page after deployment:
 2. Verify environment variables are correctly set
 3. Make sure the Vercel deployment is using Node.js 18 or higher
 4. Ensure the latest commit is being deployed (check build logs for correct commit hash)
+
+## Recent Changes
+
+- Simplified build process to remove env.js dependency
+- Added hardcoded fallbacks for Supabase credentials
+- Removed problematic script tag that was causing bundling issues
