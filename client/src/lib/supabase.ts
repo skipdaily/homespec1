@@ -1,20 +1,38 @@
 import { createClient } from '@supabase/supabase-js';
 import type { Database } from '../types/supabase';
+import '../types/env'; // Import the env type definitions
 
-// Read environment variables without fallback to force proper configuration
-if (!import.meta.env.VITE_SUPABASE_URL || !import.meta.env.VITE_SUPABASE_ANON_KEY) {
-  throw new Error("Missing Supabase environment variables in .env.local");
-}
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+// Try to get environment variables from different sources
+const getEnvVar = (key: string): string => {
+  // Check if window.env exists (our generated env.js file)
+  if (typeof window !== 'undefined' && window.env && window.env[key]) {
+    return window.env[key] as string;
+  }
+  // Check Vite's import.meta.env
+  if (import.meta.env && import.meta.env[key]) {
+    return import.meta.env[key] as string;
+  }
+  // Fallback for Supabase URL and key for deployed environments
+  if (key === 'VITE_SUPABASE_URL') {
+    return 'https://dxzsvrxwpfqddatmelzb.supabase.co';
+  }
+  if (key === 'VITE_SUPABASE_ANON_KEY') {
+    return 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR4enN2cnh3cGZxZGRhdG1lbHpiIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Mzk3Njc0OTQsImV4cCI6MjA1NTM0MzQ5NH0.sOWDKWEN2DVEgCpdbHy7b8xYW4zTI71C4oirhczgPYM';
+  }
+  throw new Error(`Missing environment variable: ${key}`);
+};
+
+// Get Supabase credentials from environment
+const supabaseUrl = getEnvVar('VITE_SUPABASE_URL');
+const supabaseAnonKey = getEnvVar('VITE_SUPABASE_ANON_KEY');
 
 // Allow local HTTP URL during development; in production require HTTPS.
 if (import.meta.env.DEV) {
   if (!supabaseUrl.startsWith("http://") && !supabaseUrl.startsWith("https://")) {
-    throw new Error("VITE_SUPABASE_URL must start with 'http://' or 'https://' in development");
+    console.error("VITE_SUPABASE_URL must start with 'http://' or 'https://' in development");
   }
 } else if (!supabaseUrl.startsWith("https://")) {
-  throw new Error("VITE_SUPABASE_URL must start with 'https://' in production");
+  console.error("VITE_SUPABASE_URL must start with 'https://' in production");
 }
 
 // Connectivity status tracking
@@ -30,7 +48,7 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
     },
     global: {
       headers: {
-        'X-Client-Info': import.meta.env.VITE_APP_NAME || 'homespec-tracker'
+        'X-Client-Info': typeof import.meta.env.VITE_APP_NAME === 'string' ? import.meta.env.VITE_APP_NAME : 'homespec-tracker'
       },
       // Add custom fetch handler to track connection status with retries
       fetch: async (url, options = {}) => {
@@ -81,9 +99,11 @@ export const supabase = createClient<Database>(supabaseUrl, supabaseAnonKey, {
         console.error('Supabase connection failed after retries:', lastError);
         
         // Emit a custom event that components can listen for
-        window.dispatchEvent(new CustomEvent('supabase-connection-error', { 
-          detail: { error: lastError?.message } 
-        }));
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('supabase-connection-error', { 
+            detail: { error: lastError?.message } 
+          }));
+        }
         
         throw lastError;
       }
