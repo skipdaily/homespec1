@@ -32,3 +32,4 @@ If you encounter a blank page after deployment:
 1. Check browser console for errors
 2. Verify environment variables are correctly set
 3. Make sure the Vercel deployment is using Node.js 18 or higher
+4. Ensure the latest commit is being deployed (check build logs for correct commit hash)
