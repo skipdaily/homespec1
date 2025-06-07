@@ -335,156 +335,223 @@ const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => vo
     </label>
   );
 
+  const getStatusColor = (status?: string) => {
+    if (!status) return "bg-gray-100 text-gray-700";
+    const statusLower = status.toLowerCase();
+    if (statusLower.includes('stock') || statusLower.includes('available')) return "bg-green-100 text-green-700";
+    if (statusLower.includes('low') || statusLower.includes('warning')) return "bg-yellow-100 text-yellow-700";
+    if (statusLower.includes('out') || statusLower.includes('sold')) return "bg-red-100 text-red-700";
+    return "bg-blue-100 text-blue-700";
+  };
+
+  const getCategoryColor = (category: string) => {
+    const colors = [
+      "bg-purple-100 text-purple-700",
+      "bg-indigo-100 text-indigo-700", 
+      "bg-blue-100 text-blue-700",
+      "bg-teal-100 text-teal-700",
+      "bg-emerald-100 text-emerald-700",
+      "bg-amber-100 text-amber-700",
+      "bg-orange-100 text-orange-700",
+      "bg-pink-100 text-pink-700"
+    ];
+    const hash = category.split('').reduce((a, b) => {
+      a = ((a << 5) - a) + b.charCodeAt(0);
+      return a & a;
+    }, 0);
+    return colors[Math.abs(hash) % colors.length];
+  };
+
   return (
-    <div className="item-card-border card-interactive">
-      <div className="flex justify-between items-start gap-4">
-        <div className="flex-grow space-y-4">
-          <div className="flex items-center gap-2">
-            <h3 className="font-semibold">{item.name}</h3>
+    <>
+      <div className="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow">
+        {/* Header Row - Always Visible */}
+        <div className="grid grid-cols-12 gap-4 p-4 items-center border-b border-gray-100">
+          {/* Item Icon/ID */}
+          <div className="col-span-1">
+            <div className="w-8 h-8 bg-gray-100 rounded flex items-center justify-center text-xs font-medium text-gray-600">
+              {item.name.substring(0, 2).toUpperCase()}
+            </div>
           </div>
-          <p className="text-sm text-muted-foreground">
-            Category: {item.category}
-          </p>
-          <div className="flex items-center space-x-2">
-            <div className="flex items-center">
-              <span className="text-sm text-muted-foreground mr-0.5">{images.length || 0}</span>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setShowImageDialog(true)}
-                className="h-8 w-8"
-              >
-                <ImageIcon className="h-4 w-4" />
-              </Button>
+
+          {/* Item Name */}
+          <div className="col-span-3">
+            <h3 className="font-semibold text-gray-900 truncate">{item.name}</h3>
+            {item.brand && (
+              <p className="text-sm text-gray-500 truncate">{item.brand}</p>
+            )}
+          </div>
+
+          {/* Category */}
+          <div className="col-span-2">
+            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getCategoryColor(item.category)}`}>
+              {item.category}
+            </span>
+          </div>
+
+          {/* Status */}
+          <div className="col-span-2">
+            {item.status ? (
+              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(item.status)}`}>
+                {item.status}
+              </span>
+            ) : (
+              <span className="text-gray-400 text-sm">No status</span>
+            )}
+          </div>
+
+          {/* Cost */}
+          <div className="col-span-1 text-right">
+            {item.cost ? (
+              <span className="font-medium text-gray-900">${item.cost}</span>
+            ) : (
+              <span className="text-gray-400">-</span>
+            )}
+          </div>
+
+          {/* Counts */}
+          <div className="col-span-2 flex items-center justify-center space-x-3">
+            <div className="flex items-center text-gray-500">
+              <ImageIcon className="h-4 w-4 mr-1" />
+              <span className="text-sm">{images.length}</span>
             </div>
-
-            <div className="flex items-center">
-              <span className="text-sm text-muted-foreground mr-0.5">{itemHistory.length || 0}</span>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setShowHistoryDialog(true)}
-                className="h-8 w-8"
-              >
-                <History className="h-4 w-4" />
-              </Button>
+            <div className="flex items-center text-gray-500">
+              <FileText className="h-4 w-4 mr-1" />
+              <span className="text-sm">{documents.length}</span>
             </div>
-
-            <div className="flex items-center">
-              <span className="text-sm text-muted-foreground mr-0.5">{documents.length || 0}</span>
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={() => setShowDocumentDialog(true)}
-                className="h-8 w-8"
-              >
-                <FileText className="h-4 w-4" />
-              </Button>
+            <div className="flex items-center text-gray-500">
+              <History className="h-4 w-4 mr-1" />
+              <span className="text-sm">{itemHistory.length}</span>
             </div>
+          </div>
 
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setShowEditDialog(true)}
-            >
-              <Pencil className="h-4 w-4" />
-            </Button>
-
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setShowDeleteDialog(true)}
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
-
+          {/* Actions */}
+          <div className="col-span-1 flex items-center justify-end space-x-1">
             <Button
               variant="ghost"
               size="icon"
               onClick={() => setIsDetailsVisible(!isDetailsVisible)}
+              className="h-8 w-8"
             >
-              {isDetailsVisible ? (
-                <ChevronUp className="h-4 w-4" />
-              ) : (
-                <ChevronDown className="h-4 w-4" />
-              )}
+              {isDetailsVisible ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowEditDialog(true)}
+              className="h-8 w-8"
+            >
+              <Pencil className="h-4 w-4" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => setShowDeleteDialog(true)}
+              className="h-8 w-8 text-red-600 hover:text-red-700"
+            >
+              <Trash2 className="h-4 w-4" />
             </Button>
           </div>
+        </div>
 
-          {isDetailsVisible && (
-            <div className="space-y-4 pt-4 border-t">
-              <div className="grid grid-cols-1 gap-4">
-                <div className="space-y-2">
-                  {item.brand && (
-                    <div className="field-container">
-                      <span className="field-label">Brand:</span>
-                      <span className="field-value">{item.brand}</span>
-                    </div>
-                  )}
-                  {item.supplier && (
-                    <div className="field-container">
-                      <span className="field-label">Supplier:</span>
-                      <span className="field-value">{item.supplier}</span>
-                    </div>
-                  )}
-                  {item.specifications && (
-                    <div className="field-container">
-                      <span className="field-label">Specifications:</span>
-                      <span className="field-value">{item.specifications}</span>
-                    </div>
-                  )}
-                  {item.status && (
-                    <div className="field-container">
-                      <span className="field-label">Status:</span>
-                      <span className="field-value">{item.status}</span>
-                    </div>
-                  )}
-                  {item.warranty_info && (
-                    <div className="field-container">
-                      <span className="field-label">Warranty:</span>
-                      <span className="field-value">{item.warranty_info}</span>
-                    </div>
-                  )}
-                  {item.maintenance_notes && (
-                    <div className="field-container">
-                      <span className="field-label">Maintenance:</span>
-                      <span className="field-value">{item.maintenance_notes}</span>
-                    </div>
-                  )}
-                  {item.installation_date && (
-                    <div className="field-container">
-                      <span className="field-label">Installed:</span>
-                      <span className="field-value">{item.installation_date}</span>
-                    </div>
-                  )}
-                  {item.cost !== null && item.cost !== undefined && (
-                    <div className="field-container">
-                      <span className="field-label">Cost:</span>
-                      <span className="field-value">${item.cost.toString()}</span>
-                    </div>
-                  )}
-                  {item.link && (
-                    <div className="field-container">
-                      <span className="field-label">Link:</span>
-                      <span className="field-value">
-                        <a href={item.link} target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:text-indigo-800 underline">
-                          Link to Product
-                        </a>
-                      </span>
-                    </div>
-                  )}
-                  {item.notes && (
-                    <div className="field-container">
-                      <span className="field-label">Notes:</span>
-                      <span className="field-value">{item.notes}</span>
-                    </div>
-                  )}
-                </div>
+        {/* Expandable Details */}
+        {isDetailsVisible && (
+          <div className="p-4 bg-gray-50 border-t border-gray-100">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {/* Details Column 1 */}
+              <div className="space-y-3">
+                <h4 className="font-medium text-gray-900 border-b border-gray-200 pb-1">Product Details</h4>
+                {item.supplier && (
+                  <div>
+                    <span className="text-sm font-medium text-gray-600">Supplier:</span>
+                    <p className="text-sm text-gray-900">{item.supplier}</p>
+                  </div>
+                )}
+                {item.specifications && (
+                  <div>
+                    <span className="text-sm font-medium text-gray-600">Specifications:</span>
+                    <p className="text-sm text-gray-900">{item.specifications}</p>
+                  </div>
+                )}
+                {item.link && (
+                  <div>
+                    <span className="text-sm font-medium text-gray-600">Link:</span>
+                    <a href={item.link} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:text-blue-800 underline block truncate">
+                      Product Link
+                    </a>
+                  </div>
+                )}
               </div>
 
-              {/* Modified image carousel to handle image click */}
-              {images && images.length > 0 && (
-                <div className="w-full max-w-md mx-auto">
+              {/* Details Column 2 */}
+              <div className="space-y-3">
+                <h4 className="font-medium text-gray-900 border-b border-gray-200 pb-1">Installation & Warranty</h4>
+                {item.installation_date && (
+                  <div>
+                    <span className="text-sm font-medium text-gray-600">Installation Date:</span>
+                    <p className="text-sm text-gray-900">{new Date(item.installation_date).toLocaleDateString()}</p>
+                  </div>
+                )}
+                {item.warranty_info && (
+                  <div>
+                    <span className="text-sm font-medium text-gray-600">Warranty:</span>
+                    <p className="text-sm text-gray-900">{item.warranty_info}</p>
+                  </div>
+                )}
+                {item.maintenance_notes && (
+                  <div>
+                    <span className="text-sm font-medium text-gray-600">Maintenance:</span>
+                    <p className="text-sm text-gray-900">{item.maintenance_notes}</p>
+                  </div>
+                )}
+              </div>
+
+              {/* Details Column 3 */}
+              <div className="space-y-3">
+                <h4 className="font-medium text-gray-900 border-b border-gray-200 pb-1">Actions & Files</h4>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowImageDialog(true)}
+                    className="flex items-center gap-1"
+                  >
+                    <ImageIcon className="h-4 w-4" />
+                    Images ({images.length})
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowDocumentDialog(true)}
+                    className="flex items-center gap-1"
+                  >
+                    <FileText className="h-4 w-4" />
+                    Docs ({documents.length})
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setShowHistoryDialog(true)}
+                    className="flex items-center gap-1"
+                  >
+                    <History className="h-4 w-4" />
+                    History ({itemHistory.length})
+                  </Button>
+                </div>
+                {item.notes && (
+                  <div>
+                    <span className="text-sm font-medium text-gray-600">Notes:</span>
+                    <p className="text-sm text-gray-900">{item.notes}</p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Images Carousel */}
+            {images && images.length > 0 && (
+              <div className="mt-6">
+                <h4 className="font-medium text-gray-900 mb-3">Images</h4>
+                <div className="w-full max-w-md">
                   <Carousel className="w-full relative">
                     <CarouselContent>
                       {images.map((image) => (
@@ -493,7 +560,7 @@ const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => vo
                             <img
                               src={`${supabase.storage.from('item-images').getPublicUrl(image.storage_path).data?.publicUrl}`}
                               alt={`${item.name} image`}
-                              className="object-contain w-full h-full rounded-md cursor-pointer"
+                              className="object-contain w-full h-full rounded-md cursor-pointer border border-gray-200"
                               onClick={() => {
                                 setSelectedImage(image);
                                 setShowFullImageDialog(true);
@@ -502,14 +569,14 @@ const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => vo
                             <Button
                               variant="destructive"
                               size="icon"
-                              className="absolute top-2 right-2"
+                              className="absolute top-2 right-2 h-6 w-6"
                               onClick={() => {
                                 if (confirm('Are you sure you want to delete this image?')) {
                                   deleteImage.mutate(image.id);
                                 }
                               }}
                             >
-                              <Trash2 className="h-4 w-4" />
+                              <Trash2 className="h-3 w-3" />
                             </Button>
                           </div>
                         </CarouselItem>
@@ -519,44 +586,44 @@ const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => vo
                     <CarouselNext className="absolute right-2 top-1/2 -translate-y-1/2 z-10" />
                   </Carousel>
                 </div>
-              )}
+              </div>
+            )}
 
-              {/* Updated documents section with delete buttons */}
-              {isDetailsVisible && documents && documents.length > 0 && (
-                <div className="mt-4 space-y-2">
-                  <h4 className="text-sm font-medium">Documents</h4>
-                  <div className="grid gap-2">
-                    {documents.map((doc) => (
-                      <div key={doc.name} className="flex items-center justify-between group hover:bg-muted/50 p-2 rounded-md">
-                        <a
-                          href={doc.url}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
-                        >
-                          <FileText className="h-4 w-4" />
-                          {doc.name}
-                        </a>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="opacity-0 group-hover:opacity-100 transition-opacity"
-                          onClick={() => {
-                            if (confirm('Are you sure you want to delete this document?')) {
-                              deleteDocument.mutate(doc.name);
-                            }
-                          }}
-                        >
-                          <Trash2 className="h-4 w-4 text-destructive" />
-                        </Button>
-                      </div>
-                    ))}
-                  </div>
+            {/* Documents List */}
+            {documents && documents.length > 0 && (
+              <div className="mt-6">
+                <h4 className="font-medium text-gray-900 mb-3">Documents</h4>
+                <div className="grid gap-2">
+                  {documents.map((doc) => (
+                    <div key={doc.name} className="flex items-center justify-between group hover:bg-white p-2 rounded-md border border-gray-200">
+                      <a
+                        href={doc.url}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="flex items-center gap-2 text-sm text-gray-700 hover:text-blue-600"
+                      >
+                        <FileText className="h-4 w-4" />
+                        {doc.name}
+                      </a>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="opacity-0 group-hover:opacity-100 transition-opacity h-6 w-6"
+                        onClick={() => {
+                          if (confirm('Are you sure you want to delete this document?')) {
+                            deleteDocument.mutate(doc.name);
+                          }
+                        }}
+                      >
+                        <Trash2 className="h-3 w-3 text-red-600" />
+                      </Button>
+                    </div>
+                  ))}
                 </div>
-              )}
-            </div>
-          )}
-        </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Image Upload Dialog */}
@@ -832,7 +899,7 @@ const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => vo
           </DialogContent>
         </Dialog>
       )}
-    </div>
+    </>
   );
 };
 
@@ -1230,7 +1297,7 @@ export default function RoomPage({ id }: RoomPageProps) {
   }
 
   return (
-    <div className="container mx-auto px-4">
+    <div className="container mx-auto px-4 h-screen flex flex-col max-w-full overflow-x-hidden">
       <NavBreadcrumb
         items={[
           { label: "Dashboard", href: "/dashboard" },
@@ -1239,25 +1306,25 @@ export default function RoomPage({ id }: RoomPageProps) {
         ]}
       />
 
-      <div className="sticky top-0 bg-background z-10 pb-2 border-b">
+      <div className="bg-background pb-2 border-b flex-shrink-0 relative z-20">
         <div className="card-simple-border shadow-sm">
-          <div className="space-y-4">
+          <div className="space-y-3">
             {/* Room Details - Full Width */}
             <div>
-              <h1 className="text-2xl font-bold tracking-tight">{room?.name}</h1>
+              <h1 className="text-xl font-bold tracking-tight">{room?.name}</h1>
               <div className="mt-1 space-y-1">
-                <p className="text-muted-foreground">
+                <p className="text-sm text-muted-foreground">
                   {room?.description}
                 </p>
-                <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+                <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
                   {room?.floor_number !== null && (
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1">
                       <span className="font-medium">Floor:</span>
                       {room.floor_number}
                     </div>
                   )}
                   {room?.dimensions && (
-                    <div className="flex items-center gap-2">
+                    <div className="flex items-center gap-1">
                       <span className="font-medium">Size:</span>
                       {room.dimensions}
                     </div>
@@ -1267,14 +1334,14 @@ export default function RoomPage({ id }: RoomPageProps) {
             </div>
 
             {/* Search and Actions - Full Width */}
-            <div className="flex flex-col sm:flex-row justify-between gap-4">
+            <div className="flex flex-col sm:flex-row justify-between gap-3">
               <div className="relative flex-1">
                 <Input
                   type="text"
                   placeholder="Search items..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-8"
+                  className="pl-8 h-9"
                 />
                 <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               </div>
@@ -1316,6 +1383,7 @@ export default function RoomPage({ id }: RoomPageProps) {
                   size="sm"
                   onClick={() => exportToExcel(filteredItems || [])}
                   disabled={!items || items.length === 0}
+                  className="h-9"
                 >
                   <Download className="h-4 w-4 mr-2" />
                   Export
@@ -1323,12 +1391,12 @@ export default function RoomPage({ id }: RoomPageProps) {
 
                 <Dialog open={open} onOpenChange={setOpen}>
                   <DialogTrigger asChild>
-                    <Button>
+                    <Button className="h-9">
                       <Plus className="h-4 w-4 mr-2" />
                       Add Item
                     </Button>
                   </DialogTrigger>
-                  <DialogContent className="max-w-2xl max-h-[90vh]">
+                  <DialogContent className="max-w-2xl max-h-[90vh] mx-4">
                     <DialogHeader>
                       <DialogTitle>Add New Item</DialogTitle>
                       <p className="text-sm text-muted-foreground">
@@ -1375,7 +1443,12 @@ export default function RoomPage({ id }: RoomPageProps) {
                                           <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
                                         </Button>
                                       </PopoverTrigger>
-                                      <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                                      <PopoverContent 
+                                        className="w-[--radix-popover-trigger-width] p-0 z-50" 
+                                        align="start"
+                                        side="bottom"
+                                        sideOffset={4}
+                                      >
                                         <Command>
                                           <CommandInput placeholder="Search category..." />
                                           <CommandEmpty>No category found.</CommandEmpty>
@@ -1588,6 +1661,7 @@ export default function RoomPage({ id }: RoomPageProps) {
                         size="sm"
                         onClick={() => setShowBulkDeleteDialog(true)}
                         disabled={bulkDeleteItems.isPending}
+                        className="h-9"
                       >
                         <Trash2 className="h-4 w-4 mr-2" />
                         Delete Selected
@@ -1600,13 +1674,14 @@ export default function RoomPage({ id }: RoomPageProps) {
                         setIsSelectionMode(false);
                         setSelectedItems([]);
                       }}
+                      className="h-9"
                     >
                       Cancel
                     </Button>
                   </>
                 ) : (
                   <>
-                    <Button variant="outline" onClick={() => setIsSelectionMode(true)}>
+                    <Button variant="outline" onClick={() => setIsSelectionMode(true)} className="h-9">
                       Select Items
                     </Button>
                   </>
@@ -1617,36 +1692,53 @@ export default function RoomPage({ id }: RoomPageProps) {
         </div>
       </div>
 
-      {/* Item list - Full Width */}
-      <div className="py-6">
-        <div className="grid w-full gap-4">
-          {filteredItems?.map((item) => (
-            <div key={item.id} className="flex items-start gap-4 w-full">
-              {isSelectionMode && (
-                <Checkbox
-                  checked={selectedItems.includes(item.id)}
-                  onClick={() => {
-                    setSelectedItems(prev =>
-                      prev.includes(item.id)
-                        ? prev.filter(id => id !== item.id)
-                        : [...prev, item.id]
-                    );
-                  }}
-                />
-              )}
-              <div className="flex-1 w-full">
-                <ItemCard
-                  item={item}
-                  onDelete={handleDelete}
-                />
+      {/* Item list - Scrollable area */}
+      <div className="flex-1 overflow-hidden">
+        <div className="h-full overflow-y-auto py-4 px-1">
+          {/* Header Row */}
+          <div className="bg-gray-50 border border-gray-200 rounded-lg mb-3 p-3">
+            <div className="grid grid-cols-12 gap-4 items-center text-xs font-medium text-gray-700">
+              <div className="col-span-1">ID</div>
+              <div className="col-span-3">Item Name</div>
+              <div className="col-span-2">Category</div>
+              <div className="col-span-2">Status</div>
+              <div className="col-span-1 text-right">Cost</div>
+              <div className="col-span-2 text-center">Files</div>
+              <div className="col-span-1 text-right">Actions</div>
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            {filteredItems?.map((item) => (
+              <div key={item.id} className="flex items-start gap-4 w-full min-w-0">
+                {isSelectionMode && (
+                  <div className="flex items-center pt-4">
+                    <Checkbox
+                      checked={selectedItems.includes(item.id)}
+                      onClick={() => {
+                        setSelectedItems(prev =>
+                          prev.includes(item.id)
+                            ? prev.filter(id => id !== item.id)
+                            : [...prev, item.id]
+                        );
+                      }}
+                    />
+                  </div>
+                )}
+                <div className="flex-1 w-full min-w-0">
+                  <ItemCard
+                    item={item}
+                    onDelete={handleDelete}
+                  />
+                </div>
               </div>
-            </div>
-          ))}
-          {filteredItems?.length === 0 && (
-            <div className="text-center py-8 text-muted-foreground">
-              No items found matching your search.
-            </div>
-          )}
+            ))}
+            {filteredItems?.length === 0 && (
+              <div className="text-center py-8 text-muted-foreground">
+                No items found matching your search.
+              </div>
+            )}
+          </div>
         </div>
       </div>
 

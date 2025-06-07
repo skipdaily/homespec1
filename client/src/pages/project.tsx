@@ -797,11 +797,11 @@ export default function ProjectPage({ id }: ProjectPageProps) {
           </div>
 
           {isAuthenticated && (
-            <div className="lg:w-[200px] flex flex-col gap-3">
+            <div className="flex flex-wrap gap-3">
               <Button
-                variant="outline"
+                variant="default"
                 onClick={() => setShowPrintDialog(true)}
-                className="w-full flex items-center justify-center gap-2"
+                className="flex items-center justify-center gap-2"
               >
                 <Printer className="h-4 w-4" />
                 Print Project
@@ -814,8 +814,8 @@ export default function ProjectPage({ id }: ProjectPageProps) {
                 className="hidden"
                 id="file-upload"
               />
-              <label htmlFor="file-upload" className="w-full">
-                <Button variant="outline" className="w-full" asChild>
+              <label htmlFor="file-upload">
+                <Button variant="default" className="cursor-pointer" asChild>
                   <span>
                     <Upload className="mr-2 h-4 w-4" />
                     Import Items
@@ -823,7 +823,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
                 </Button>
               </label>
 
-              <Button variant="outline" onClick={handleExport} className="w-full">
+              <Button variant="default" onClick={handleExport}>
                 <Download className="mr-2 h-4 w-4" />
                 Export Items
               </Button>
