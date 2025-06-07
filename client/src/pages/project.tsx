@@ -722,16 +722,24 @@ export default function ProjectPage({ id }: ProjectPageProps) {
     return acc;
   }, {} as Record<string, number>) || {};
 
-  const baseUrl = window.location.origin;
+  const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
   const projectUrl = `${baseUrl}/project/${id}`;
+
+  // Debug logging for QR code
+  console.log('QR Code Debug:', { baseUrl, projectUrl, id });
 
   const handleDownloadPDF = () => {
     if (!project) return;
 
+    console.log('Print initiated for project:', project.name);
+    console.log('QR Code URL:', projectUrl);
+    
     const element = document.getElementById('print-content');
-    if (!element) return;
+    if (!element) {
+      console.error('Print content element not found');
+      return;
+    }
 
-    const projectName = project.name.toLowerCase().replace(/\s+/g, '-');
     window.print();
   };
 
@@ -945,19 +953,19 @@ export default function ProjectPage({ id }: ProjectPageProps) {
       <Dialog open={showPrintDialog} onOpenChange={setShowPrintDialog}>
         <DialogContent className="max-w-4xl">
           <DialogHeader>
-            <DialogTitle className="flex justify-between items-center">
+            <DialogTitle className="flex justify-between items-center no-print">
               <span>Print Project Details</span>
               <Button 
                 variant="outline" 
                 onClick={handleDownloadPDF}
-                className="flex items-center gap-2"
+                className="flex items-center gap-2 no-print"
               >
                 <Download className="h-4 w-4" />
                 Download PDF
               </Button>
             </DialogTitle>
           </DialogHeader>
-          <div id="print-content" className="p-8">
+          <div id="print-content" className="p-8 print-content">
             {project && (
               <div className="space-y-6">
                 <div className="border-b pb-4 flex justify-between items-start">
@@ -972,9 +980,26 @@ export default function ProjectPage({ id }: ProjectPageProps) {
                     </div>
                   </div>
                   <div className="text-center">
-                    <QRCodeSVG value={`${window.location.origin}/project/${id}`} size={120} />
+                    <div style={{ background: 'white', padding: '8px', borderRadius: '4px', display: 'inline-block' }}>
+                      {projectUrl ? (
+                        <QRCodeSVG 
+                          value={projectUrl} 
+                          size={120} 
+                          level="M"
+                          marginSize={1}
+                          fgColor="#000000"
+                          bgColor="#ffffff"
+                        />
+                      ) : (
+                        <div style={{ width: 120, height: 120, background: '#f0f0f0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          <span style={{ fontSize: '12px', color: '#666' }}>QR Code</span>
+                        </div>
+                      )}
+                    </div>
                     <div className="mt-2 text-sm text-muted-foreground">
                       <span>Scan to view project</span>
+                      <br />
+                      <span className="text-xs">{projectUrl || 'URL not available'}</span>
                     </div>
                   </div>
                 </div>

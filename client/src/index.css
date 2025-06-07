@@ -11,3 +11,60 @@
     @apply font-sans antialiased bg-background text-foreground;
   }
 }
+
+/* Print styles */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  
+  /* Ensure QR codes and graphics print properly */
+  svg {
+    print-color-adjust: exact !important;
+    -webkit-print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+  
+  /* Ensure proper page breaks */
+  .print-content {
+    page-break-inside: avoid;
+  }
+  
+  /* Make sure backgrounds and colors print */
+  * {
+    print-color-adjust: exact !important;
+    -webkit-print-color-adjust: exact !important;
+    color-adjust: exact !important;
+  }
+  
+  /* Specific QR code container styling */
+  .qr-container {
+    background: white !important;
+    border: 1px solid #000 !important;
+  }
+}
+
+/* Print styles */
+@media print {
+  /* Ensure QR codes print properly */
+  svg {
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+  
+  /* Hide dialog controls when printing */
+  .no-print {
+    display: none !important;
+  }
+  
+  /* Ensure proper page breaks */
+  .print-content {
+    page-break-inside: avoid;
+  }
+  
+  /* Make sure backgrounds and colors print */
+  * {
+    print-color-adjust: exact !important;
+    -webkit-print-color-adjust: exact !important;
+  }
+}
