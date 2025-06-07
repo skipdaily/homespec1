@@ -566,7 +566,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
     return (
       <div className="relative">
         <Link href={`/room/${room.id}`}>
-          <Card className="group cursor-pointer hover:shadow-lg transition-all duration-200 border-2 hover:border-primary/20">
+          <Card className="room-card-border group cursor-pointer hover:shadow-lg transition-all duration-200">
             <CardHeader>
               <div className="flex justify-between items-start">
                 <div className="space-y-1">
@@ -750,18 +750,11 @@ export default function ProjectPage({ id }: ProjectPageProps) {
   const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
   const projectUrl = `${baseUrl}/project/${id}`;
 
-  // Debug logging for QR code
-  console.log('QR Code Debug:', { baseUrl, projectUrl, id });
-
   const handleDownloadPDF = () => {
     if (!project) return;
-
-    console.log('Print initiated for project:', project.name);
-    console.log('QR Code URL:', projectUrl);
     
     const element = document.getElementById('print-content');
     if (!element) {
-      console.error('Print content element not found');
       return;
     }
 

@@ -35,7 +35,7 @@ export default function ItemCard({ item, onEdit, onDelete }: ItemCardProps) {
   });
 
   return (
-    <Card className="overflow-hidden transition-all duration-200 hover:shadow-lg">
+    <Card className="item-card-border transition-all duration-200 hover:shadow-lg">
       <CardHeader className="space-y-2 pb-4">
         <div className="flex items-center justify-between">
           <div className="space-y-1">

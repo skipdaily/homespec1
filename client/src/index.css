@@ -12,17 +12,121 @@
   }
 }
 
-/* Print styles */
+/* Gradient Border Card Components */
+@layer components {
+  .card-rainbow-border {
+    @apply relative bg-white rounded-2xl p-4 shadow-sm;
+  }
+  
+  .card-rainbow-border::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    padding: 1px;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6, #f472b6, #22c55e, #f59e0b);
+    border-radius: inherit;
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask-composite: xor;
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    z-index: -1;
+  }
+  
+  .card-simple-border {
+    @apply relative bg-white rounded-2xl p-4 shadow-sm;
+  }
+  
+  .card-simple-border::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    padding: 1px;
+    background: linear-gradient(135deg, #6366f1, #f59e0b);
+    border-radius: inherit;
+    mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    mask-composite: xor;
+    -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+    -webkit-mask-composite: xor;
+    z-index: -1;
+  }
+
+  /* Fallback double container classes for better browser support */
+  .gradient-rainbow-container {
+    @apply p-0.5 rounded-2xl shadow-sm;
+    background: linear-gradient(135deg, #6366f1, #8b5cf6, #f472b6, #22c55e, #f59e0b);
+  }
+  
+  .gradient-simple-container {
+    @apply p-0.5 rounded-2xl shadow-sm;
+    background: linear-gradient(135deg, #6366f1, #f59e0b);
+  }
+  
+  .gradient-inner-card {
+    @apply bg-white rounded-2xl p-4 w-full h-full;
+  }
+
+  /* Hover effects for interactive cards */
+  .card-interactive {
+    @apply transition-all duration-200 hover:scale-[1.02] hover:shadow-md;
+  }
+
+  /* Enhanced Field Labels */
+  .field-label {
+    @apply font-semibold text-sm bg-gradient-to-r from-indigo-600 to-violet-600 bg-clip-text text-transparent;
+  }
+  
+  .field-label-simple {
+    @apply font-medium text-sm text-foreground/80;
+  }
+  
+  .field-value {
+    @apply text-sm text-muted-foreground ml-1;
+  }
+  
+  .field-container {
+    @apply flex items-start gap-1;
+  }
+
+  /* Room Card Border Styles */
+  .room-card-border {
+    @apply relative rounded-lg p-8;
+    border: 2px solid #60a5fa; /* Nice light blue border by default */
+    transition: all 0.3s ease;
+    background: white;
+  }
+  
+  .room-card-border:hover {
+    border: 2px solid transparent;
+    background: linear-gradient(white, white) padding-box, 
+                linear-gradient(135deg, #6366f1, #8b5cf6, #f472b6, #22c55e, #f59e0b) border-box;
+  }
+
+  /* Item Card Border Styles - Same styling for individual item cards */
+  .item-card-border {
+    @apply relative rounded-lg p-7;
+    border: 2px solid #60a5fa; /* Nice light blue border by default */
+    transition: all 0.3s ease;
+    background: white;
+  }
+  
+  .item-card-border:hover {
+    border: 2px solid transparent;
+    background: linear-gradient(white, white) padding-box, 
+                linear-gradient(135deg, #6366f1, #8b5cf6, #f472b6, #22c55e, #f59e0b) border-box;
+  }
+}
+
+/* Print styles for QR codes and print dialog */
 @media print {
+  /* Hide dialog controls when printing */
   .no-print {
     display: none !important;
   }
   
-  /* Ensure QR codes and graphics print properly */
-  svg {
+  /* Ensure QR codes print properly */
+  svg, img {
     print-color-adjust: exact !important;
     -webkit-print-color-adjust: exact !important;
-    color-adjust: exact !important;
   }
   
   /* Ensure proper page breaks */
@@ -34,37 +138,18 @@
   * {
     print-color-adjust: exact !important;
     -webkit-print-color-adjust: exact !important;
-    color-adjust: exact !important;
+  }
+  
+  /* Ensure white backgrounds for QR codes */
+  [style*="background: white"], 
+  [style*="background-color: white"] {
+    background: white !important;
+    background-color: white !important;
   }
   
   /* Specific QR code container styling */
   .qr-container {
     background: white !important;
     border: 1px solid #000 !important;
-  }
-}
-
-/* Print styles */
-@media print {
-  /* Ensure QR codes print properly */
-  svg {
-    print-color-adjust: exact;
-    -webkit-print-color-adjust: exact;
-  }
-  
-  /* Hide dialog controls when printing */
-  .no-print {
-    display: none !important;
-  }
-  
-  /* Ensure proper page breaks */
-  .print-content {
-    page-break-inside: avoid;
-  }
-  
-  /* Make sure backgrounds and colors print */
-  * {
-    print-color-adjust: exact !important;
-    -webkit-print-color-adjust: exact !important;
   }
 }

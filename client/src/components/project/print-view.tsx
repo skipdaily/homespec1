@@ -1,4 +1,6 @@
+import { useState, useEffect } from "react";
 import { QRCodeSVG } from "qrcode.react";
+import QRCode from "qrcode";
 import type { Project, Room } from "@shared/schema";
 
 interface PrintViewProps {
@@ -11,6 +13,27 @@ interface PrintViewProps {
 
 export default function PrintView({ project, rooms, itemCounts, baseUrl, items = [] }: PrintViewProps) {
   const projectUrl = `${baseUrl}/project/${project.id}`;
+  const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>('');
+
+  // Generate QR code data URL for better print compatibility
+  useEffect(() => {
+    const generateQRCode = async () => {
+      try {
+        const qrDataUrl = await QRCode.toDataURL(projectUrl, {
+          width: 120,
+          margin: 1,
+          color: {
+            dark: '#000000',
+            light: '#ffffff'
+          }
+        });
+        setQrCodeDataUrl(qrDataUrl);
+      } catch (error) {
+        console.error('Error generating QR code for print:', error);
+      }
+    };
+    generateQRCode();
+  }, [projectUrl]);
 
   return (
     <div className="p-8 max-w-4xl mx-auto print:mx-0 print:max-w-none print:p-0">
@@ -32,8 +55,26 @@ export default function PrintView({ project, rooms, itemCounts, baseUrl, items =
           )}
         </div>
         <div className="text-center">
-          <QRCodeSVG value={projectUrl} size={120} />
+          <div style={{ background: 'white', padding: '8px', borderRadius: '4px', display: 'inline-block' }}>
+            {qrCodeDataUrl ? (
+              <img 
+                src={qrCodeDataUrl} 
+                alt="QR Code for project" 
+                style={{ width: 120, height: 120, display: 'block' }}
+              />
+            ) : (
+              <QRCodeSVG 
+                value={projectUrl} 
+                size={120} 
+                level="M"
+                marginSize={1}
+                fgColor="#000000"
+                bgColor="#ffffff"
+              />
+            )}
+          </div>
           <p className="text-sm text-muted-foreground mt-2">Scan to view project</p>
+          <p className="text-xs text-muted-foreground">{projectUrl}</p>
         </div>
       </div>
 

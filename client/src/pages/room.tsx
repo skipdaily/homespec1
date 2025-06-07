@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { supabase } from "@/lib/supabase";
-import { Plus, ChevronDown, ChevronUp, Pencil, Trash2, Home, ChevronRight, Search, Check, ChevronsUpDown, ImageIcon, Printer, Download, Upload, FileText, History } from "lucide-react";
+import { Plus, ChevronDown, ChevronUp, Pencil, Trash2, Home, ChevronRight, ChevronLeft, Search, Check, ChevronsUpDown, ImageIcon, Printer, Download, Upload, FileText, History, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -108,6 +108,9 @@ const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => vo
   const [showImageDialog, setShowImageDialog] = useState(false);
   const [showDocumentDialog, setShowDocumentDialog] = useState(false);
   const [showHistoryDialog, setShowHistoryDialog] = useState(false);
+  // Add state for full image view
+  const [showFullImageDialog, setShowFullImageDialog] = useState(false);
+  const [selectedImage, setSelectedImage] = useState<Image | null>(null);
   const { toast } = useToast();
 
   // Delete image mutation
@@ -333,7 +336,7 @@ const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => vo
   );
 
   return (
-    <div className="border rounded-lg p-4">
+    <div className="item-card-border card-interactive">
       <div className="flex justify-between items-start gap-4">
         <div className="flex-grow space-y-4">
           <div className="flex items-center gap-2">
@@ -410,95 +413,113 @@ const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => vo
 
           {isDetailsVisible && (
             <div className="space-y-4 pt-4 border-t">
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-1 gap-4">
                 <div className="space-y-2">
                   {item.brand && (
-                    <p className="text-sm text-muted-foreground">
-                      Brand: {item.brand}
-                    </p>
+                    <div className="field-container">
+                      <span className="field-label">Brand:</span>
+                      <span className="field-value">{item.brand}</span>
+                    </div>
                   )}
                   {item.supplier && (
-                    <p className="text-sm text-muted-foreground">
-                      Supplier: {item.supplier}
-                    </p>
+                    <div className="field-container">
+                      <span className="field-label">Supplier:</span>
+                      <span className="field-value">{item.supplier}</span>
+                    </div>
                   )}
                   {item.specifications && (
-                    <p className="text-sm text-muted-foreground">
-                      Specifications: {item.specifications}
-                    </p>
+                    <div className="field-container">
+                      <span className="field-label">Specifications:</span>
+                      <span className="field-value">{item.specifications}</span>
+                    </div>
                   )}
                   {item.status && (
-                    <p className="text-sm text-muted-foreground">
-                      Status: {item.status}
-                    </p>
+                    <div className="field-container">
+                      <span className="field-label">Status:</span>
+                      <span className="field-value">{item.status}</span>
+                    </div>
                   )}
                   {item.warranty_info && (
-                    <p className="text-sm text-muted-foreground">
-                      Warranty: {item.warranty_info}
-                    </p>
+                    <div className="field-container">
+                      <span className="field-label">Warranty:</span>
+                      <span className="field-value">{item.warranty_info}</span>
+                    </div>
                   )}
                   {item.maintenance_notes && (
-                    <p className="text-sm text-muted-foreground">
-                      Maintenance: {item.maintenance_notes}
-                    </p>
+                    <div className="field-container">
+                      <span className="field-label">Maintenance:</span>
+                      <span className="field-value">{item.maintenance_notes}</span>
+                    </div>
                   )}
                   {item.installation_date && (
-                    <p className="text-sm text-muted-foreground">
-                      Installed: {item.installation_date}
-                    </p>
+                    <div className="field-container">
+                      <span className="field-label">Installed:</span>
+                      <span className="field-value">{item.installation_date}</span>
+                    </div>
                   )}
                   {item.cost !== null && item.cost !== undefined && (
-                    <p className="text-sm text-muted-foreground">
-                      Cost: ${item.cost.toString()}
-                    </p>
+                    <div className="field-container">
+                      <span className="field-label">Cost:</span>
+                      <span className="field-value">${item.cost.toString()}</span>
+                    </div>
                   )}
                   {item.link && (
-                    <p className="text-sm text-muted-foreground">
-                      Link: <a href={item.link} target="_blank" rel="noopener noreferrer">{item.link}</a>
-                    </p>
+                    <div className="field-container">
+                      <span className="field-label">Link:</span>
+                      <span className="field-value">
+                        <a href={item.link} target="_blank" rel="noopener noreferrer" className="text-indigo-600 hover:text-indigo-800 underline">
+                          Link to Product
+                        </a>
+                      </span>
+                    </div>
                   )}
                   {item.notes && (
-                    <p className="text-sm text-muted-foreground">
-                      Notes: {item.notes}
-                    </p>
+                    <div className="field-container">
+                      <span className="field-label">Notes:</span>
+                      <span className="field-value">{item.notes}</span>
+                    </div>
                   )}
                 </div>
-
-                {/* Updated image carousel with delete buttons */}
-                {images && images.length > 0 && (
-                  <div className="w-full">
-                    <Carousel className="w-full">
-                      <CarouselContent>
-                        {images.map((image) => (
-                          <CarouselItem key={image.id}>
-                            <div className="relative aspect-square w-full">
-                              <img
-                                src={`${supabase.storage.from('item-images').getPublicUrl(image.storage_path).data?.publicUrl}`}
-                                alt={`${item.name} image`}
-                                className="object-cover w-full h-full rounded-md"
-                              />
-                              <Button
-                                variant="destructive"
-                                size="icon"
-                                className="absolute top-2 right-2"
-                                onClick={() => {
-                                  if (confirm('Are you sure you want to delete this image?')) {
-                                    deleteImage.mutate(image.id);
-                                  }
-                                }}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </CarouselItem>
-                        ))}
-                      </CarouselContent>
-                      <CarouselPrevious />
-                      <CarouselNext />
-                    </Carousel>
-                  </div>
-                )}
               </div>
+
+              {/* Modified image carousel to handle image click */}
+              {images && images.length > 0 && (
+                <div className="w-full max-w-md mx-auto">
+                  <Carousel className="w-full relative">
+                    <CarouselContent>
+                      {images.map((image) => (
+                        <CarouselItem key={image.id}>
+                          <div className="relative aspect-video w-full">
+                            <img
+                              src={`${supabase.storage.from('item-images').getPublicUrl(image.storage_path).data?.publicUrl}`}
+                              alt={`${item.name} image`}
+                              className="object-contain w-full h-full rounded-md cursor-pointer"
+                              onClick={() => {
+                                setSelectedImage(image);
+                                setShowFullImageDialog(true);
+                              }}
+                            />
+                            <Button
+                              variant="destructive"
+                              size="icon"
+                              className="absolute top-2 right-2"
+                              onClick={() => {
+                                if (confirm('Are you sure you want to delete this image?')) {
+                                  deleteImage.mutate(image.id);
+                                }
+                              }}
+                            >
+                              <Trash2 className="h-4 w-4" />
+                            </Button>
+                          </div>
+                        </CarouselItem>
+                      ))}
+                    </CarouselContent>
+                    <CarouselPrevious className="absolute left-2 top-1/2 -translate-y-1/2 z-10" />
+                    <CarouselNext className="absolute right-2 top-1/2 -translate-y-1/2 z-10" />
+                  </Carousel>
+                </div>
+              )}
 
               {/* Updated documents section with delete buttons */}
               {isDetailsVisible && documents && documents.length > 0 && (
@@ -751,6 +772,66 @@ const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => vo
           </ScrollArea>
         </DialogContent>
       </Dialog>
+
+      {/* Add Full Image View Dialog */}
+      {selectedImage && (
+        <Dialog open={showFullImageDialog} onOpenChange={setShowFullImageDialog}>
+          <DialogContent className="max-w-4xl max-h-[90vh] p-0 overflow-hidden">
+            <div className="relative h-full w-full flex items-center justify-center bg-black/80">
+              <img
+                src={`${supabase.storage.from('item-images').getPublicUrl(selectedImage.storage_path).data?.publicUrl}`}
+                alt={`${item.name} full view`}
+                className="max-h-[80vh] max-w-full object-contain"
+              />
+              <Button
+                variant="ghost"
+                size="icon"
+                className="absolute top-2 right-2 text-white hover:bg-white/20"
+                onClick={() => setShowFullImageDialog(false)}
+              >
+                <X className="h-6 w-6" />
+              </Button>
+              
+              {/* Navigation buttons */}
+              {images.length > 1 && (
+                <>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute left-2 top-1/2 -translate-y-1/2 text-white hover:bg-white/20 h-10 w-10"
+                    onClick={() => {
+                      const currentIndex = images.findIndex(img => img.id === selectedImage.id);
+                      const prevIndex = currentIndex > 0 ? currentIndex - 1 : images.length - 1;
+                      setSelectedImage(images[prevIndex]);
+                    }}
+                  >
+                    <ChevronLeft className="h-6 w-6" />
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="icon"
+                    className="absolute right-2 top-1/2 -translate-y-1/2 text-white hover:bg-white/20 h-10 w-10"
+                    onClick={() => {
+                      const currentIndex = images.findIndex(img => img.id === selectedImage.id);
+                      const nextIndex = (currentIndex + 1) % images.length;
+                      setSelectedImage(images[nextIndex]);
+                    }}
+                  >
+                    <ChevronRight className="h-6 w-6" />
+                  </Button>
+                </>
+              )}
+              
+              {/* Image counter */}
+              {images.length > 1 && (
+                <div className="absolute bottom-4 left-1/2 -translate-x-1/2 bg-black/50 text-white px-3 py-1 rounded-full text-sm">
+                  {images.findIndex(img => img.id === selectedImage.id) + 1} / {images.length}
+                </div>
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   );
 };
@@ -1159,117 +1240,185 @@ export default function RoomPage({ id }: RoomPageProps) {
       />
 
       <div className="sticky top-0 bg-background z-10 pb-2 border-b">
-        <div className="bg-card rounded-lg p-4 shadow-sm">
-          <div className="grid lg:grid-cols-2 gap-4">
-            {/* Left Column - Room Details */}
-            <div className="space-y-2">
-              <div>
-                <h1 className="text-2xl font-bold tracking-tight">{room?.name}</h1>
-                <div className="mt-1 space-y-1">
-                  <p className="text-muted-foreground">
-                    {room?.description}
-                  </p>
-                  <div className="flex items-center gap-4 text-sm text-muted-foreground">
-                    {room?.floor_number !== null && (
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">Floor:</span>
-                        {room.floor_number}
-                      </div>
-                    )}
-                    {room?.dimensions && (
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">Size:</span>
-                        {room.dimensions}
-                      </div>
-                    )}
-                  </div>
+        <div className="card-simple-border shadow-sm">
+          <div className="space-y-4">
+            {/* Room Details - Full Width */}
+            <div>
+              <h1 className="text-2xl font-bold tracking-tight">{room?.name}</h1>
+              <div className="mt-1 space-y-1">
+                <p className="text-muted-foreground">
+                  {room?.description}
+                </p>
+                <div className="flex flex-wrap items-center gap-4 text-sm text-muted-foreground">
+                  {room?.floor_number !== null && (
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">Floor:</span>
+                      {room.floor_number}
+                    </div>
+                  )}
+                  {room?.dimensions && (
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium">Size:</span>
+                      {room.dimensions}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
 
-            {/* Right Column - Actions */}
-            <div className="flex flex-col justify-between">
-              <div className="flex items-center gap-4">
-                <div className="relative flex-1">
-                  <Input
-                    type="text"
-                    placeholder="Search items..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-8"
-                  />
-                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                </div>
-                <div className="flex items-center gap-2">
-                  <Dialog open={showExportDialog} onOpenChange={setShowExportDialog}>
-                    <DialogContent className="sm:max-w-[600px]">
-                      <DialogHeader>
-                        <DialogTitle>Export Items</DialogTitle>
-                      </DialogHeader>
-                      <div className="space-y-4">
-                        <div className="space-y-2">
-                          <h3 className="font-medium">Choose Format</h3>
-                          <div className="flex gap-4">
-                            <Button
-                              variant="outline"
-                              onClick={() => exportToExcel(filteredItems || [])}
-                              className="flex items-center gap-2"
-                            >
-                              <Download className="h-4 w-4" />
-                              Excel
-                            </Button>
-                            <Button
-                              variant="outline"
-                              onClick={() => {
-                                setLocation(`/print/${id}`);
-                              }}
-                              className="flex items-center gap-2"
-                            >
-                              <Printer className="h-4 w-4" />
-                              Print View
-                            </Button>
-                          </div>
+            {/* Search and Actions - Full Width */}
+            <div className="flex flex-col sm:flex-row justify-between gap-4">
+              <div className="relative flex-1">
+                <Input
+                  type="text"
+                  placeholder="Search items..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="pl-8"
+                />
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+              </div>
+              <div className="flex flex-wrap items-center gap-2">
+                <Dialog open={showExportDialog} onOpenChange={setShowExportDialog}>
+                  <DialogContent className="sm:max-w-[600px]">
+                    <DialogHeader>
+                      <DialogTitle>Export Items</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <h3 className="font-medium">Choose Format</h3>
+                        <div className="flex gap-4">
+                          <Button
+                            variant="outline"
+                            onClick={() => exportToExcel(filteredItems || [])}
+                            className="flex items-center gap-2"
+                          >
+                            <Download className="h-4 w-4" />
+                            Excel
+                          </Button>
+                          <Button
+                            variant="outline"
+                            onClick={() => {
+                              setLocation(`/print/${id}`);
+                            }}
+                            className="flex items-center gap-2"
+                          >
+                            <Printer className="h-4 w-4" />
+                            Print View
+                          </Button>
                         </div>
                       </div>
-                    </DialogContent>
-                  </Dialog>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => exportToExcel(filteredItems || [])}
-                    disabled={!items || items.length === 0}
-                  >
-                    <Download className="h-4 w-4 mr-2" />
-                    Export
-                  </Button>
+                    </div>
+                  </DialogContent>
+                </Dialog>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => exportToExcel(filteredItems || [])}
+                  disabled={!items || items.length === 0}
+                >
+                  <Download className="h-4 w-4 mr-2" />
+                  Export
+                </Button>
 
-                  <Dialog open={open} onOpenChange={setOpen}>
-                    <DialogTrigger asChild>
-                      <Button>
-                        <Plus className="h-4 w-4 mr-2" />
-                        Add Item
-                      </Button>
-                    </DialogTrigger>
-                    <DialogContent className="max-w-2xl max-h-[90vh]">
-                      <DialogHeader>
-                        <DialogTitle>Add New Item</DialogTitle>
-                        <p className="text-sm text-muted-foreground">
-                          Add details about the item used in this room. Required fields are marked with *.
-                        </p>
-                      </DialogHeader>
+                <Dialog open={open} onOpenChange={setOpen}>
+                  <DialogTrigger asChild>
+                    <Button>
+                      <Plus className="h-4 w-4 mr-2" />
+                      Add Item
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="max-w-2xl max-h-[90vh]">
+                    <DialogHeader>
+                      <DialogTitle>Add New Item</DialogTitle>
+                      <p className="text-sm text-muted-foreground">
+                        Add details about the item used in this room. Required fields are marked with *.
+                      </p>
+                    </DialogHeader>
 
-                      <Form {...form}>
-                        <form onSubmit={form.handleSubmit((data) => createItem.mutate(data))} className="space-y-4">
-                          <ScrollArea className="h-[65vh]">
-                            <div className="space-y-4 px-4 pr-8">
+                    <Form {...form}>
+                      <form onSubmit={form.handleSubmit((data) => createItem.mutate(data))} className="space-y-4">
+                        <ScrollArea className="h-[65vh]">
+                          <div className="space-y-4 px-4 pr-8">
+                            <FormField
+                              control={form.control}
+                              name="name"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Name*</FormLabel>
+                                  <FormControl>
+                                    <Input placeholder="Item name" {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            <FormField
+                              control={form.control}
+                              name="category"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Category*</FormLabel>
+                                  <FormControl>
+                                    <Popover open={openCombobox} onOpenChange={setOpenCombobox}>
+                                      <PopoverTrigger asChild>
+                                        <Button
+                                          variant="outline"
+                                          role="combobox"
+                                          aria-expanded={openCombobox}
+                                          className="w-full justify-between"
+                                        >
+                                          {field.value
+                                            ? categories?.find((category) => category === field.value)
+                                            : "Select category..."}
+                                          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+                                        </Button>
+                                      </PopoverTrigger>
+                                      <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
+                                        <Command>
+                                          <CommandInput placeholder="Search category..." />
+                                          <CommandEmpty>No category found.</CommandEmpty>
+                                          <div className="max-h-[200px] overflow-y-auto">
+                                            <CommandGroup>
+                                              {categories?.map((category) => (
+                                                <CommandItem
+                                                  key={category}
+                                                  value={category}
+                                                  onSelect={() => {
+                                                    form.setValue("category", category);
+                                                    setOpenCombobox(false);
+                                                  }}
+                                                >
+                                                  <Check
+                                                    className={cn(
+                                                      "mr-2 h-4 w-4",
+                                                      field.value === category ? "opacity-100" : "opacity-0"
+                                                    )}
+                                                  />
+                                                  {category}
+                                                </CommandItem>
+                                              ))}
+                                            </CommandGroup>
+                                          </div>
+                                        </Command>
+                                      </PopoverContent>
+                                    </Popover>
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            <div className="grid grid-cols-2 gap-4">
                               <FormField
                                 control={form.control}
-                                name="name"
+                                name="brand"
                                 render={({ field }) => (
                                   <FormItem>
-                                    <FormLabel>Name*</FormLabel>
+                                    <FormLabel>Brand</FormLabel>
                                     <FormControl>
-                                      <Input placeholder="Item name" {...field} />
+                                      <Input placeholder="Brand" {...field} />
                                     </FormControl>
                                     <FormMessage />
                                   </FormItem>
@@ -1278,321 +1427,249 @@ export default function RoomPage({ id }: RoomPageProps) {
 
                               <FormField
                                 control={form.control}
-                                name="category"
+                                name="supplier"
                                 render={({ field }) => (
                                   <FormItem>
-                                    <FormLabel>Category*</FormLabel>
+                                    <FormLabel>Supplier</FormLabel>
                                     <FormControl>
-                                      <Popover open={openCombobox} onOpenChange={setOpenCombobox}>
-                                        <PopoverTrigger asChild>
-                                          <Button
-                                            variant="outline"
-                                            role="combobox"
-                                            aria-expanded={openCombobox}
-                                            className="w-full justify-between"
-                                          >
-                                            {field.value
-                                              ? categories?.find((category) => category === field.value)
-                                              : "Select category..."}
-                                            <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
-                                          </Button>
-                                        </PopoverTrigger>
-                                        <PopoverContent className="w-[--radix-popover-trigger-width] p-0" align="start">
-                                          <Command>
-                                            <CommandInput placeholder="Search category..." />
-                                            <CommandEmpty>No category found.</CommandEmpty>
-                                            <div className="max-h-[200px] overflow-y-auto">
-                                              <CommandGroup>
-                                                {categories?.map((category) => (
-                                                  <CommandItem
-                                                    key={category}
-                                                    value={category}
-                                                    onSelect={() => {
-                                                      form.setValue("category", category);
-                                                      setOpenCombobox(false);
-                                                    }}
-                                                  >
-                                                    <Check
-                                                      className={cn(
-                                                        "mr-2 h-4 w-4",
-                                                        field.value === category ? "opacity-100" : "opacity-0"
-                                                      )}
-                                                    />
-                                                    {category}
-                                                  </CommandItem>
-                                                ))}
-                                              </CommandGroup>
-                                            </div>
-                                          </Command>
-                                        </PopoverContent>
-                                      </Popover>
-                                    </FormControl>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-
-                              <div className="grid grid-cols-2 gap-4">
-                                <FormField
-                                  control={form.control}
-                                  name="brand"
-                                  render={({ field }) => (
-                                    <FormItem>
-                                      <FormLabel>Brand</FormLabel>
-                                      <FormControl>
-                                        <Input placeholder="Brand" {...field} />
-                                      </FormControl>
-                                      <FormMessage />
-                                    </FormItem>
-                                  )}
-                                />
-
-                                <FormField
-                                  control={form.control}
-                                  name="supplier"
-                                  render={({ field }) => (
-                                    <FormItem>
-                                      <FormLabel>Supplier</FormLabel>
-                                      <FormControl>
-                                        <Input placeholder="Supplier" {...field} />
-                                      </FormControl>
-                                      <FormMessage />
-                                    </FormItem>
-                                  )}
-                                />
-                              </div>
-
-                              <FormField
-                                control={form.control}
-                                name="specifications"
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel>Specifications</FormLabel>
-                                    <FormControl>
-                                      <Textarea placeholder="Item specifications" {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-
-                              <div className="grid grid-cols-2 gap-4">
-                                <FormField
-                                  control={form.control}
-                                  name="cost"
-                                  render={({ field }) => (
-                                    <FormItem>
-                                      <FormLabel>Cost</FormLabel>
-                                      <FormControl>
-                                        <Input
-                                          type="number"
-                                          step="0.01"
-                                          placeholder="Cost"
-                                          {...field}
-                                          onChange={(e) => {
-                                            const value = e.target.value;
-                                            field.onChange(value === "" ? undefined : parseFloat(value));
-                                          }}
-                                        />
-                                      </FormControl>
-                                      <FormMessage />
-                                    </FormItem>
-                                  )}
-                                />
-
-                                <FormField
-                                  control={form.control}
-                                  name="installation_date"
-                                  render={({ field }) => (
-                                    <FormItem>
-                                      <FormLabel>Installation Date</FormLabel>
-                                      <FormControl>
-                                        <Input type="date" {...field} />
-                                      </FormControl>
-                                      <FormMessage />
-                                    </FormItem>
-                                  )}
-                                />
-                              </div>
-
-                              <FormField
-                                control={form.control}
-                                name="warranty_info"
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel>Warranty Information</FormLabel>
-                                    <FormControl>
-                                      <Textarea placeholder="Warranty details" {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-
-                              <FormField
-                                control={form.control}
-                                name="maintenance_notes"
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel>Maintenance Notes</FormLabel>
-                                    <FormControl>
-                                      <Textarea placeholder="Maintenance information" {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-
-                              <FormField
-                                control={form.control}
-                                name="status"
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel>Status</FormLabel>
-                                    <FormControl>
-                                      <Input placeholder="Current status" {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-
-                              <FormField
-                                control={form.control}
-                                name="link"
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel>External Link</FormLabel>
-                                    <FormControl>
-                                      <Input placeholder="https://..." {...field} />
-                                    </FormControl>
-                                    <FormMessage />
-                                  </FormItem>
-                                )}
-                              />
-
-                              <FormField
-                                control={form.control}
-                                name="notes"
-                                render={({ field }) => (
-                                  <FormItem>
-                                    <FormLabel>Additional Notes</FormLabel>
-                                    <FormControl>
-                                      <Textarea placeholder="Any additional notes" {...field} />
+                                      <Input placeholder="Supplier" {...field} />
                                     </FormControl>
                                     <FormMessage />
                                   </FormItem>
                                 )}
                               />
                             </div>
-                          </ScrollArea>
 
-                          <div className="flex justify-end gap-4 pt-4">
-                            <Button
-                              type="submit"
-                              disabled={createItem.isPending}
-                            >
-                              {createItem.isPending ? "Adding..." : "Add Item"}
-                            </Button>
+                            <FormField
+                              control={form.control}
+                              name="specifications"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Specifications</FormLabel>
+                                  <FormControl>
+                                    <Textarea placeholder="Item specifications" {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            <div className="grid grid-cols-2 gap-4">
+                              <FormField
+                                control={form.control}
+                                name="cost"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Cost</FormLabel>
+                                    <FormControl>
+                                      <Input
+                                        type="number"
+                                        step="0.01"
+                                        placeholder="Cost"
+                                        {...field}
+                                        onChange={(e) => {
+                                          const value = e.target.value;
+                                          field.onChange(value === "" ? undefined : parseFloat(value));
+                                        }}
+                                      />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+
+                              <FormField
+                                control={form.control}
+                                name="installation_date"
+                                render={({ field }) => (
+                                  <FormItem>
+                                    <FormLabel>Installation Date</FormLabel>
+                                    <FormControl>
+                                      <Input type="date" {...field} />
+                                    </FormControl>
+                                    <FormMessage />
+                                  </FormItem>
+                                )}
+                              />
+                            </div>
+
+                            <FormField
+                              control={form.control}
+                              name="warranty_info"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Warranty Information</FormLabel>
+                                  <FormControl>
+                                    <Textarea placeholder="Warranty details" {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            <FormField
+                              control={form.control}
+                              name="maintenance_notes"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Maintenance Notes</FormLabel>
+                                  <FormControl>
+                                    <Textarea placeholder="Maintenance information" {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            <FormField
+                              control={form.control}
+                              name="status"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Status</FormLabel>
+                                  <FormControl>
+                                    <Input placeholder="Current status" {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            <FormField
+                              control={form.control}
+                              name="link"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>External Link</FormLabel>
+                                  <FormControl>
+                                    <Input placeholder="https://..." {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
+
+                            <FormField
+                              control={form.control}
+                              name="notes"
+                              render={({ field }) => (
+                                <FormItem>
+                                  <FormLabel>Additional Notes</FormLabel>
+                                  <FormControl>
+                                    <Textarea placeholder="Any additional notes" {...field} />
+                                  </FormControl>
+                                  <FormMessage />
+                                </FormItem>
+                              )}
+                            />
                           </div>
-                        </form>
-                      </Form>
-                    </DialogContent>
-                  </Dialog>
-                  {isSelectionMode ? (
-                    <>
-                      <span className="text-sm text-muted-foreground">
-                        {selectedItems.length} selected
-                      </span>
-                      {selectedItems.length > 0 && (
-                        <Button
-                          variant="destructive"
-                          size="sm"
-                          onClick={() => setShowBulkDeleteDialog(true)}
-                          disabled={bulkDeleteItems.isPending}
-                        >
-                          <Trash2 className="h4 w-4 mr-2" />
-                          Delete Selected
-                        </Button>
-                      )}
+                        </ScrollArea>
+
+                        <div className="flex justify-end gap-4 pt-4">
+                          <Button
+                            type="submit"
+                            disabled={createItem.isPending}
+                          >
+                            {createItem.isPending ? "Adding..." : "Add Item"}
+                          </Button>
+                        </div>
+                      </form>
+                    </Form>
+                  </DialogContent>
+                </Dialog>
+                {isSelectionMode ? (
+                  <>
+                    <span className="text-sm text-muted-foreground">
+                      {selectedItems.length} selected
+                    </span>
+                    {selectedItems.length > 0 && (
                       <Button
-                        variant="outline"
+                        variant="destructive"
                         size="sm"
-                        onClick={() => {
-                          setIsSelectionMode(false);
-                          setSelectedItems([]);
-                        }}
+                        onClick={() => setShowBulkDeleteDialog(true)}
+                        disabled={bulkDeleteItems.isPending}
                       >
-                        Cancel
+                        <Trash2 className="h-4 w-4 mr-2" />
+                        Delete Selected
                       </Button>
-                    </>
-                  ) : (
-                    <>
-                      <Button variant="outline" onClick={() => setIsSelectionMode(true)}>
-                        Select Items
-                      </Button>
-                    </>
-                  )}
-                </div>
-              </div>
-
-              {/* Item list */}
-              <div className="py-6">
-                <div className="grid gap-4">
-                  {filteredItems?.map((item) => (
-                    <div key={item.id} className="flex items-start gap-4">
-                      {isSelectionMode && (
-                        <Checkbox
-                          checked={selectedItems.includes(item.id)}
-                          onClick={() => {
-                            setSelectedItems(prev =>
-                              prev.includes(item.id)
-                                ? prev.filter(id => id !== item.id)
-                                : [...prev, item.id]
-                            );
-                          }}
-                        />
-                      )}
-                      <div className="flex-1">
-                        <ItemCard
-                          item={item}
-                          onDelete={handleDelete}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                  {filteredItems?.length === 0 && (
-                    <div className="text-center py-8 text-muted-foreground">
-                      No items found matching your search.
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              {/* Bulk Delete Dialog */}
-              <AlertDialog open={showBulkDeleteDialog} onOpenChange={setShowBulkDeleteDialog}>
-                <AlertDialogContent>
-                  <AlertDialogHeader>
-                    <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-                    <AlertDialogDescription>
-                      This will permanently delete {selectedItems.length} selected items. This action cannot be undone.
-                    </AlertDialogDescription>
-                  </AlertDialogHeader>
-                  <AlertDialogFooter>
-                    <AlertDialogCancel>Cancel</AlertDialogCancel>
-                    <AlertDialogAction
-                      onClick={handleBulkDelete}
-                      disabled={bulkDeleteItems.isPending}
+                    )}
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setIsSelectionMode(false);
+                        setSelectedItems([]);
+                      }}
                     >
-                      {bulkDeleteItems.isPending ? "Deleting..." : "Delete"}
-                    </AlertDialogAction>
-                  </AlertDialogFooter>
-                </AlertDialogContent>
-              </AlertDialog>
+                      Cancel
+                    </Button>
+                  </>
+                ) : (
+                  <>
+                    <Button variant="outline" onClick={() => setIsSelectionMode(true)}>
+                      Select Items
+                    </Button>
+                  </>
+                )}
+              </div>
             </div>
           </div>
         </div>
       </div>
+
+      {/* Item list - Full Width */}
+      <div className="py-6">
+        <div className="grid w-full gap-4">
+          {filteredItems?.map((item) => (
+            <div key={item.id} className="flex items-start gap-4 w-full">
+              {isSelectionMode && (
+                <Checkbox
+                  checked={selectedItems.includes(item.id)}
+                  onClick={() => {
+                    setSelectedItems(prev =>
+                      prev.includes(item.id)
+                        ? prev.filter(id => id !== item.id)
+                        : [...prev, item.id]
+                    );
+                  }}
+                />
+              )}
+              <div className="flex-1 w-full">
+                <ItemCard
+                  item={item}
+                  onDelete={handleDelete}
+                />
+              </div>
+            </div>
+          ))}
+          {filteredItems?.length === 0 && (
+            <div className="text-center py-8 text-muted-foreground">
+              No items found matching your search.
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Bulk Delete Dialog */}
+      <AlertDialog open={showBulkDeleteDialog} onOpenChange={setShowBulkDeleteDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete {selectedItems.length} selected items. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleBulkDelete}
+              disabled={bulkDeleteItems.isPending}
+            >
+              {bulkDeleteItems.isPending ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
