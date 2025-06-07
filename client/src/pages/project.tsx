@@ -3,6 +3,7 @@ import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { supabase } from "@/lib/supabase";
 import { QRCodeSVG } from "qrcode.react";
+import QRCode from "qrcode";
 import {
   Plus,
   Download,
@@ -94,6 +95,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
   const [areaValue, setAreaValue] = useState("");
   const [showPrintDialog, setShowPrintDialog] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [qrCodeDataUrl, setQrCodeDataUrl] = useState<string>('');
 
   const { toast } = useToast();
 
@@ -104,6 +106,29 @@ export default function ProjectPage({ id }: ProjectPageProps) {
     };
     checkAuth();
   }, []);
+
+  // Generate QR code data URL
+  useEffect(() => {
+    const generateQRCode = async () => {
+      if (id && typeof window !== 'undefined') {
+        try {
+          const url = `${window.location.origin}/project/${id}`;
+          const qrDataUrl = await QRCode.toDataURL(url, {
+            width: 120,
+            margin: 1,
+            color: {
+              dark: '#000000',
+              light: '#ffffff'
+            }
+          });
+          setQrCodeDataUrl(qrDataUrl);
+        } catch (error) {
+          console.error('Error generating QR code:', error);
+        }
+      }
+    };
+    generateQRCode();
+  }, [id]);
 
   const { data: project, isLoading: isProjectLoading, isError: isProjectError } = useQuery({
     queryKey: ["project", id],
@@ -981,7 +1006,13 @@ export default function ProjectPage({ id }: ProjectPageProps) {
                   </div>
                   <div className="text-center">
                     <div style={{ background: 'white', padding: '8px', borderRadius: '4px', display: 'inline-block' }}>
-                      {projectUrl ? (
+                      {qrCodeDataUrl ? (
+                        <img 
+                          src={qrCodeDataUrl} 
+                          alt="QR Code for project" 
+                          style={{ width: 120, height: 120, display: 'block' }}
+                        />
+                      ) : projectUrl ? (
                         <QRCodeSVG 
                           value={projectUrl} 
                           size={120} 
