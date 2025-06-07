@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { supabase } from "@/lib/supabase";
-import { Plus, ChevronDown, ChevronUp, Pencil, Trash2, Home, ChevronRight, ChevronLeft, Search, Check, ChevronsUpDown, ImageIcon, Printer, Download, Upload, FileText, History, X } from "lucide-react";
+import { Plus, ChevronDown, ChevronUp, Pencil, Trash2, Home, ChevronRight, ChevronLeft, Search, Check, ChevronsUpDown, ImageIcon, Printer, Upload, FileText, History, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -24,7 +24,6 @@ import {Popover, PopoverContent, PopoverTrigger} from "@/components/ui/popover";
 import {Command, CommandEmpty, CommandGroup, CommandInput, CommandItem} from "@/components/ui/command";
 import { NavBreadcrumb } from "@/components/layout/nav-breadcrumb";
 import { DocumentUpload } from "@/components/ui/document-upload";
-import * as XLSX from 'xlsx';
 
 // Update interface to match database schema without version
 interface Item {
@@ -344,6 +343,15 @@ const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => vo
     return "bg-blue-100 text-blue-700";
   };
 
+  const formatInstallationDate = (date?: string) => {
+    if (!date) return null;
+    try {
+      return new Date(date).toLocaleDateString();
+    } catch {
+      return date; // Return as-is if not a valid date
+    }
+  };
+
   const getCategoryColor = (category: string) => {
     const colors = [
       "bg-purple-100 text-purple-700",
@@ -365,117 +373,198 @@ const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => vo
   return (
     <>
       <div className="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow">
-        {/* Header Row - Always Visible */}
-        <div className="grid grid-cols-12 gap-4 p-4 items-center border-b border-gray-100">
-          {/* Item Icon/ID */}
-          <div className="col-span-1">
-            <div className="w-8 h-8 bg-gray-100 rounded flex items-center justify-center text-xs font-medium text-gray-600">
-              {item.name.substring(0, 2).toUpperCase()}
+        {/* Header Row - Responsive */}
+        <div className="p-4 border-b border-gray-100">
+          {/* Mobile Layout */}
+          <div className="block md:hidden">
+            <div className="flex items-center justify-between">
+              {/* Left side - Name and brand */}
+              <div className="flex-1 min-w-0 mr-3">
+                <h3 className="font-semibold text-gray-900 truncate">{item.name}</h3>
+                {item.brand && (
+                  <p className="text-sm text-gray-500 truncate">{item.brand}</p>
+                )}
+              </div>
+              
+              {/* Right side - File counts and actions */}
+              <div className="flex items-center space-x-2">
+                {/* File counts */}
+                <div className="flex items-center space-x-2 mr-2">
+                  <div className="flex items-center text-gray-500">
+                    <ImageIcon className="h-4 w-4 mr-1" />
+                    <span className="text-sm">{images.length}</span>
+                  </div>
+                  <div className="flex items-center text-gray-500">
+                    <FileText className="h-4 w-4 mr-1" />
+                    <span className="text-sm">{documents.length}</span>
+                  </div>
+                  <div className="flex items-center text-gray-500">
+                    <History className="h-4 w-4 mr-1" />
+                    <span className="text-sm">{itemHistory.length}</span>
+                  </div>
+                </div>
+                
+                {/* Action buttons */}
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setIsDetailsVisible(!isDetailsVisible)}
+                  className="h-9 w-9"
+                >
+                  {isDetailsVisible ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setShowEditDialog(true)}
+                  className="h-9 w-9"
+                >
+                  <Pencil className="h-4 w-4" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => setShowDeleteDialog(true)}
+                  className="h-9 w-9 text-red-600 hover:text-red-700"
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           </div>
 
-          {/* Item Name */}
-          <div className="col-span-3">
-            <h3 className="font-semibold text-gray-900 truncate">{item.name}</h3>
-            {item.brand && (
-              <p className="text-sm text-gray-500 truncate">{item.brand}</p>
-            )}
-          </div>
+          {/* Desktop Layout */}
+          <div className="hidden md:grid md:grid-cols-12 gap-4 items-center">
+            {/* Item Icon/ID */}
+            <div className="col-span-1">
+              <div className="w-8 h-8 bg-gray-100 rounded flex items-center justify-center text-xs font-medium text-gray-600">
+                {item.name.substring(0, 2).toUpperCase()}
+              </div>
+            </div>
 
-          {/* Category */}
-          <div className="col-span-2">
-            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getCategoryColor(item.category)}`}>
-              {item.category}
-            </span>
-          </div>
+            {/* Item Name */}
+            <div className="col-span-3">
+              <h3 className="font-semibold text-gray-900 truncate">{item.name}</h3>
+              {item.brand && (
+                <p className="text-sm text-gray-500 truncate">{item.brand}</p>
+              )}
+            </div>
 
-          {/* Status */}
-          <div className="col-span-2">
-            {item.status ? (
-              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStatusColor(item.status)}`}>
-                {item.status}
+            {/* Category */}
+            <div className="col-span-2">
+              <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getCategoryColor(item.category)}`}>
+                {item.category}
               </span>
-            ) : (
-              <span className="text-gray-400 text-sm">No status</span>
-            )}
-          </div>
-
-          {/* Cost */}
-          <div className="col-span-1 text-right">
-            {item.cost ? (
-              <span className="font-medium text-gray-900">${item.cost}</span>
-            ) : (
-              <span className="text-gray-400">-</span>
-            )}
-          </div>
-
-          {/* Counts */}
-          <div className="col-span-2 flex items-center justify-center space-x-3">
-            <div className="flex items-center text-gray-500">
-              <ImageIcon className="h-4 w-4 mr-1" />
-              <span className="text-sm">{images.length}</span>
             </div>
-            <div className="flex items-center text-gray-500">
-              <FileText className="h-4 w-4 mr-1" />
-              <span className="text-sm">{documents.length}</span>
-            </div>
-            <div className="flex items-center text-gray-500">
-              <History className="h-4 w-4 mr-1" />
-              <span className="text-sm">{itemHistory.length}</span>
-            </div>
-          </div>
 
-          {/* Actions */}
-          <div className="col-span-1 flex items-center justify-end space-x-1">
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setIsDetailsVisible(!isDetailsVisible)}
-              className="h-8 w-8"
-            >
-              {isDetailsVisible ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setShowEditDialog(true)}
-              className="h-8 w-8"
-            >
-              <Pencil className="h-4 w-4" />
-            </Button>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => setShowDeleteDialog(true)}
-              className="h-8 w-8 text-red-600 hover:text-red-700"
-            >
-              <Trash2 className="h-4 w-4" />
-            </Button>
+            {/* Installation Date */}
+            <div className="col-span-2">
+              {item.installation_date ? (
+                <span className="text-sm text-gray-900">
+                  {formatInstallationDate(item.installation_date)}
+                </span>
+              ) : (
+                <span className="text-gray-400 text-sm">No date set</span>
+              )}
+            </div>
+
+            {/* Cost */}
+            <div className="col-span-1 text-right">
+              {item.cost ? (
+                <span className="font-medium text-gray-900">${item.cost}</span>
+              ) : (
+                <span className="text-gray-400">-</span>
+              )}
+            </div>
+
+            {/* Counts */}
+            <div className="col-span-2 flex items-center justify-center space-x-3">
+              <div className="flex items-center text-gray-500">
+                <ImageIcon className="h-4 w-4 mr-1" />
+                <span className="text-sm">{images.length}</span>
+              </div>
+              <div className="flex items-center text-gray-500">
+                <FileText className="h-4 w-4 mr-1" />
+                <span className="text-sm">{documents.length}</span>
+              </div>
+              <div className="flex items-center text-gray-500">
+                <History className="h-4 w-4 mr-1" />
+                <span className="text-sm">{itemHistory.length}</span>
+              </div>
+            </div>
+
+            {/* Actions */}
+            <div className="col-span-1 flex items-center justify-end space-x-1">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setIsDetailsVisible(!isDetailsVisible)}
+                className="h-8 w-8"
+              >
+                {isDetailsVisible ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowEditDialog(true)}
+                className="h-8 w-8"
+              >
+                <Pencil className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => setShowDeleteDialog(true)}
+                className="h-8 w-8 text-red-600 hover:text-red-700"
+              >
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </div>
           </div>
         </div>
 
         {/* Expandable Details */}
         {isDetailsVisible && (
           <div className="p-4 bg-gray-50 border-t border-gray-100">
+            {/* Mobile: Show category, cost, and installation date at top */}
+            <div className="block md:hidden mb-4 space-y-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getCategoryColor(item.category)}`}>
+                  {item.category}
+                </span>
+                {item.cost && (
+                  <span className="font-medium text-gray-900">${item.cost}</span>
+                )}
+              </div>
+              {item.installation_date && (
+                <div>
+                  <span className="text-sm font-bold text-gray-600">Installation Date:</span>
+                  <span className="text-sm text-gray-900 ml-2">
+                    {formatInstallationDate(item.installation_date)}
+                  </span>
+                </div>
+              )}
+            </div>
+
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {/* Details Column 1 */}
               <div className="space-y-3">
                 <h4 className="font-medium text-gray-900 border-b border-gray-200 pb-1">Product Details</h4>
                 {item.supplier && (
                   <div>
-                    <span className="text-sm font-medium text-gray-600">Supplier:</span>
+                    <span className="text-sm font-bold text-gray-600">Supplier:</span>
                     <p className="text-sm text-gray-900">{item.supplier}</p>
                   </div>
                 )}
                 {item.specifications && (
                   <div>
-                    <span className="text-sm font-medium text-gray-600">Specifications:</span>
+                    <span className="text-sm font-bold text-gray-600">Specifications:</span>
                     <p className="text-sm text-gray-900">{item.specifications}</p>
                   </div>
                 )}
                 {item.link && (
                   <div>
-                    <span className="text-sm font-medium text-gray-600">Link:</span>
+                    <span className="text-sm font-bold text-gray-600">Link:</span>
                     <a href={item.link} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:text-blue-800 underline block truncate">
                       Product Link
                     </a>
@@ -486,21 +575,22 @@ const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => vo
               {/* Details Column 2 */}
               <div className="space-y-3">
                 <h4 className="font-medium text-gray-900 border-b border-gray-200 pb-1">Installation & Warranty</h4>
+                {/* Only show installation date on desktop since it's shown above on mobile */}
                 {item.installation_date && (
-                  <div>
-                    <span className="text-sm font-medium text-gray-600">Installation Date:</span>
+                  <div className="hidden md:block">
+                    <span className="text-sm font-bold text-gray-600">Installation Date:</span>
                     <p className="text-sm text-gray-900">{new Date(item.installation_date).toLocaleDateString()}</p>
                   </div>
                 )}
                 {item.warranty_info && (
                   <div>
-                    <span className="text-sm font-medium text-gray-600">Warranty:</span>
+                    <span className="text-sm font-bold text-gray-600">Warranty:</span>
                     <p className="text-sm text-gray-900">{item.warranty_info}</p>
                   </div>
                 )}
                 {item.maintenance_notes && (
                   <div>
-                    <span className="text-sm font-medium text-gray-600">Maintenance:</span>
+                    <span className="text-sm font-bold text-gray-600">Maintenance:</span>
                     <p className="text-sm text-gray-900">{item.maintenance_notes}</p>
                   </div>
                 )}
@@ -540,7 +630,7 @@ const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => vo
                 </div>
                 {item.notes && (
                   <div>
-                    <span className="text-sm font-medium text-gray-600">Notes:</span>
+                    <span className="text-sm font-bold text-gray-600">Notes:</span>
                     <p className="text-sm text-gray-900">{item.notes}</p>
                   </div>
                 )}
@@ -927,7 +1017,8 @@ export default function RoomPage({ id }: RoomPageProps) {
   const [isSelectionMode, setIsSelectionMode] = useState(false);
   const [openCombobox, setOpenCombobox] = useState(false);
   const [categoryValue, setCategoryValue] = useState("");
-  const [showExportDialog, setShowExportDialog] = useState(false);
+  const [sortField, setSortField] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
 
   // Add categories query
@@ -1015,7 +1106,7 @@ export default function RoomPage({ id }: RoomPageProps) {
     enabled: !!id
   });
 
-  // Filter items based on search query
+  // Filter and sort items based on search query and sort settings
   const filteredItems = items?.filter(item => {
     if (!searchQuery.trim()) {
       // If no search query, only show items from current room
@@ -1032,7 +1123,50 @@ export default function RoomPage({ id }: RoomPageProps) {
       item.status?.toLowerCase().includes(searchLower) ||
       item.notes?.toLowerCase().includes(searchLower)
     );
+  })?.sort((a, b) => {
+    if (!sortField) return 0;
+
+    let aValue: any;
+    let bValue: any;
+
+    switch (sortField) {
+      case 'id':
+        aValue = a.id;
+        bValue = b.id;
+        break;
+      case 'name':
+        aValue = a.name?.toLowerCase() || '';
+        bValue = b.name?.toLowerCase() || '';
+        break;
+      case 'category':
+        aValue = a.category?.toLowerCase() || '';
+        bValue = b.category?.toLowerCase() || '';
+        break;
+      case 'installation_date':
+        aValue = a.installation_date ? new Date(a.installation_date).getTime() : 0;
+        bValue = b.installation_date ? new Date(b.installation_date).getTime() : 0;
+        break;
+      case 'cost':
+        aValue = a.cost || 0;
+        bValue = b.cost || 0;
+        break;
+      default:
+        return 0;
+    }
+
+    if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1;
+    if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1;
+    return 0;
   });
+
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortField(field);
+      setSortDirection('asc');
+    }
+  };
 
   const createItem = useMutation({
     mutationFn: async (values: ItemFormValues) => {
@@ -1182,74 +1316,6 @@ export default function RoomPage({ id }: RoomPageProps) {
     setShowBulkDeleteDialog(false);
   };
 
-  // Add exportToExcel function to RoomPage component scope
-  const exportToExcel = async (items: Item[]) => {
-    if (!items || items.length === 0) {
-      toast({
-        title: "Export Failed",
-        description: "No items available to export",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    try {
-      // Get items with room and project context
-      const { data: projectItems, error } = await supabase
-        .from("items")
-        .select(`
-          *,
-          rooms (
-            name,
-            projects (
-              name
-            )
-          )
-        `)
-        .eq("room_id", id);
-
-      if (error) throw error;
-
-      const exportData = (projectItems || []).map(item => ({
-        'Room': item.rooms?.name || '',
-        'Project': item.rooms?.projects?.name || '',
-        'Name': item.name,
-        'Category': item.category,
-        'Brand': item.brand || '',
-        'Supplier': item.supplier || '',
-        'Specifications': item.specifications || '',
-        'Cost': item.cost || '',
-        'Warranty Info': item.warranty_info || '',
-        'Installation Date': item.installation_date || '',
-        'Maintenance Notes': item.maintenance_notes || '',
-        'Status': item.status || '',
-        'Link': item.link || '',
-        'Notes': item.notes || '',
-        'Created At': new Date(item.created_at || '').toLocaleDateString(),
-        'Updated At': new Date(item.updated_at || '').toLocaleDateString()
-      }));
-
-      const ws = XLSX.utils.json_to_sheet(exportData);
-      const wb = XLSX.utils.book_new();
-      XLSX.utils.book_append_sheet(wb, ws, "Items");
-
-      const fileName = `${room?.name || 'room'}_items_${new Date().toISOString().split('T')[0]}.xlsx`;
-      XLSX.writeFile(wb, fileName);
-
-      toast({
-        title: "Success",
-        description: "Items exported successfully"
-      });
-    } catch (error) {
-      console.error('Export error:', error);
-      toast({
-        title: "Export Failed",
-        description: "Failed to export items",
-        variant: "destructive"
-      });
-    }
-  };
-
   const handleDelete = (itemId: string) => {
     deleteItem.mutate(itemId);
   };
@@ -1346,49 +1412,6 @@ export default function RoomPage({ id }: RoomPageProps) {
                 <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               </div>
               <div className="flex flex-wrap items-center gap-2">
-                <Dialog open={showExportDialog} onOpenChange={setShowExportDialog}>
-                  <DialogContent className="sm:max-w-[600px]">
-                    <DialogHeader>
-                      <DialogTitle>Export Items</DialogTitle>
-                    </DialogHeader>
-                    <div className="space-y-4">
-                      <div className="space-y-2">
-                        <h3 className="font-medium">Choose Format</h3>
-                        <div className="flex gap-4">
-                          <Button
-                            variant="outline"
-                            onClick={() => exportToExcel(filteredItems || [])}
-                            className="flex items-center gap-2"
-                          >
-                            <Download className="h-4 w-4" />
-                            Excel
-                          </Button>
-                          <Button
-                            variant="outline"
-                            onClick={() => {
-                              setLocation(`/print/${id}`);
-                            }}
-                            className="flex items-center gap-2"
-                          >
-                            <Printer className="h-4 w-4" />
-                            Print View
-                          </Button>
-                        </div>
-                      </div>
-                    </div>
-                  </DialogContent>
-                </Dialog>
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => exportToExcel(filteredItems || [])}
-                  disabled={!items || items.length === 0}
-                  className="h-9"
-                >
-                  <Download className="h-4 w-4 mr-2" />
-                  Export
-                </Button>
-
                 <Dialog open={open} onOpenChange={setOpen}>
                   <DialogTrigger asChild>
                     <Button className="h-9">
@@ -1696,13 +1719,63 @@ export default function RoomPage({ id }: RoomPageProps) {
       <div className="flex-1 overflow-hidden">
         <div className="h-full overflow-y-auto py-4 px-1">
           {/* Header Row */}
-          <div className="bg-gray-50 border border-gray-200 rounded-lg mb-3 p-3">
+          <div className="hidden md:block bg-gray-50 border border-gray-200 rounded-lg mb-3 p-3">
             <div className="grid grid-cols-12 gap-4 items-center text-xs font-medium text-gray-700">
-              <div className="col-span-1">ID</div>
-              <div className="col-span-3">Item Name</div>
-              <div className="col-span-2">Category</div>
-              <div className="col-span-2">Status</div>
-              <div className="col-span-1 text-right">Cost</div>
+              <button 
+                className="col-span-1 text-left hover:text-gray-900 flex items-center gap-1"
+                onClick={() => handleSort('id')}
+              >
+                ID
+                {sortField === 'id' && (
+                  <span className="text-gray-400">
+                    {sortDirection === 'asc' ? '↑' : '↓'}
+                  </span>
+                )}
+              </button>
+              <button 
+                className="col-span-3 text-left hover:text-gray-900 flex items-center gap-1"
+                onClick={() => handleSort('name')}
+              >
+                Item Name
+                {sortField === 'name' && (
+                  <span className="text-gray-400">
+                    {sortDirection === 'asc' ? '↑' : '↓'}
+                  </span>
+                )}
+              </button>
+              <button 
+                className="col-span-2 text-left hover:text-gray-900 flex items-center gap-1"
+                onClick={() => handleSort('category')}
+              >
+                Category
+                {sortField === 'category' && (
+                  <span className="text-gray-400">
+                    {sortDirection === 'asc' ? '↑' : '↓'}
+                  </span>
+                )}
+              </button>
+              <button 
+                className="col-span-2 text-left hover:text-gray-900 flex items-center gap-1"
+                onClick={() => handleSort('installation_date')}
+              >
+                Installation Date
+                {sortField === 'installation_date' && (
+                  <span className="text-gray-400">
+                    {sortDirection === 'asc' ? '↑' : '↓'}
+                  </span>
+                )}
+              </button>
+              <button 
+                className="col-span-1 text-right hover:text-gray-900 flex items-center justify-end gap-1"
+                onClick={() => handleSort('cost')}
+              >
+                Cost
+                {sortField === 'cost' && (
+                  <span className="text-gray-400">
+                    {sortDirection === 'asc' ? '↑' : '↓'}
+                  </span>
+                )}
+              </button>
               <div className="col-span-2 text-center">Files</div>
               <div className="col-span-1 text-right">Actions</div>
             </div>
