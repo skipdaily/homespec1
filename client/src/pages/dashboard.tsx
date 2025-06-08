@@ -271,14 +271,14 @@ export default function Dashboard() {
   );
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-muted/20">
-      <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-indigo-50/30 to-purple-50/20">
+      <header className="border-b bg-white/80 backdrop-blur supports-[backdrop-filter]:bg-white/60 shadow-sm">
         <div className="container mx-auto px-4 h-16 flex items-center justify-between">
           <div className="flex items-center space-x-4">
-            <div className="bg-gradient-to-r from-primary/10 to-primary/5 p-2 rounded-xl shadow-sm">
-              <Home className="h-6 w-6 text-primary" />
+            <div className="bg-gradient-to-r from-blue-500 to-indigo-600 p-2 rounded-xl shadow-md">
+              <Home className="h-6 w-6 text-white" />
             </div>
-            <h1 className="text-xl font-semibold text-foreground">
+            <h1 className="text-xl font-semibold bg-gradient-to-r from-blue-600 to-indigo-600 bg-clip-text text-transparent">
               HomeSpec
             </h1>
           </div>
@@ -286,8 +286,8 @@ export default function Dashboard() {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="ghost" className="relative h-10 w-10 rounded-full">
-                  <Avatar className="h-10 w-10 ring-2 ring-background">
-                    <AvatarFallback className="bg-gradient-to-r from-primary/20 to-primary/10 text-primary">
+                  <Avatar className="h-10 w-10 ring-2 ring-white shadow-md">
+                    <AvatarFallback className="bg-gradient-to-r from-blue-500 to-indigo-600 text-white">
                       {session?.user?.email?.charAt(0).toUpperCase()}
                     </AvatarFallback>
                   </Avatar>
@@ -318,10 +318,10 @@ export default function Dashboard() {
       <main className="container mx-auto px-4 py-8">
         <div className="flex justify-between items-center mb-8">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-foreground to-foreground/80">
+            <h1 className="text-3xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">
               My Projects
             </h1>
-            <p className="text-muted-foreground mt-1">
+            <p className="text-slate-600 mt-1">
               Manage and track your home renovation projects
             </p>
           </div>
@@ -329,7 +329,7 @@ export default function Dashboard() {
             <DialogTrigger asChild>
               <Button
                 size="lg"
-                className="bg-gradient-to-r from-primary to-primary/90 hover:from-primary/95 hover:to-primary/85 text-primary-foreground shadow-lg shadow-primary/20 transition-all duration-300"
+                className="bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white shadow-lg shadow-blue-500/20 transition-all duration-300"
               >
                 <Plus className="mr-2 h-5 w-5" />
                 Add Project
@@ -355,36 +355,36 @@ export default function Dashboard() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.3, delay: index * 0.1 }}
             >
-              <Card className="group relative overflow-hidden hover:shadow-xl transition-all duration-300 border-border/50 bg-gradient-to-br from-card to-card/95">
-                <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-primary/2 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-                <CardHeader>
+              <Card className="group relative overflow-hidden hover:shadow-xl transition-all duration-300 border border-blue-100 bg-white rounded-xl">
+                <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 via-indigo-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                <CardHeader className="bg-gradient-to-r from-blue-50 to-indigo-50/30 pb-4">
                   <CardTitle className="text-xl flex items-center justify-between">
-                    <span className="font-semibold text-foreground/90">{project.name}</span>
+                    <span className="font-semibold text-slate-800">{project.name}</span>
                   </CardTitle>
                 </CardHeader>
-                <CardContent>
+                <CardContent className="pt-5">
                   <div className="space-y-3">
-                    <p className="text-muted-foreground flex items-center">
-                      <span className="font-medium mr-2">Address:</span>
+                    <p className="text-slate-700 flex items-center">
+                      <span className="font-medium mr-2 text-blue-700">Address:</span>
                       {project.address}
                     </p>
-                    <p className="text-sm text-muted-foreground flex items-center">
-                      <span className="font-medium mr-2">Builder:</span>
+                    <p className="text-sm text-slate-600 flex items-center">
+                      <span className="font-medium mr-2 text-indigo-600">Builder:</span>
                       {project.builder_name}
                     </p>
                     {project.created_at && (
-                      <div className="flex items-center text-sm text-muted-foreground space-x-2">
-                        <Clock className="h-4 w-4 text-primary/60" />
+                      <div className="flex items-center text-sm text-slate-500 space-x-2">
+                        <Clock className="h-4 w-4 text-blue-500" />
                         <span>Created {new Date(project.created_at).toLocaleDateString()}</span>
                       </div>
                     )}
                   </div>
                 </CardContent>
-                <CardFooter className="flex justify-between bg-muted/50 backdrop-blur supports-[backdrop-filter]:bg-white/5">
+                <CardFooter className="flex justify-between bg-gradient-to-r from-blue-50/50 to-indigo-50/50 backdrop-blur supports-[backdrop-filter]:bg-white/5 border-t border-blue-100">
                   <Button
                     variant="ghost"
                     asChild
-                    className="text-primary hover:text-primary hover:bg-primary/10 transition-colors duration-200"
+                    className="text-blue-600 hover:text-blue-700 hover:bg-blue-50/80 transition-colors duration-200"
                   >
                     <Link href={`/project/${project.id}`}>View Details</Link>
                   </Button>
@@ -396,7 +396,7 @@ export default function Dashboard() {
                         e.preventDefault();
                         handleEdit(project);
                       }}
-                      className="hover:bg-primary/10 text-primary hover:text-primary transition-colors duration-200"
+                      className="hover:bg-blue-50/80 text-blue-600 hover:text-blue-700 transition-colors duration-200"
                     >
                       <Pencil className="h-4 w-4" />
                     </Button>
@@ -407,7 +407,7 @@ export default function Dashboard() {
                         e.preventDefault();
                         handleDelete(project);
                       }}
-                      className="hover:bg-destructive/10 text-destructive hover:text-destructive transition-colors duration-200"
+                      className="hover:bg-red-50/80 text-red-500 hover:text-red-600 transition-colors duration-200"
                     >
                       <Trash2 className="h-4 w-4" />
                     </Button>

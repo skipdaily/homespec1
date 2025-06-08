@@ -1380,7 +1380,7 @@ export default function RoomPage({ id }: RoomPageProps) {
   }
 
   return (
-    <div className="container mx-auto px-4 h-screen flex flex-col max-w-full overflow-x-hidden">
+    <div className="container mx-auto px-4 h-screen flex flex-col max-w-full overflow-x-hidden bg-gradient-to-br from-blue-50 via-indigo-50/30 to-purple-50/20">
       <NavBreadcrumb
         items={[
           { label: "Dashboard", href: "/dashboard" },
@@ -1391,25 +1391,25 @@ export default function RoomPage({ id }: RoomPageProps) {
 
       {/* Header - Made more compact for mobile */}
       <div className="flex-shrink-0 mb-2">
-        <div className="border rounded-md p-3 mb-2">
+        <div className="border border-blue-100 rounded-md p-3 mb-2 bg-white/80 backdrop-blur-sm shadow-sm">
           <div className="space-y-2">
             {/* Room Details - More compact */}
             <div>
-              <h1 className="text-lg font-bold tracking-tight">{room?.name}</h1>
-              <p className="text-xs text-muted-foreground">
+              <h1 className="text-lg font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-r from-blue-600 to-indigo-600">{room?.name}</h1>
+              <p className="text-xs text-slate-600">
                 {room?.description}
               </p>
               {(room?.floor_number !== null || room?.dimensions) && (
-                <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                <div className="flex flex-wrap items-center gap-3 text-xs text-slate-600">
                   {room?.floor_number !== null && (
                     <div className="flex items-center gap-1">
-                      <span className="font-medium">Floor:</span>
+                      <span className="font-medium text-blue-700">Floor:</span>
                       {room.floor_number}
                     </div>
                   )}
                   {room?.dimensions && (
                     <div className="flex items-center gap-1">
-                      <span className="font-medium">Size:</span>
+                      <span className="font-medium text-indigo-700">Size:</span>
                       {room.dimensions}
                     </div>
                   )}
@@ -1425,14 +1425,14 @@ export default function RoomPage({ id }: RoomPageProps) {
                   placeholder="Search items..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="pl-8 h-9"
+                  className="pl-8 h-9 bg-white/80 border-blue-100 focus:border-blue-300 focus:ring-blue-200"
                 />
-                <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Search className="absolute left-2 top-2.5 h-4 w-4 text-blue-400" />
               </div>
               <div className="flex flex-wrap items-center gap-2 mt-2 sm:mt-0">
                 <Dialog open={open} onOpenChange={setOpen}>
                   <DialogTrigger asChild>
-                    <Button className="h-9">
+                    <Button className="h-9 bg-gradient-to-r from-blue-500 to-indigo-600 hover:from-blue-600 hover:to-indigo-700 text-white shadow-sm">
                       <Plus className="h-4 w-4 mr-2" />
                       Add Item
                     </Button>
@@ -1690,10 +1690,9 @@ export default function RoomPage({ id }: RoomPageProps) {
                       </form>
                     </Form>
                   </DialogContent>
-                </Dialog>
-                {isSelectionMode ? (
+                </Dialog>                  {isSelectionMode ? (
                     <>
-                      <span className="text-sm text-muted-foreground">
+                      <span className="text-sm text-blue-600">
                         {selectedItems.length} selected
                       </span>
                       {selectedItems.length > 0 && (
@@ -1702,7 +1701,7 @@ export default function RoomPage({ id }: RoomPageProps) {
                           size="sm"
                           onClick={() => setShowBulkDeleteDialog(true)}
                           disabled={bulkDeleteItems.isPending}
-                          className="h-9"
+                          className="h-9 bg-red-500 hover:bg-red-600 text-white"
                         >
                           <Trash2 className="h-4 w-4 mr-2" />
                           Delete
@@ -1715,14 +1714,18 @@ export default function RoomPage({ id }: RoomPageProps) {
                           setIsSelectionMode(false);
                           setSelectedItems([]);
                         }}
-                        className="h-9"
+                        className="h-9 border-blue-200 text-blue-600 hover:bg-blue-50"
                       >
                         Cancel
                       </Button>
                     </>
                   ) : (
                     <>
-                      <Button variant="outline" onClick={() => setIsSelectionMode(true)} className="h-9">
+                      <Button 
+                        variant="outline" 
+                        onClick={() => setIsSelectionMode(true)} 
+                        className="h-9 border-blue-200 text-blue-600 hover:bg-blue-50"
+                      >
                         Select Items
                       </Button>
                     </>
@@ -1737,65 +1740,65 @@ export default function RoomPage({ id }: RoomPageProps) {
       <div className="flex-1 overflow-hidden">
         <div className="h-full overflow-y-auto py-2 px-1">
           {/* Header Row */}
-          <div className="hidden md:block bg-gray-50 border border-gray-200 rounded-lg mb-3 p-3">
-            <div className="grid grid-cols-12 gap-4 items-center text-xs font-medium text-gray-700">
+          <div className="hidden md:block bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 rounded-lg mb-3 p-3 shadow-sm">
+            <div className="grid grid-cols-12 gap-4 items-center text-xs font-medium text-slate-700">
               <button 
-                className="col-span-1 text-left hover:text-gray-900 flex items-center gap-1"
+                className="col-span-1 text-left hover:text-blue-800 flex items-center gap-1"
                 onClick={() => handleSort('id')}
               >
                 ID
                 {sortField === 'id' && (
-                  <span className="text-gray-400">
+                  <span className="text-blue-500">
                     {sortDirection === 'asc' ? '↑' : '↓'}
                   </span>
                 )}
               </button>
               <button 
-                className="col-span-3 text-left hover:text-gray-900 flex items-center gap-1"
+                className="col-span-3 text-left hover:text-blue-800 flex items-center gap-1"
                 onClick={() => handleSort('name')}
               >
                 Item Name
                 {sortField === 'name' && (
-                  <span className="text-gray-400">
+                  <span className="text-blue-500">
                     {sortDirection === 'asc' ? '↑' : '↓'}
                   </span>
                 )}
               </button>
               <button 
-                className="col-span-2 text-left hover:text-gray-900 flex items-center gap-1"
+                className="col-span-2 text-left hover:text-blue-800 flex items-center gap-1"
                 onClick={() => handleSort('category')}
               >
                 Category
                 {sortField === 'category' && (
-                  <span className="text-gray-400">
+                  <span className="text-blue-500">
                     {sortDirection === 'asc' ? '↑' : '↓'}
                   </span>
                 )}
               </button>
               <button 
-                className="col-span-2 text-left hover:text-gray-900 flex items-center gap-1"
+                className="col-span-2 text-left hover:text-blue-800 flex items-center gap-1"
                 onClick={() => handleSort('installation_date')}
               >
                 Installation Date
                 {sortField === 'installation_date' && (
-                  <span className="text-gray-400">
+                  <span className="text-blue-500">
                     {sortDirection === 'asc' ? '↑' : '↓'}
                   </span>
                 )}
               </button>
               <button 
-                className="col-span-1 text-right hover:text-gray-900 flex items-center justify-end gap-1"
+                className="col-span-1 text-right hover:text-blue-800 flex items-center justify-end gap-1"
                 onClick={() => handleSort('cost')}
               >
                 Cost
                 {sortField === 'cost' && (
-                  <span className="text-gray-400">
+                  <span className="text-blue-500">
                     {sortDirection === 'asc' ? '↑' : '↓'}
                   </span>
                 )}
               </button>
-              <div className="col-span-2 text-center">Files</div>
-              <div className="col-span-1 text-right">Actions</div>
+              <div className="col-span-2 text-center text-indigo-700">Files</div>
+              <div className="col-span-1 text-right text-indigo-700">Actions</div>
             </div>
           </div>
 
@@ -1825,7 +1828,7 @@ export default function RoomPage({ id }: RoomPageProps) {
               </div>
             ))}
             {filteredItems?.length === 0 && (
-              <div className="text-center py-8 text-muted-foreground">
+              <div className="text-center py-8 text-blue-500 bg-blue-50/50 rounded-lg border border-blue-100 shadow-sm">
                 No items found matching your search.
               </div>
             )}
@@ -1835,18 +1838,19 @@ export default function RoomPage({ id }: RoomPageProps) {
 
       {/* Bulk Delete Dialog */}
       <AlertDialog open={showBulkDeleteDialog} onOpenChange={setShowBulkDeleteDialog}>
-        <AlertDialogContent>
+        <AlertDialogContent className="bg-white border border-red-100">
           <AlertDialogHeader>
-            <AlertDialogTitle>Are you sure?</AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogTitle className="text-red-600">Are you sure?</AlertDialogTitle>
+            <AlertDialogDescription className="text-slate-600">
               This will permanently delete {selectedItems.length} selected items. This action cannot be undone.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogCancel className="border-blue-200 text-blue-600 hover:bg-blue-50">Cancel</AlertDialogCancel>
             <AlertDialogAction
               onClick={handleBulkDelete}
               disabled={bulkDeleteItems.isPending}
+              className="bg-red-500 hover:bg-red-600 text-white"
             >
               {bulkDeleteItems.isPending ? "Deleting..." : "Delete"}
             </AlertDialogAction>
