@@ -377,16 +377,34 @@ const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => vo
         <div className="p-4 border-b border-gray-100">
           {/* Mobile Layout */}
           <div className="block md:hidden">
+            {/* Item name at top - clickable */}
+            <div 
+              className="cursor-pointer"
+              onClick={() => setIsDetailsVisible(!isDetailsVisible)}
+            >
+              <h3 className="font-semibold text-gray-900 mb-2">{item.name}</h3>
+            </div>
+            
+            {/* Info row below name */}
             <div className="flex items-center justify-between">
-              {/* Left side - Name and brand */}
+              {/* Left side - brand, category */}
               <div className="flex-1 min-w-0 mr-3">
-                <h3 className="font-semibold text-gray-900 truncate">{item.name}</h3>
                 {item.brand && (
-                  <p className="text-sm text-gray-500 truncate">{item.brand}</p>
+                  <p className="text-sm text-gray-500 mb-1">{item.brand}</p>
+                )}
+                <div className="flex flex-wrap items-center gap-2 mb-1">
+                  <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getCategoryColor(item.category)}`}>
+                    {item.category}
+                  </span>
+                </div>
+                {item.installation_date && (
+                  <p className="text-xs text-gray-600">
+                    Installed: {formatInstallationDate(item.installation_date)}
+                  </p>
                 )}
               </div>
               
-              {/* Right side - File counts and actions */}
+              {/* Right side - File counts and action buttons */}
               <div className="flex items-center space-x-2">
                 {/* File counts */}
                 <div className="flex items-center space-x-2 mr-2">
@@ -404,19 +422,14 @@ const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => vo
                   </div>
                 </div>
                 
-                {/* Action buttons */}
+                {/* Action buttons - removed dropdown button */}
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={() => setIsDetailsVisible(!isDetailsVisible)}
-                  className="h-9 w-9"
-                >
-                  {isDetailsVisible ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={() => setShowEditDialog(true)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowEditDialog(true);
+                  }}
                   className="h-9 w-9"
                 >
                   <Pencil className="h-4 w-4" />
@@ -424,7 +437,10 @@ const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => vo
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={() => setShowDeleteDialog(true)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setShowDeleteDialog(true);
+                  }}
                   className="h-9 w-9 text-red-600 hover:text-red-700"
                 >
                   <Trash2 className="h-4 w-4" />
@@ -1019,8 +1035,9 @@ export default function RoomPage({ id }: RoomPageProps) {
   const [categoryValue, setCategoryValue] = useState("");
   const [sortField, setSortField] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
-
-
+  
+  // Remove isScrolled state and useEffect
+  
   // Add categories query
   const { data: categories } = useQuery({
     queryKey: ["categories"],
@@ -1372,10 +1389,11 @@ export default function RoomPage({ id }: RoomPageProps) {
         ]}
       />
 
-      <div className="bg-background pb-2 border-b flex-shrink-0 relative z-20">
-        <div className="card-simple-border shadow-sm">
+      {/* Header - Static, not sticky */}
+      <div className="flex-shrink-0 mb-4">
+        <div className="card-simple-border shadow-sm p-4">
           <div className="space-y-3">
-            {/* Room Details - Full Width */}
+            {/* Room Details */}
             <div>
               <h1 className="text-xl font-bold tracking-tight">{room?.name}</h1>
               <div className="mt-1 space-y-1">
@@ -1399,7 +1417,7 @@ export default function RoomPage({ id }: RoomPageProps) {
               </div>
             </div>
 
-            {/* Search and Actions - Full Width */}
+            {/* Search and Actions */}
             <div className="flex flex-col sm:flex-row justify-between gap-3">
               <div className="relative flex-1">
                 <Input
@@ -1674,41 +1692,41 @@ export default function RoomPage({ id }: RoomPageProps) {
                   </DialogContent>
                 </Dialog>
                 {isSelectionMode ? (
-                  <>
-                    <span className="text-sm text-muted-foreground">
-                      {selectedItems.length} selected
-                    </span>
-                    {selectedItems.length > 0 && (
+                    <>
+                      <span className="text-sm text-muted-foreground">
+                        {selectedItems.length} selected
+                      </span>
+                      {selectedItems.length > 0 && (
+                        <Button
+                          variant="destructive"
+                          size="sm"
+                          onClick={() => setShowBulkDeleteDialog(true)}
+                          disabled={bulkDeleteItems.isPending}
+                          className="h-9"
+                        >
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Delete Selected
+                        </Button>
+                      )}
                       <Button
-                        variant="destructive"
+                        variant="outline"
                         size="sm"
-                        onClick={() => setShowBulkDeleteDialog(true)}
-                        disabled={bulkDeleteItems.isPending}
+                        onClick={() => {
+                          setIsSelectionMode(false);
+                          setSelectedItems([]);
+                        }}
                         className="h-9"
                       >
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Delete Selected
+                        Cancel
                       </Button>
-                    )}
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={() => {
-                        setIsSelectionMode(false);
-                        setSelectedItems([]);
-                      }}
-                      className="h-9"
-                    >
-                      Cancel
-                    </Button>
-                  </>
-                ) : (
-                  <>
-                    <Button variant="outline" onClick={() => setIsSelectionMode(true)} className="h-9">
-                      Select Items
-                    </Button>
-                  </>
-                )}
+                    </>
+                  ) : (
+                    <>
+                      <Button variant="outline" onClick={() => setIsSelectionMode(true)} className="h-9">
+                        Select Items
+                      </Button>
+                    </>
+                  )}
               </div>
             </div>
           </div>
