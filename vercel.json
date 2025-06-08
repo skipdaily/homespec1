@@ -20,10 +20,15 @@
       "dest": "/server/index.ts"
     },
     {
+      "src": "/assets/(.*)",
+      "dest": "/dist/public/assets/$1"
+    },
+    {
       "handle": "filesystem"
     },
     {
       "src": "/(.*)",
+      "headers": { "cache-control": "s-maxage=0" },
       "dest": "/dist/public/index.html"
     }
   ],
