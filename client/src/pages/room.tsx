@@ -2,7 +2,7 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { supabase } from "@/lib/supabase";
-import { Plus, ChevronDown, ChevronUp, Pencil, Trash2, Home, ChevronRight, ChevronLeft, Search, Check, ChevronsUpDown, ImageIcon, Printer, Upload, FileText, History, X } from "lucide-react";
+import { Plus, ChevronDown, ChevronUp, Pencil, Trash2, Home, ChevronRight, ChevronLeft, Search, Check, ChevronsUpDown, ImageIcon, Printer, Upload, FileText, History, X, Eye, Link2, Copy } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
@@ -110,6 +110,7 @@ const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => vo
   // Add state for full image view
   const [showFullImageDialog, setShowFullImageDialog] = useState(false);
   const [selectedImage, setSelectedImage] = useState<Image | null>(null);
+  const [, navigate] = useLocation();
   const { toast } = useToast();
 
   // Delete image mutation
@@ -370,6 +371,72 @@ const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => vo
     return colors[Math.abs(hash) % colors.length];
   };
 
+  const copyItemLink = () => {
+    const itemUrl = `${window.location.origin}/item/${item.id}`;
+    navigator.clipboard.writeText(itemUrl).then(() => {
+      toast({
+        title: "Success",
+        description: "Item link copied to clipboard"
+      });
+    }).catch(() => {
+      toast({
+        title: "Error",
+        description: "Failed to copy link",
+        variant: "destructive"
+      });
+    });
+  };
+
+  const printItem = () => {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) return;
+    
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Item Details - ${item.name}</title>
+          <style>
+            body { font-family: Arial, sans-serif; margin: 20px; }
+            .header { border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 20px; }
+            .section { margin-bottom: 15px; }
+            .label { font-weight: bold; color: #555; }
+            .value { margin-left: 10px; }
+            .category { background: #f0f0f0; padding: 2px 8px; border-radius: 4px; display: inline-block; }
+            @media print { body { margin: 0; } }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <h1>${item.name}</h1>
+            <p><span class="category">${item.category}</span></p>
+          </div>
+          
+          <div class="section">
+            <div><span class="label">Brand:</span><span class="value">${item.brand || 'N/A'}</span></div>
+            <div><span class="label">Supplier:</span><span class="value">${item.supplier || 'N/A'}</span></div>
+            <div><span class="label">Cost:</span><span class="value">${item.cost ? '$' + item.cost : 'N/A'}</span></div>
+            <div><span class="label">Installation Date:</span><span class="value">${item.installation_date ? new Date(item.installation_date).toLocaleDateString() : 'N/A'}</span></div>
+          </div>
+          
+          ${item.specifications ? `<div class="section"><span class="label">Specifications:</span><div class="value">${item.specifications}</div></div>` : ''}
+          ${item.warranty_info ? `<div class="section"><span class="label">Warranty:</span><div class="value">${item.warranty_info}</div></div>` : ''}
+          ${item.maintenance_notes ? `<div class="section"><span class="label">Maintenance:</span><div class="value">${item.maintenance_notes}</div></div>` : ''}
+          ${item.status ? `<div class="section"><span class="label">Status:</span><div class="value">${item.status}</div></div>` : ''}
+          ${item.notes ? `<div class="section"><span class="label">Notes:</span><div class="value">${item.notes}</div></div>` : ''}
+          ${item.link ? `<div class="section"><span class="label">Product Link:</span><div class="value">${item.link}</div></div>` : ''}
+          
+          <div class="section">
+            <small>Generated on ${new Date().toLocaleDateString()}</small>
+          </div>
+        </body>
+      </html>
+    `);
+    
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.print();
+  };
+
   return (
     <>
       <div className="bg-white border border-gray-200 rounded-lg shadow-sm hover:shadow-md transition-shadow">
@@ -450,7 +517,7 @@ const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => vo
           </div>
 
           {/* Desktop Layout */}
-          <div className="hidden md:grid md:grid-cols-12 gap-4 items-center">
+          <div className="hidden md:grid md:grid-cols-12 gap-4 items-center cursor-pointer" onClick={() => setIsDetailsVisible(!isDetailsVisible)}>
             {/* Item Icon/ID */}
             <div className="col-span-1">
               <div className="w-8 h-8 bg-gray-100 rounded flex items-center justify-center text-xs font-medium text-gray-600">
@@ -514,14 +581,6 @@ const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => vo
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => setIsDetailsVisible(!isDetailsVisible)}
-                className="h-8 w-8"
-              >
-                {isDetailsVisible ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
                 onClick={() => setShowEditDialog(true)}
                 className="h-8 w-8"
               >
@@ -541,7 +600,7 @@ const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => vo
 
         {/* Expandable Details */}
         {isDetailsVisible && (
-          <div className="p-4 bg-gray-50 border-t border-gray-100">
+          <div className="p-4 bg-gray-50/80 border-t border-gray-100">
             {/* Mobile: Show category, cost, and installation date at top */}
             <div className="block md:hidden mb-4 space-y-2">
               <div className="flex flex-wrap items-center gap-2">
@@ -619,7 +678,22 @@ const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => vo
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setShowImageDialog(true)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      navigate(`/item/${item.id}`);
+                    }}
+                    className="flex items-center gap-1"
+                  >
+                    <Eye className="h-4 w-4" />
+                    View Item
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowImageDialog(true);
+                    }}
                     className="flex items-center gap-1"
                   >
                     <ImageIcon className="h-4 w-4" />
@@ -628,7 +702,10 @@ const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => vo
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setShowDocumentDialog(true)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowDocumentDialog(true);
+                    }}
                     className="flex items-center gap-1"
                   >
                     <FileText className="h-4 w-4" />
@@ -637,7 +714,10 @@ const ItemCard = ({ item, onDelete }: { item: Item; onDelete: (id: string) => vo
                   <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => setShowHistoryDialog(true)}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setShowHistoryDialog(true);
+                    }}
                     className="flex items-center gap-1"
                   >
                     <History className="h-4 w-4" />
@@ -1802,9 +1882,9 @@ export default function RoomPage({ id }: RoomPageProps) {
             </div>
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-3">
             {filteredItems?.map((item) => (
-              <div key={item.id} className="flex items-start gap-4 w-full min-w-0">
+              <div key={item.id} className="flex items-start gap-4 w-full min-w-0 animate-fadeIn">
                 {isSelectionMode && (
                   <div className="flex items-center pt-4">
                     <Checkbox

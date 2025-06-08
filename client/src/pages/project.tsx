@@ -2,22 +2,19 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { queryClient } from "@/lib/queryClient";
 import { supabase } from "@/lib/supabase";
-import { QRCodeSVG } from "qrcode.react";
-import QRCode from "qrcode";
 import {
   Plus,
-  Download,
-  Upload,
   Pencil,
   Trash2,
   Search,
   ChevronsUpDown,
   Check,
-  Printer,
   HomeIcon,
   Calendar,
   User,
   AlertCircle,
+  MoreVertical,
+  Settings,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -33,7 +30,6 @@ import { useToast } from "@/hooks/use-toast";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
 import { Link } from "wouter";
 import type { Project, Room } from "@shared/schema";
-import * as XLSX from "xlsx";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -44,6 +40,12 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import {
@@ -60,7 +62,6 @@ import {
 } from "@/components/ui/popover";
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
-import PrintView from "@/components/project/print-view";
 import { NavBreadcrumb } from "@/components/layout/nav-breadcrumb";
 
 interface Item {
@@ -106,29 +107,6 @@ export default function ProjectPage({ id }: ProjectPageProps) {
     };
     checkAuth();
   }, []);
-
-  // Generate QR code data URL
-  useEffect(() => {
-    const generateQRCode = async () => {
-      if (id && typeof window !== 'undefined') {
-        try {
-          const url = `${window.location.origin}/project/${id}`;
-          const qrDataUrl = await QRCode.toDataURL(url, {
-            width: 120,
-            margin: 1,
-            color: {
-              dark: '#000000',
-              light: '#ffffff'
-            }
-          });
-          setQrCodeDataUrl(qrDataUrl);
-        } catch (error) {
-          console.error('Error generating QR code:', error);
-        }
-      }
-    };
-    generateQRCode();
-  }, [id]);
 
   const { data: project, isLoading: isProjectLoading, isError: isProjectError } = useQuery({
     queryKey: ["project", id],
@@ -303,236 +281,9 @@ export default function ProjectPage({ id }: ProjectPageProps) {
     });
   };
 
-  const handleFileUpload = async (
-    event: React.ChangeEvent<HTMLInputElement>,
-  ) => {
-    const file = event.target.files?.[0];
-    if (!file || !rooms) return;
-
-    try {
-      const reader = new FileReader();
-      reader.onload = async (e) => {
-        const data = e.target?.result;
-        const workbook = XLSX.read(data, { type: "binary" });
-        const sheetName = workbook.SheetNames[0];
-        const sheet = workbook.Sheets[sheetName];
-        const jsonData = XLSX.utils.sheet_to_json<{
-          area: string;
-          name: string;
-          category: string;
-          brand?: string;
-          supplier?: string;
-          specifications?: string;
-          cost?: number;
-          warranty_info?: string;
-          installation_date?: string | number;
-          maintenance_notes?: string;
-          status?: string;
-        }>(sheet);
-
-        const importedAreas = new Set(
-          jsonData.map((item) => item.area?.toLowerCase()).filter(Boolean),
-        );
-        const existingRoomNames = new Set(
-          rooms.map((room) => room.name.toLowerCase()),
-        );
-
-        for (const area of Array.from(importedAreas)) {
-          if (!existingRoomNames.has(area)) {
-            const { error } = await supabase.from("rooms").insert([
-              {
-                project_id: id,
-                name: area.charAt(0).toUpperCase() + area.slice(1),
-                created_at: new Date().toISOString(),
-              },
-            ]);
-
-            if (error) {
-              console.error("Error creating area:", error);
-              toast({
-                title: "Warning",
-                description: `Failed to create area "${area}"`,
-                variant: "destructive",
-              });
-            }
-          }
-        }
-
-        const { data: updatedRooms, error: roomsError } = await supabase
-          .from("rooms")
-          .select("*")
-          .eq("project_id", id)
-          .order("created_at", { ascending: false });
-
-        if (roomsError) {
-          throw roomsError;
-        }
-
-        const roomMap = new Map(
-          updatedRooms.map((room) => [room.name.toLowerCase(), room.id]),
-        );
-
-        const processExcelDate = (
-          excelDate: string | number | undefined,
-        ): string | null => {
-          if (!excelDate) return null;
-
-          if (typeof excelDate === "string" && !isNaN(Date.parse(excelDate))) {
-            return new Date(excelDate).toISOString().split("T")[0];
-          }
-
-          const numericDate =
-            typeof excelDate === "string" ? parseInt(excelDate) : excelDate;
-          if (isNaN(numericDate)) return null;
-
-          const date = new Date(1900, 0, 1);
-          date.setDate(date.getDate() + numericDate - 2);
-
-          return date.toISOString().split("T")[0];
-        };
-
-        const { data: existingItems, error: existingItemsError } =
-          await supabase.from("items").select(`
-            id,
-            name,
-            room_id,
-            rooms!inner (
-              name
-            )
-          `);
-
-        if (existingItemsError) throw existingItemsError;
-
-        const existingItemsMap = new Map(
-          existingItems?.map((item) => [
-            `${item.room_id}-${item.name.toLowerCase()}`,
-            item,
-          ]) || [],
-        );
-
-        let skippedCount = 0;
-        const validItems = jsonData
-          .filter((item) => {
-            const roomId = roomMap.get(item.area?.toLowerCase());
-            if (!roomId) {
-              toast({
-                title: "Warning",
-                description: `Skipped item "${item.name}" - Area "${item.area}" not found`,
-                variant: "destructive",
-              });
-              return false;
-            }
-
-            const itemKey = `${roomId}-${item.name.toLowerCase()}`;
-            if (existingItemsMap.has(itemKey)) {
-              skippedCount++;
-              return false;
-            }
-
-            return true;
-          })
-          .map((item: any) => ({
-            room_id: roomMap.get(item.area.toLowerCase())!,
-            name: item.name,
-            category: item.category,
-            brand: item.brand || null,
-            supplier: item.supplier || null,
-            specifications: item.specifications || null,
-            cost: item.cost || null,
-            warranty_info: item.warranty_info || null,
-            installation_date: processExcelDate(item.installation_date),
-            maintenance_notes: item.maintenance_notes || null,
-            status: item.status || null,
-            notes: (item as any).notes || null,
-            link: (item as any).link || null,
-            created_at: new Date().toISOString(),
-          }));
 
 
-        if (validItems.length === 0) {
-          toast({
-            title: "Error",
-            description:
-              skippedCount > 0
-                ? `All items were duplicates (${skippedCount} skipped)`
-                : "No valid items found to import",
-            variant: "destructive",
-          });
-          return;
-        }
 
-        const { error } = await supabase.from("items").insert(validItems);
-
-        if (error) throw error;
-
-        queryClient.invalidateQueries({ queryKey: ["project-items", id] });
-        queryClient.invalidateQueries({ queryKey: ["rooms", id] });
-
-        toast({
-          title: "Success",
-          description: `Imported ${validItems.length} items successfully${
-            skippedCount > 0 ? ` (${skippedCount} duplicates skipped)` : ""
-          }`,
-        });
-      };
-      reader.readAsBinaryString(file);
-    } catch (error: any) {
-      console.error("Import error:", error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to import items",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const handleExport = () => {
-    if (!items) {
-      toast({
-        title: "Error",
-        description: "No items to export",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    try {
-      const exportData = (items || []).map((item) => ({
-        area: item.rooms.name,
-        name: item.name,
-        category: item.category,
-        brand: item.brand || "",
-        supplier: item.supplier || "",
-        specifications: item.specifications || "",
-        cost: item.cost?.toString() || "",
-        warranty_info: item.warranty_info || "",
-        installation_date: item.installation_date || "",
-        maintenance_notes: item.maintenance_notes || "",
-        status: item.status || "",
-        notes: item.notes || "",
-        links: item.link || "",
-      }));
-
-      const wb = XLSX.utils.book_new();
-      const ws = XLSX.utils.json_to_sheet(exportData);
-      XLSX.utils.book_append_sheet(wb, ws, "Items");
-
-      const fileName = `${project?.name || "project"}_items.xlsx`;
-      XLSX.writeFile(wb, fileName);
-
-      toast({
-        title: "Success",
-        description: "Items exported successfully",
-      });
-    } catch (error: any) {
-      console.error("Export error:", error);
-      toast({
-        title: "Error",
-        description: error.message || "Failed to export items",
-        variant: "destructive",
-      });
-    }
-  };
 
 
   const handleEdit = (room:Room) => {
@@ -750,16 +501,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
   const baseUrl = typeof window !== 'undefined' ? window.location.origin : '';
   const projectUrl = `${baseUrl}/project/${id}`;
 
-  const handleDownloadPDF = () => {
-    if (!project) return;
-    
-    const element = document.getElementById('print-content');
-    if (!element) {
-      return;
-    }
 
-    window.print();
-  };
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -797,36 +539,26 @@ export default function ProjectPage({ id }: ProjectPageProps) {
           </div>
 
           {isAuthenticated && (
-            <div className="flex flex-wrap gap-3">
-              <Button
-                variant="default"
-                onClick={() => setShowPrintDialog(true)}
-                className="flex items-center justify-center gap-2"
-              >
-                <Printer className="h-4 w-4" />
-                Print Project
-              </Button>
-
-              <input
-                type="file"
-                accept=".csv,.xlsx,.xls"
-                onChange={handleFileUpload}
-                className="hidden"
-                id="file-upload"
-              />
-              <label htmlFor="file-upload">
-                <Button variant="default" className="cursor-pointer" asChild>
-                  <span>
-                    <Upload className="mr-2 h-4 w-4" />
-                    Import Items
-                  </span>
-                </Button>
-              </label>
-
-              <Button variant="default" onClick={handleExport}>
-                <Download className="mr-2 h-4 w-4" />
-                Export Items
-              </Button>
+            <div className="flex items-center gap-3">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="h-9 w-9"
+                  >
+                    <MoreVertical className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem asChild>
+                    <Link href={`/project/${id}/management`} className="flex items-center w-full">
+                      <Settings className="mr-2 h-4 w-4" />
+                      Project Management
+                    </Link>
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             </div>
           )}
         </div>
@@ -968,94 +700,6 @@ export default function ProjectPage({ id }: ProjectPageProps) {
         )}
       </div>
 
-      <Dialog open={showPrintDialog} onOpenChange={setShowPrintDialog}>
-        <DialogContent className="max-w-4xl">
-          <DialogHeader>
-            <DialogTitle className="flex justify-between items-center no-print">
-              <span>Print Project Details</span>
-              <Button 
-                variant="outline" 
-                onClick={handleDownloadPDF}
-                className="flex items-center gap-2 no-print"
-              >
-                <Download className="h-4 w-4" />
-                Download PDF
-              </Button>
-            </DialogTitle>
-          </DialogHeader>
-          <div id="print-content" className="p-8 print-content">
-            {project && (
-              <div className="space-y-6">
-                <div className="border-b pb-4 flex justify-between items-start">
-                  <div>
-                    <h1 className="text-3xl font-bold">{project.name}</h1>
-                    <div className="mt-2 space-y-1 text-muted-foreground">
-                      <p>Address: {project.address}</p>
-                      <p>Builder: {project.builder_name}</p>
-                      {project.completion_date && (
-                        <p>Expected completion: {new Date(project.completion_date).toLocaleDateString()}</p>
-                      )}
-                    </div>
-                  </div>
-                  <div className="text-center">
-                    <div style={{ background: 'white', padding: '8px', borderRadius: '4px', display: 'inline-block' }}>
-                      {qrCodeDataUrl ? (
-                        <img 
-                          src={qrCodeDataUrl} 
-                          alt="QR Code for project" 
-                          style={{ width: 120, height: 120, display: 'block' }}
-                        />
-                      ) : projectUrl ? (
-                        <QRCodeSVG 
-                          value={projectUrl} 
-                          size={120} 
-                          level="M"
-                          marginSize={1}
-                          fgColor="#000000"
-                          bgColor="#ffffff"
-                        />
-                      ) : (
-                        <div style={{ width: 120, height: 120, background: '#f0f0f0', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                          <span style={{ fontSize: '12px', color: '#666' }}>QR Code</span>
-                        </div>
-                      )}
-                    </div>
-                    <div className="mt-2 text-sm text-muted-foreground">
-                      <span>Scan to view project</span>
-                      <br />
-                      <span className="text-xs">{projectUrl || 'URL not available'}</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="space-y-4">
-                  <h2 className="text-xl font-semibold">Areas</h2>
-                  <div className="grid gap-4">
-                    {rooms?.map((room) => (
-                      <div key={room.id} className="border rounded-lg p-4">
-                        <h3 className="font-medium">{room.name}</h3>
-                        {room.description && (
-                          <p className="text-muted-foreground mt-1">{room.description}</p>
-                        )}
-                        {room.dimensions && (
-                          <p className="text-sm text-muted-foreground mt-1">
-                            Size: {room.dimensions}
-                          </p>
-                        )}
-                        {room.floor_number !== null && (
-                          <p className="text-sm text-muted-foreground">
-                            Floor: {room.floor_number}
-                          </p>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

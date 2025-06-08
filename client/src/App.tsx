@@ -13,10 +13,12 @@ import Home from "./pages/home";
 import Login from "./pages/login";
 import Dashboard from "./pages/dashboard";
 import Project from "./pages/project";
+import ProjectManagement from "./pages/project-management";
 import Room from "./pages/room";
 import Performance from "./pages/performance";
 import NotFound from "./pages/not-found";
 import DebugStorage from "./pages/debug-storage";
+import ItemView from "./pages/item-view";
 
 // Tutorial Components
 import { TutorialProvider } from "./components/tutorial/TutorialContext";
@@ -110,11 +112,17 @@ function Router() {
         <Route path="/project/:id">
           {(params) => <PublicProjectRoute params={params} />}
         </Route>
+        <Route path="/project/:id/management">
+          {(params) => <PrivateRoute component={ProjectManagement} params={params} />}
+        </Route>
         <Route path="/project/:id/edit">
           {(params) => <PrivateRoute component={Project} params={params} />}
         </Route>
         <Route path="/room/:id">
           {(params) => <PrivateRoute component={Room} params={params} />}
+        </Route>
+        <Route path="/item/:id">
+          {(params) => <PrivateRoute component={ItemView} params={params} />}
         </Route>
         <Route path="/performance">
           {() => <PrivateRoute component={Performance} />}

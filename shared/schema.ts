@@ -63,6 +63,8 @@ export const items = pgTable("items", {
   category: text("category").notNull(),
   status: text("status"),
   document_urls: text("document_urls").array(),
+  link: text("link"),
+  notes: text("notes"),
   version: integer("version").notNull().default(1),
   created_at: timestamp("created_at").defaultNow().notNull(),
   updated_at: timestamp("updated_at").defaultNow().notNull()
@@ -85,6 +87,8 @@ export const itemHistory = pgTable("item_history", {
   status: text("status"),
   image_url: text("image_url"),
   document_urls: text("document_urls").array(),
+  link: text("link"),
+  notes: text("notes"),
   version: integer("version").notNull(),
   created_at: timestamp("created_at").defaultNow().notNull()
 });
