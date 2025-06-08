@@ -1389,17 +1389,17 @@ export default function RoomPage({ id }: RoomPageProps) {
         ]}
       />
 
-      {/* Header - Static, not sticky */}
-      <div className="flex-shrink-0 mb-4">
-        <div className="card-simple-border shadow-sm p-4">
-          <div className="space-y-3">
-            {/* Room Details */}
+      {/* Header - Made more compact for mobile */}
+      <div className="flex-shrink-0 mb-2">
+        <div className="border rounded-md p-3 mb-2">
+          <div className="space-y-2">
+            {/* Room Details - More compact */}
             <div>
-              <h1 className="text-xl font-bold tracking-tight">{room?.name}</h1>
-              <div className="mt-1 space-y-1">
-                <p className="text-sm text-muted-foreground">
-                  {room?.description}
-                </p>
+              <h1 className="text-lg font-bold tracking-tight">{room?.name}</h1>
+              <p className="text-xs text-muted-foreground">
+                {room?.description}
+              </p>
+              {(room?.floor_number !== null || room?.dimensions) && (
                 <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
                   {room?.floor_number !== null && (
                     <div className="flex items-center gap-1">
@@ -1414,11 +1414,11 @@ export default function RoomPage({ id }: RoomPageProps) {
                     </div>
                   )}
                 </div>
-              </div>
+              )}
             </div>
 
-            {/* Search and Actions */}
-            <div className="flex flex-col sm:flex-row justify-between gap-3">
+            {/* Search and Actions - Mobile optimized */}
+            <div className="flex flex-col sm:flex-row justify-between gap-2">
               <div className="relative flex-1">
                 <Input
                   type="text"
@@ -1429,7 +1429,7 @@ export default function RoomPage({ id }: RoomPageProps) {
                 />
                 <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
               </div>
-              <div className="flex flex-wrap items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2 mt-2 sm:mt-0">
                 <Dialog open={open} onOpenChange={setOpen}>
                   <DialogTrigger asChild>
                     <Button className="h-9">
@@ -1705,7 +1705,7 @@ export default function RoomPage({ id }: RoomPageProps) {
                           className="h-9"
                         >
                           <Trash2 className="h-4 w-4 mr-2" />
-                          Delete Selected
+                          Delete
                         </Button>
                       )}
                       <Button
@@ -1735,7 +1735,7 @@ export default function RoomPage({ id }: RoomPageProps) {
 
       {/* Item list - Scrollable area */}
       <div className="flex-1 overflow-hidden">
-        <div className="h-full overflow-y-auto py-4 px-1">
+        <div className="h-full overflow-y-auto py-2 px-1">
           {/* Header Row */}
           <div className="hidden md:block bg-gray-50 border border-gray-200 rounded-lg mb-3 p-3">
             <div className="grid grid-cols-12 gap-4 items-center text-xs font-medium text-gray-700">
