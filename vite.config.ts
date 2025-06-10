@@ -54,6 +54,12 @@ export default defineConfig({
     hmr: {
       overlay: false,
     },
+    proxy: {
+      '/api': {
+        target: 'http://localhost:4001',
+        changeOrigin: true,
+      },
+    },
   },
   esbuild: {
     // Don't check TypeScript during build

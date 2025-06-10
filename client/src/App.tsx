@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "./lib/supabase";
 import { type Session } from "@supabase/supabase-js";
 import { ensureStorageBucket } from "./lib/supabase-storage";
+import { debugAuth } from "./lib/debug-api"; // Import debug utility
 
 // Components
 import Navbar from "./components/layout/navbar";
@@ -19,6 +20,7 @@ import Performance from "./pages/performance";
 import NotFound from "./pages/not-found";
 import DebugStorage from "./pages/debug-storage";
 import ItemView from "./pages/item-view";
+import ChatSettings from "./pages/chat-settings";
 
 // Tutorial Components
 import { TutorialProvider } from "./components/tutorial/TutorialContext";
@@ -97,6 +99,14 @@ function Router() {
   useEffect(() => {
     // Ensure storage bucket exists when app initializes
     ensureStorageBucket().catch(console.error);
+    
+    // Debug auth on startup to help troubleshoot issues
+    debugAuth().then(result => {
+      console.log('Auth debug on startup:', result);
+      
+      // Add debug utility to window for troubleshooting in console
+      (window as any).debugAuth = debugAuth;
+    });
   }, []);
 
   return (
@@ -114,6 +124,9 @@ function Router() {
         </Route>
         <Route path="/project/:id/management">
           {(params) => <PrivateRoute component={ProjectManagement} params={params} />}
+        </Route>
+        <Route path="/project/:id/chat-settings">
+          {(params) => <PrivateRoute component={ChatSettings} params={params} />}
         </Route>
         <Route path="/project/:id/edit">
           {(params) => <PrivateRoute component={Project} params={params} />}

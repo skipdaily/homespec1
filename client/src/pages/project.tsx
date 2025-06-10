@@ -15,6 +15,7 @@ import {
   AlertCircle,
   MoreVertical,
   Settings,
+  Bot,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -63,6 +64,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { cn } from "@/lib/utils";
 import { NavBreadcrumb } from "@/components/layout/nav-breadcrumb";
+import Chatbot from "@/components/chatbot";
 
 interface Item {
   id: string;
@@ -534,6 +536,12 @@ export default function ProjectPage({ id }: ProjectPageProps) {
                     <span>Expected completion: {new Date(project.completion_date).toLocaleDateString()}</span>
                   </div>
                 )}
+                {project?.status && (
+                  <div className="flex items-center gap-2 text-muted-foreground">
+                    <AlertCircle className="h-4 w-4" />
+                    <span>Status: {project.status}</span>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -688,9 +696,7 @@ export default function ProjectPage({ id }: ProjectPageProps) {
               })}
             </div>
           </div>
-        )}
-
-        {!searchQuery.trim() && (
+        )}        {!searchQuery.trim() && (
           <div className="mt-8 grid md:grid-cols-2 lg:grid-cols-3 gap-6">
             {rooms?.map((room) => {
               const itemCount = itemCounts[room.id] || 0;
@@ -700,6 +706,22 @@ export default function ProjectPage({ id }: ProjectPageProps) {
         )}
       </div>
 
+      {/* AI Assistant Section */}
+      {isAuthenticated && id && (
+        <div className="mt-8">
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Bot className="h-5 w-5 text-indigo-600" />
+                AI Project Assistant
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <Chatbot projectId={id} />
+            </CardContent>
+          </Card>
+        </div>
+      )}
     </div>
   );
 }

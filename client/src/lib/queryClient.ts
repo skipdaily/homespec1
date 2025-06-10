@@ -1,5 +1,7 @@
 import { QueryClient, QueryFunction } from "@tanstack/react-query";
+import { apiGet } from "./api-client";
 
+// Legacy functions maintained for backward compatibility
 async function throwIfResNotOk(res: Response) {
   if (!res.ok) {
     const text = (await res.text()) || res.statusText;
@@ -27,18 +29,20 @@ type UnauthorizedBehavior = "returnNull" | "throw";
 export const getQueryFn: <T>(options: {
   on401: UnauthorizedBehavior;
 }) => QueryFunction<T> =
-  ({ on401: unauthorizedBehavior }) =>
+  <T>({ on401: unauthorizedBehavior }) =>
   async ({ queryKey }) => {
-    const res = await fetch(queryKey[0] as string, {
-      credentials: "include",
-    });
-
-    if (unauthorizedBehavior === "returnNull" && res.status === 401) {
-      return null;
+    try {
+      // Use our new API client with auth headers
+      return await apiGet<T>(queryKey[0] as string);
+    } catch (error) {
+      // Handle 401 errors based on the specified behavior
+      if (error instanceof Error && 
+          error.message.includes('401') && 
+          unauthorizedBehavior === "returnNull") {
+        return null as unknown as T;
+      }
+      throw error;
     }
-
-    await throwIfResNotOk(res);
-    return await res.json();
   };
 
 export const queryClient = new QueryClient({
@@ -47,7 +51,8 @@ export const queryClient = new QueryClient({
       queryFn: getQueryFn({ on401: "throw" }),
       refetchInterval: false,
       refetchOnWindowFocus: false,
-      staleTime: Infinity,
+      // Fix: Reduce staleTime for chat messages to enable proper cache invalidation
+      staleTime: 0, // Always refetch for messages
       retry: false,
     },
     mutations: {

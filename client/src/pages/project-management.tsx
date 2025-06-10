@@ -179,7 +179,7 @@ export default function ProjectManagementPage({ id }: ProjectManagementPageProps
         );
 
         // Create new rooms for areas that don't exist
-        const newAreas = [...importedAreas].filter(
+        const newAreas = Array.from(importedAreas).filter(
           (area) => !existingRoomNames.has(area),
         );
 
