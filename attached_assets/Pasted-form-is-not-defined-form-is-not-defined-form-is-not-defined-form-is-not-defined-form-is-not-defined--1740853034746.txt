@@ -1,0 +1,37 @@
+form is not defined
+form is not defined
+form is not defined
+form is not defined
+form is not defined
+form is not defined
+form is not defined
+The above error occurred in the <ItemCard> component:
+
+    at ItemCard (https://d7ec9911-1342-4d61-9d2d-baf86634957f-00-2awdk4ya6jc43.picard.replit.dev/src/pages/room.tsx:72:21)
+    at div
+    at div
+    at div
+    at div
+    at div
+    at div
+    at RoomPage (https://d7ec9911-1342-4d61-9d2d-baf86634957f-00-2awdk4ya6jc43.picard.replit.dev/src/pages/room.tsx:1051:36)
+    at PrivateRoute (https://d7ec9911-1342-4d61-9d2d-baf86634957f-00-2awdk4ya6jc43.picard.replit.dev/src/App.tsx?v=MDJZJZ0ZhDChX3oQCsXF6:32:36)
+    at Route (https://d7ec9911-1342-4d61-9d2d-baf86634957f-00-2awdk4ya6jc43.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=b7748b4c:191:16)
+    at Switch (https://d7ec9911-1342-4d61-9d2d-baf86634957f-00-2awdk4ya6jc43.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/wouter.js?v=b7748b4c:247:17)
+    at Router
+    at QueryClientProvider (https://d7ec9911-1342-4d61-9d2d-baf86634957f-00-2awdk4ya6jc43.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/@tanstack_react-query.js?v=b7748b4c:2805:3)
+    at App
+
+Consider adding an error boundary to your tree to customize error handling behavior.
+Visit https://reactjs.org/link/error-boundaries to learn more about error boundaries.
+form is not defined
+at ItemCard (https://d7ec9911-1342-4d61-9d2d-baf86634957f-00-2awdk4ya6jc43.picard.replit.dev/src/pages/room.tsx:344:132)
+at renderWithHooks (https://d7ec9911-1342-4d61-9d2d-baf86634957f-00-2awdk4ya6jc43.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-UPELNCPK.js?v=b7748b4c:11548:26)
+at mountIndeterminateComponent (https://d7ec9911-1342-4d61-9d2d-baf86634957f-00-2awdk4ya6jc43.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-UPELNCPK.js?v=b7748b4c:14926:21)
+at beginWork (https://d7ec9911-1342-4d61-9d2d-baf86634957f-00-2awdk4ya6jc43.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-UPELNCPK.js?v=b7748b4c:15914:22)
+at beginWork$1 (https://d7ec9911-1342-4d61-9d2d-baf86634957f-00-2awdk4ya6jc43.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-UPELNCPK.js?v=b7748b4c:19753:22)
+at performUnitOfWork (https://d7ec9911-1342-4d61-9d2d-baf86634957f-00-2awdk4ya6jc43.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-UPELNCPK.js?v=b7748b4c:19198:20)
+at workLoopSync (https://d7ec9911-1342-4d61-9d2d-baf86634957f-00-2awdk4ya6jc43.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-UPELNCPK.js?v=b7748b4c:19137:13)
+at renderRootSync (https://d7ec9911-1342-4d61-9d2d-baf86634957f-00-2awdk4ya6jc43.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-UPELNCPK.js?v=b7748b4c:19116:15)
+at recoverFromConcurrentError (https://d7ec9911-1342-4d61-9d2d-baf86634957f-00-2awdk4ya6jc43.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-UPELNCPK.js?v=b7748b4c:18736:28)
+at performSyncWorkOnRoot (https://d7ec9911-1342-4d61-9d2d-baf86634957f-00-2awdk4ya6jc43.picard.replit.dev/@fs/home/runner/workspace/node_modules/.vite/deps/chunk-UPELNCPK.js?v=b7748b4c:18879:28)

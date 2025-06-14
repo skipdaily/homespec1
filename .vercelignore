@@ -1,0 +1,9 @@
+# Ignore TypeScript error files
+*.tsbuildinfo
+tsconfig.json
+
+# Ignore development files
+.vscode
+.git
+.github
+node_modules
