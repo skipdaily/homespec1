@@ -1,5 +1,4 @@
 import type { Express } from "express";
-import { createServer, type Server } from "http";
 import { getStorage, storageMode } from "./storage";
 import { db, connectionState } from "./db";
 import { insertRoomSchema, insertFinishSchema, insertProjectSchema, insertItemSchema, insertConversationSchema, insertMessageSchema, insertChatSettingsSchema } from "@shared/schema";
@@ -24,7 +23,7 @@ function convertExcelDateToISO(excelDate: number | string): string | null {
   return date.toISOString().split('T')[0];
 }
 
-export async function registerRoutes(app: Express): Promise<Server> {
+export async function registerRoutes(app: Express): Promise<void> {
   // Ensure storage is initialized
   const storage = await getStorage();
   
@@ -597,7 +596,4 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
     }
   });
-
-  const httpServer = createServer(app);
-  return httpServer;
 }

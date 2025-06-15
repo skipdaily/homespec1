@@ -2,6 +2,7 @@
 import 'dotenv/config';
 
 import express, { type Request, Response, NextFunction } from "express";
+import { createServer } from "http";
 import cors from 'cors';
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
@@ -27,110 +28,74 @@ process.on('unhandledRejection', (reason, promise) => {
   }
 });
 
-async function startServer() {
-  try {
-    const app = express();
-    
-    // Initialize storage as early as possible
-    await initializeDatabase();
-    await initializeStorage();
-    
-    console.log(`Starting server with storage mode: ${storageMode}`);
-    console.log(`Database connection state: ${connectionState.connected ? 'CONNECTED' : 'NOT CONNECTED'}`);
+// Create Express app instance
+const app = express();
+let appInitialized = false;
 
-    // Add CORS configuration before other middleware
+async function createApp() {
+  if (appInitialized) {
+    return app;
+  }
+
+  try {
+    console.log(`🚀 Starting server initialization...`);
+    console.log(`📦 Storage mode: ${storageMode}`);
+    console.log(`🗄️ Database connection state: ${connectionState}`);
+
+    // Enable trust proxy for production
+    if (process.env.NODE_ENV === 'production') {
+      app.set('trust proxy', true);
+    }
+
+    // CORS configuration
     app.use(cors({
       origin: process.env.NODE_ENV === 'production' 
-        ? [
-            process.env.FRONTEND_URL || 'https://homespec-skipdaily.vercel.app',
-            'https://homespec.vercel.app',
-            'https://homespec-git-main-skipdaily.vercel.app'
-          ] 
-        : ['http://localhost:4000', 'http://localhost:5173', 'http://localhost:4001'],
-      credentials: true,
-      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS', 'PATCH'],
-      allowedHeaders: [
-        'Content-Type',
-        'Authorization',
-        'X-Client-Info',
-        'X-User-ID',
-        'apikey',
-        'X-Supabase-Auth',
-        'Range'
-      ]
+        ? ['https://homespec1.vercel.app', /\.vercel\.app$/]
+        : ['http://localhost:5173', 'http://localhost:4001'],
+      credentials: true
     }));
 
-    app.use(express.json());
-    app.use(express.urlencoded({ extended: false }));
+    // Body parsing middleware
+    app.use(express.json({ limit: '10mb' }));
+    app.use(express.urlencoded({ extended: true }));
 
-    // Auth debugging middleware - add after parsing middleware
-    app.use((req, res, next) => {
-      // Only log auth-related endpoints
-      if (req.path.startsWith('/api/') && 
-          (req.path.includes('/conversations') || 
-           req.path.includes('/messages') || 
-           req.path.includes('/chat-settings'))) {
+    // Enhanced request logging
+    app.use((req: Request, res: Response, next: NextFunction) => {
+      const startTime = Date.now();
+      
+      res.on('finish', () => {
+        const duration = Date.now() - startTime;
+        const logLevel = res.statusCode >= 400 ? '🔴' : res.statusCode >= 300 ? '🟡' : '🟢';
+        console.log(`${logLevel} ${req.method} ${req.path} - ${res.statusCode} (${duration}ms)`);
         
-        const userId = req.headers["x-user-id"];
-        
-        if (!userId || typeof userId !== "string") {
-          console.log(`🔒 AUTH WARNING: Missing user ID header for ${req.method} ${req.path}`);
-        } else {
-          console.log(`🔒 AUTH OK: User ${userId.substring(0, 8)}... accessing ${req.method} ${req.path}`);
+        if (res.statusCode >= 400) {
+          console.log(`   Headers: ${JSON.stringify(req.headers)}`);
+          if (req.body && Object.keys(req.body).length > 0) {
+            console.log(`   Body: ${JSON.stringify(req.body)}`);
+          }
         }
-      }
+      });
+      
       next();
     });
 
-    // Add request logging middleware
-    app.use((req, res, next) => {
-      const start = Date.now();
-      const path = req.path;
-      let capturedJsonResponse: Record<string, any> | undefined = undefined;
+    // Initialize storage first
+    await initializeStorage();
+    
+    // Initialize database
+    await initializeDatabase();
 
-      const originalResJson = res.json;
-      res.json = function (bodyJson, ...args) {
-        capturedJsonResponse = bodyJson;
-        return originalResJson.apply(res, [bodyJson, ...args]);
-      };
-
-      res.on("finish", () => {
-        const duration = Date.now() - start;
-        if (path.startsWith("/api")) {
-          let logLine = `${req.method} ${path} ${res.statusCode} in ${duration}ms`;
-          if (capturedJsonResponse) {
-            logLine += ` :: ${JSON.stringify(capturedJsonResponse)}`;
-          }
-
-          if (logLine.length > 80) {
-            logLine = logLine.slice(0, 79) + "…";
-          }
-
-          log(logLine);
-        }
-      });
-
-      next();
-    });
-
-    // Static files and vite setup for non-API routes
-    if (app.get("env") === "development") {
-      // Set up non-API routes to be handled by Vite
-      // This needs to be before registerRoutes to allow API routes to be prioritized
-      app.use(/^(?!\/api\/).*$/, async (req, res, next) => {
-        try {
-          // Only handle non-API routes with Vite
-          await setupVite(app, null, req, res, next);
-        } catch (e) {
-          next(e);
-        }
-      });
+    // Development vs Production setup
+    if (process.env.NODE_ENV !== "production") {
+      // Development: Use Vite for all non-API routes
+      const server = createServer();
+      await setupVite(app, server);
     } else {
       serveStatic(app);
     }
 
     // Register the API routes AFTER Vite setup to ensure they take precedence
-    const server = await registerRoutes(app);
+    await registerRoutes(app);
 
     // Error handler middleware
     app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {
@@ -147,18 +112,51 @@ async function startServer() {
       });
     });
 
+    appInitialized = true;
+    console.log('✅ App initialization complete');
+    
+    return app;
+  } catch (error) {
+    console.error('❌ Failed to initialize app:', error);
+    throw error;
+  }
+}
+
+async function startServer() {
+  try {
+    const app = await createApp();
+
     // Use PORT from environment variable, defaulting to 4001
     const PORT = process.env.PORT ? parseInt(process.env.PORT, 10) : 4001;
     console.log(`Starting server on port ${PORT}...`);
     
-    server.listen(PORT, "0.0.0.0", () => {
+    const server = app.listen(PORT, "0.0.0.0", () => {
       log(`✅ Server running on http://localhost:${PORT}`);
     });
+
+    return server;
   } catch (error) {
     console.error('❌ Failed to start server:', error);
     process.exit(1);
   }
 }
 
-// Start the server
-startServer();
+// For Vercel serverless deployment
+export default async function handler(req: Request, res: Response) {
+  try {
+    const app = await createApp();
+    return app(req, res);
+  } catch (error) {
+    console.error('❌ Serverless handler error:', error);
+    res.status(500).json({
+      error: 'Internal Server Error',
+      message: error instanceof Error ? error.message : 'Unknown error',
+      timestamp: new Date().toISOString()
+    });
+  }
+}
+
+// Start the server in development/local environments
+if (process.env.NODE_ENV !== 'production' || !process.env.VERCEL) {
+  startServer();
+}
