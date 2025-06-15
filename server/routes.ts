@@ -31,23 +31,87 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Add a debug route for checking server and database status
   app.get("/api/debug/status", async (req, res) => {
     try {
-      const dbTestResult = await testDatabaseConnection();
-      
       res.json({
         status: "OK",
         timestamp: new Date().toISOString(),
         environment: process.env.NODE_ENV || "unknown",
         storageMode,
-        database: {
-          connected: dbTestResult,
-          connectionState
-        },
-        version: process.env.npm_package_version || "unknown"
+        hasOpenAIKey: !!process.env.OPENAI_API_KEY,
+        openAIKeyLength: process.env.OPENAI_API_KEY?.length || 0,
+        openAIKeyPrefix: process.env.OPENAI_API_KEY?.substring(0, 10) || 'N/A',
+        hasDatabaseUrl: !!process.env.DATABASE_URL,
+        hasSupabaseUrl: !!process.env.VITE_SUPABASE_URL,
+        hasSupabaseKey: !!process.env.VITE_SUPABASE_ANON_KEY
       });
     } catch (error) {
       res.status(500).json({
         status: "ERROR",
-        error: error instanceof Error ? error.message : String(error),
+        error: error instanceof Error ? error.message : "Unknown error",
+        timestamp: new Date().toISOString()
+      });
+    }
+  });
+
+  // Add a debug route for testing OpenAI API
+  app.get("/api/debug/openai", async (req, res) => {
+    try {
+      const apiKey = process.env.OPENAI_API_KEY;
+      
+      if (!apiKey) {
+        return res.status(500).json({
+          status: "ERROR",
+          error: "OpenAI API key not configured",
+          hasKey: false
+        });
+      }
+
+      if (!apiKey.startsWith('sk-')) {
+        return res.status(500).json({
+          status: "ERROR", 
+          error: "Invalid OpenAI API key format",
+          hasKey: true,
+          keyFormat: "invalid"
+        });
+      }
+
+      // Test OpenAI API connectivity
+      const response = await fetch('https://api.openai.com/v1/models', {
+        headers: {
+          'Authorization': `Bearer ${apiKey}`
+        }
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        return res.status(500).json({
+          status: "ERROR",
+          error: `OpenAI API returned ${response.status}: ${response.statusText}`,
+          details: errorText,
+          hasKey: true,
+          keyFormat: "valid"
+        });
+      }
+
+      const models = await response.json();
+      const hasGPT4oMini = models.data.some((model: any) => model.id === 'gpt-4o-mini');
+
+      res.json({
+        status: "OK",
+        message: "OpenAI API is accessible",
+        hasKey: true,
+        keyFormat: "valid",
+        keyLength: apiKey.length,
+        keyPrefix: apiKey.substring(0, 10),
+        modelCount: models.data.length,
+        hasGPT4oMini,
+        timestamp: new Date().toISOString()
+      });
+
+    } catch (error) {
+      res.status(500).json({
+        status: "ERROR",
+        error: error instanceof Error ? error.message : "Unknown error",
+        hasKey: !!process.env.OPENAI_API_KEY,
         timestamp: new Date().toISOString()
       });
     }
@@ -223,59 +287,126 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Create a new conversation
   app.post("/api/projects/:projectId/conversations", async (req, res) => {
+    const startTime = Date.now();
     const userId = req.headers["x-user-id"];
-    console.log("Create conversation request:", {
+    
+    console.log("🚀 Create conversation request started:", {
       projectId: req.params.projectId,
       userId: userId,
-      body: req.body,
-      headers: {
-        ...req.headers,
-        authorization: req.headers.authorization ? "[REDACTED]" : undefined
-      }
+      title: req.body.title,
+      timestamp: new Date().toISOString()
     });
     
     if (!userId || typeof userId !== "string") {
-      console.warn("Missing or invalid x-user-id header in conversation creation", {
-        headers: req.headers,
-        path: req.path
-      });
+      console.error("❌ Missing user ID");
       return res.status(401).json({ 
         message: "Unauthorized", 
-        details: "Missing or invalid user ID header",
-        help: "Check that the X-User-ID header is being properly set"
+        details: "Missing or invalid user ID header"
       });
     }
 
-    try {
-      const conversationData = insertConversationSchema.parse({
-        ...req.body,
-        project_id: req.params.projectId,
-        user_id: userId
-      });
-      
-      try {
-        // Use unified storage for consistency
-        const conversation = await storage.createConversation(conversationData);
-        
-        console.log("Conversation created successfully:", conversation);
-        res.status(201).json(conversation);
-      } catch (storageError) {
-        console.error('Storage error creating conversation:', storageError);
-        
-        // Provide more detailed error for storage failures
+    // Set a response timeout to prevent Vercel function timeout
+    const timeout = setTimeout(() => {
+      console.error("⏰ Function timeout - responding early");
+      if (!res.headersSent) {
         res.status(500).json({ 
-          message: "Failed to create conversation in storage", 
-          error: String(storageError),
-          storageMode: 'DATABASE'
+          message: "Request timeout", 
+          details: "Function took too long to execute"
         });
       }
-    } catch (error) {
-      console.error('Error creating conversation:', error);
-      if (error instanceof ZodError) {
-        res.status(400).json({ message: "Invalid conversation data", errors: error.errors });
-      } else {
-        res.status(500).json({ message: "Failed to create conversation", error: String(error) });
+    }, 8000); // 8 seconds, leaving 2 seconds buffer for Vercel's 10s limit
+
+    try {
+      // Quick validation
+      const title = req.body.title || 'New Conversation';
+      
+      console.log("⚙️ Validating conversation data...");
+      const conversationData = {
+        project_id: req.params.projectId,
+        user_id: userId,
+        title: title
+      };
+
+      // Parse with schema but catch errors quickly
+      let validatedData;
+      try {
+        validatedData = insertConversationSchema.parse(conversationData);
+        console.log("✅ Data validation passed");
+      } catch (validationError) {
+        clearTimeout(timeout);
+        console.error("❌ Data validation failed:", validationError);
+        return res.status(400).json({ 
+          message: "Invalid conversation data", 
+          details: validationError instanceof ZodError ? validationError.errors : String(validationError)
+        });
       }
+      
+      console.log("💾 Creating conversation in storage...");
+      const storageStart = Date.now();
+      
+      try {
+        // Use a timeout for the storage operation
+        const conversation = await Promise.race([
+          storage.createConversation(validatedData),
+          new Promise((_, reject) => 
+            setTimeout(() => reject(new Error('Storage timeout')), 5000)
+          )
+        ]) as any;
+        
+        clearTimeout(timeout);
+        const totalTime = Date.now() - startTime;
+        const storageTime = Date.now() - storageStart;
+        
+        console.log("✅ Conversation created successfully:", {
+          id: conversation.id,
+          totalTime: `${totalTime}ms`,
+          storageTime: `${storageTime}ms`
+        });
+        
+        res.status(201).json(conversation);
+        
+      } catch (storageError) {
+        clearTimeout(timeout);
+        const totalTime = Date.now() - startTime;
+        
+        console.error("❌ Storage error:", {
+          error: String(storageError),
+          totalTime: `${totalTime}ms`,
+          errorType: storageError instanceof Error ? storageError.name : typeof storageError
+        });
+        
+        // Check if it's a timeout error
+        if (String(storageError).includes('timeout')) {
+          return res.status(504).json({ 
+            message: "Database connection timeout", 
+            details: "The database is taking too long to respond",
+            suggestion: "Please try again in a moment"
+          });
+        }
+        
+        // Generic storage error
+        return res.status(500).json({ 
+          message: "Failed to create conversation", 
+          details: String(storageError),
+          help: "This might be a temporary database issue"
+        });
+      }
+      
+    } catch (error) {
+      clearTimeout(timeout);
+      const totalTime = Date.now() - startTime;
+      
+      console.error("💥 Unexpected error:", {
+        error: String(error),
+        stack: error instanceof Error ? error.stack : undefined,
+        totalTime: `${totalTime}ms`
+      });
+      
+      res.status(500).json({ 
+        message: "Internal server error", 
+        details: String(error),
+        totalTime: `${totalTime}ms`
+      });
     }
   });
 
@@ -315,35 +446,87 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/conversations/:conversationId/messages", async (req, res) => {
     const userId = req.headers["x-user-id"];
     if (!userId || typeof userId !== "string") {
-      return res.status(401).json({ message: "Unauthorized" });
+      console.error('❌ Chat request missing user ID');
+      return res.status(401).json({ message: "Unauthorized - User ID required" });
     }
+
+    console.log('💬 Chat message request:', {
+      conversationId: req.params.conversationId,
+      userId,
+      timestamp: new Date().toISOString(),
+      hasContent: !!req.body.content
+    });
 
     try {
       // Verify user owns this conversation
       const conversation = await storage.getConversation(req.params.conversationId);
       
-      if (!conversation || conversation.user_id !== userId) {
-        console.log(`Access denied for conversation ${req.params.conversationId}: conversation user ${conversation?.user_id} != request user ${userId}`);
-        return res.status(403).json({ message: "Access denied" });
+      if (!conversation) {
+        console.error(`❌ Conversation not found: ${req.params.conversationId}`);
+        return res.status(404).json({ message: "Conversation not found" });
+      }
+
+      if (conversation.user_id !== userId) {
+        console.error(`❌ Access denied for conversation ${req.params.conversationId}: conversation user ${conversation?.user_id} != request user ${userId}`);
+        return res.status(403).json({ message: "Access denied - You don't own this conversation" });
       }
 
       const { content } = req.body;
       if (!content || typeof content !== "string") {
-        return res.status(400).json({ message: "Message content is required" });
+        console.error('❌ Missing or invalid message content');
+        return res.status(400).json({ message: "Message content is required and must be a string" });
       }
+
+      if (content.trim().length === 0) {
+        console.error('❌ Empty message content');
+        return res.status(400).json({ message: "Message content cannot be empty" });
+      }
+
+      console.log('✅ Request validation passed, processing message...');
 
       // Process the message with AI
       const result = await ChatService.processMessage(
         req.params.conversationId,
-        content,
+        content.trim(),
         userId,
         conversation.project_id
       );
 
+      console.log('✅ Message processed successfully');
       res.json(result);
+
     } catch (error) {
-      console.error("Chat error:", error);
-      res.status(500).json({ message: error instanceof Error ? error.message : "Failed to process message" });
+      console.error("💥 Chat error:", {
+        error: error instanceof Error ? error.message : error,
+        stack: error instanceof Error ? error.stack : undefined,
+        conversationId: req.params.conversationId,
+        userId,
+        timestamp: new Date().toISOString()
+      });
+
+      // Provide user-friendly error messages
+      let userMessage = "Failed to process message";
+      let statusCode = 500;
+
+      if (error instanceof Error) {
+        if (error.message.includes('API key')) {
+          userMessage = "AI service configuration error. Please check your settings.";
+          statusCode = 502;
+        } else if (error.message.includes('rate limit')) {
+          userMessage = "Too many requests. Please try again in a moment.";
+          statusCode = 429;
+        } else if (error.message.includes('Invalid')) {
+          userMessage = error.message;
+          statusCode = 400;
+        } else {
+          userMessage = error.message;
+        }
+      }
+
+      res.status(statusCode).json({ 
+        message: userMessage,
+        details: process.env.NODE_ENV === 'development' ? (error instanceof Error ? error.stack : error) : undefined
+      });
     }
   });
 

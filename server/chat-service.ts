@@ -12,11 +12,26 @@ export class ChatService {
     userId: string,
     projectId: string
   ) {
+    console.log('💬 ChatService.processMessage started:', {
+      conversationId,
+      userId,
+      projectId,
+      messageLength: userMessage.length,
+      timestamp: new Date().toISOString()
+    });
+
     try {
       // Get chat settings for the user/project, create default if none exist
       let settings = await storage.getChatSettings(projectId, userId);
+      
+      console.log('⚙️ Chat settings check:', {
+        hasSettings: !!settings,
+        provider: settings?.provider,
+        model: settings?.model
+      });
+
       if (!settings) {
-        console.log(`🔧 Creating default chat settings for user ${userId} in project ${projectId}`);          // Create default chat settings
+        console.log(`🔧 Creating default chat settings for user ${userId} in project ${projectId}`);
         const defaultSettings = {
           project_id: projectId,
           user_id: userId,
@@ -39,95 +54,178 @@ export class ChatService {
         }
       }
 
-      // Get conversation history - use unified storage
-      const messages = await storage.getConversationMessages(conversationId);
-      
-      // Limit conversation history based on settings
-      const limitedMessages = messages.slice(-settings.max_conversation_length);
-
-      // Build LLM configuration
-      const llmConfig: LLMConfig = {
-        provider: settings.provider,
-        model: settings.model,
-        apiKey: this.getApiKeyForProvider(settings.provider),
-        temperature: parseFloat(settings.temperature),
-        maxTokens: settings.max_tokens
-      };
-
-      // Build conversation context
-      const conversationMessages: LLMMessage[] = [];
-
-      // Add system prompt if configured
-      if (settings.system_prompt) {
-        conversationMessages.push({
-          role: 'system',
-          content: settings.system_prompt
+      // Get API key for the provider
+      let apiKey;
+      try {
+        apiKey = this.getApiKeyForProvider(settings.provider);
+        console.log('🔑 API key retrieval:', {
+          provider: settings.provider,
+          hasApiKey: !!apiKey,
+          keyLength: apiKey?.length || 0,
+          keyPrefix: apiKey?.substring(0, 10) || 'N/A'
         });
+      } catch (error) {
+        console.error('❌ Failed to get API key:', error);
+        throw new Error(`API key not configured for provider: ${settings.provider}. Please check your environment variables.`);
       }
 
-      // Add project context if enabled
-      if (settings.restrict_to_project_data) {
-        const projectContext = await this.getProjectContext(projectId, userMessage);
-        if (projectContext) {
+      // Get conversation history
+      try {
+        const messages = await storage.getConversationMessages(conversationId);
+        console.log('📝 Conversation history:', {
+          messageCount: messages.length,
+          maxLength: settings.max_conversation_length
+        });
+
+        // Limit conversation history based on settings
+        const limitedMessages = messages.slice(-settings.max_conversation_length);
+
+        // Build LLM configuration
+        const llmConfig: LLMConfig = {
+          provider: settings.provider,
+          model: settings.model,
+          apiKey: apiKey,
+          temperature: parseFloat(settings.temperature),
+          maxTokens: settings.max_tokens
+        };
+
+        console.log('🤖 LLM configuration:', {
+          provider: llmConfig.provider,
+          model: llmConfig.model,
+          temperature: llmConfig.temperature,
+          maxTokens: llmConfig.maxTokens,
+          hasApiKey: !!llmConfig.apiKey
+        });
+
+        // Build conversation context
+        const conversationMessages: LLMMessage[] = [];
+
+        // Add system prompt if configured
+        if (settings.system_prompt) {
           conversationMessages.push({
             role: 'system',
-            content: `Project Context:\n${projectContext}`
+            content: settings.system_prompt
           });
+        }
+
+        // Add project context if enabled
+        if (settings.restrict_to_project_data) {
+          try {
+            const projectContext = await this.getProjectContext(projectId, userMessage);
+            if (projectContext) {
+              conversationMessages.push({
+                role: 'system',
+                content: `Project Context:\n${projectContext}`
+              });
+            }
+          } catch (error) {
+            console.warn('⚠️ Failed to get project context:', error);
+            // Continue without project context
+          }
+        }
+
+        // Add conversation history
+        limitedMessages.forEach(msg => {
+          conversationMessages.push({
+            role: msg.role as 'user' | 'assistant' | 'system',
+            content: msg.content
+          });
+        });
+
+        // Add current user message
+        conversationMessages.push({
+          role: 'user',
+          content: userMessage
+        });
+
+        console.log('📤 Final conversation context:', {
+          totalMessages: conversationMessages.length,
+          systemMessages: conversationMessages.filter(m => m.role === 'system').length,
+          userMessages: conversationMessages.filter(m => m.role === 'user').length,
+          assistantMessages: conversationMessages.filter(m => m.role === 'assistant').length
+        });
+
+        // Save user message to database
+        try {
+          await storage.createMessage({
+            conversation_id: conversationId,
+            role: 'user',
+            content: userMessage,
+            token_count: this.estimateTokens(userMessage)
+          });
+          console.log('✅ User message saved to database');
+        } catch (error) {
+          console.error('❌ Failed to save user message:', error);
+          throw new Error('Failed to save your message. Please try again.');
+        }
+
+        // Generate AI response
+        try {
+          console.log('🤖 Generating AI response...');
+          const provider = LLMFactory.getProvider(llmConfig);
+          const response = await provider.generateResponse(conversationMessages);
+          
+          console.log('✅ AI response generated:', {
+            contentLength: response.content.length,
+            model: response.model,
+            finishReason: response.finish_reason,
+            usage: response.usage
+          });
+
+          // Save AI response to database
+          try {
+            const assistantMessage = await storage.createMessage({
+              conversation_id: conversationId,
+              role: 'assistant',
+              content: response.content,
+              token_count: response.usage?.completion_tokens || this.estimateTokens(response.content),
+              metadata: {
+                model: response.model,
+                usage: response.usage,
+                finish_reason: response.finish_reason
+              }
+            });
+
+            console.log('✅ AI message saved to database');
+
+            return {
+              message: assistantMessage,
+              usage: response.usage
+            };
+
+          } catch (error) {
+            console.error('❌ Failed to save AI response:', error);
+            throw new Error('Failed to save AI response. Please try again.');
+          }
+
+        } catch (error) {
+          console.error('❌ AI response generation failed:', error);
+          if (error instanceof Error) {
+            throw error; // Re-throw with original message
+          } else {
+            throw new Error('Failed to generate AI response. Please try again.');
+          }
+        }
+
+      } catch (error) {
+        console.error('❌ Failed to process conversation messages:', error);
+        if (error instanceof Error) {
+          throw error; // Re-throw with original message
+        } else {
+          throw new Error('Failed to process conversation. Please try again.');
         }
       }
 
-      // Add conversation history
-      limitedMessages.forEach(msg => {
-        conversationMessages.push({
-          role: msg.role as 'user' | 'assistant' | 'system',
-          content: msg.content
-        });
-      });
-
-      // Add current user message
-      conversationMessages.push({
-        role: 'user',
-        content: userMessage
-      });
-
-      // Save user message to database - use unified storage
-      await storage.createMessage({
-        conversation_id: conversationId,
-        role: 'user',
-        content: userMessage,
-        token_count: this.estimateTokens(userMessage)
-      });
-
-      // Generate AI response
-      const provider = LLMFactory.getProvider(llmConfig);
-      const response = await provider.generateResponse(conversationMessages);
-
-      // Save AI response to database - use unified storage
-      const assistantMessage = await storage.createMessage({
-        conversation_id: conversationId,
-        role: 'assistant',
-        content: response.content,
-        token_count: response.usage?.completion_tokens || this.estimateTokens(response.content),
-        metadata: {
-          model: response.model,
-          usage: response.usage,
-          finish_reason: response.finish_reason
-        }
-      });
-
-      // Update conversation timestamp
-      // TODO: Fix this TypeScript error in schema
-      // await storage.updateConversation(conversationId, {
-      //   updated_at: new Date().toISOString()
-      // });
-
-      return {
-        message: assistantMessage,
-        usage: response.usage
-      };
-
     } catch (error) {
-      console.error('Chat service error:', error);
+      console.error('💥 ChatService.processMessage failed:', {
+        error: error instanceof Error ? error.message : error,
+        stack: error instanceof Error ? error.stack : undefined,
+        conversationId,
+        userId,
+        projectId
+      });
+      
+      // Re-throw the error for the route handler to catch
       throw error;
     }
   }
