@@ -1,5 +1,16 @@
 {
   "version": 2,
+  "functions": {
+    "api/**/*.js": {
+      "runtime": "@vercel/node@18"
+    },
+    "api/**/*.ts": {
+      "runtime": "@vercel/node@18"
+    },
+    "server/index.ts": {
+      "runtime": "@vercel/node@18"
+    }
+  },
   "builds": [
     {
       "src": "package.json",
@@ -8,13 +19,29 @@
         "distDir": "dist/public",
         "buildCommand": "npm run build:client"
       }
-    },
-    {
-      "src": "server/index.ts",
-      "use": "@vercel/node"
     }
   ],
   "routes": [
+    {
+      "src": "/api/hello",
+      "dest": "/api/hello.js"
+    },
+    {
+      "src": "/api/debug/status",
+      "dest": "/api/debug/status.js"
+    },
+    {
+      "src": "/api/debug/openai",
+      "dest": "/api/debug/openai.js"
+    },
+    {
+      "src": "/api/test",
+      "dest": "/api/test.ts"
+    },
+    {
+      "src": "/api/test-js",
+      "dest": "/api/test-js.js"
+    },
     {
       "src": "/api/(.*)",
       "dest": "/server/index.ts"
